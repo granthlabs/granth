@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>litie compat + fallback</title>
+    <style>
+      body { font: 14px/1.5 ui-monospace, monospace; margin: 24px; max-width: 900px; }
+      h1 { font-size: 16px; }
+      #summary { font-weight: 700; padding: 8px 12px; border-radius: 6px; display: inline-block; }
+      .ok { background: #e7f6ec; color: #08421d; }
+      .fail { background: #fdecec; color: #5a1010; }
+      ul { list-style: none; padding: 0; }
+      li { padding: 3px 8px; border-radius: 4px; margin: 2px 0; }
+    </style>
+  </head>
+  <body>
+    <h1>litie — IndexedDB fallback + Dexie migration &nbsp; phase=<span id="phase"></span></h1>
+    <p id="summary">running…</p>
+    <p>rows handed to reload phase: <span id="handoff">-</span></p>
+    <ul id="out"></ul>
+    <script type="module" src="./compat.js"></script>
+  </body>
+</html>

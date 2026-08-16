@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "target": "es2022",
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "lib": [
+      "es2022",
+      "dom"
+    ],
+    "noEmit": true,
+    "types": []
+  },
+  "include": [
+    "playground/typecheck.ts"
+  ]
+}

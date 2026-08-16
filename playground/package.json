@@ -1,0 +1,20 @@
+{
+  "name": "playground",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Browser verification for opfs-sqlite against real sqlite-wasm + OPFS. Not published.",
+  "scripts": {
+    "dev": "vite --port 5178",
+    "test": "vite --port 5178"
+  },
+  "dependencies": {
+    "@sqlite.org/sqlite-wasm": "3.53.0-build1",
+    "litie": "*",
+    "opfs-leader": "*",
+    "dexie": "^4.4.5"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  }
+}
