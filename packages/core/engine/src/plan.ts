@@ -104,6 +104,19 @@ function compoundRange(
   const tuple = vals.length === 1 && Array.isArray(vals[0]) ? (vals[0] as unknown[]) : vals;
   if (!tuple.length) return undefined;
 
+  // A PARTIAL tuple is not a scalar compare. IndexedDB array-key ordering puts a
+  // prefix BEFORE any longer array starting with it ([1] < [1,'x']), so treating
+  // .above([1]) as `a > 1` silently drops every a=1 row while .belowOrEqual([1])
+  // silently includes them. Two of the four operators happened to come out right,
+  // which is what makes it hard to notice. Refuse rather than guess.
+  if (tuple.length !== ix.keyPaths.length) {
+    throw new Error(
+      `granth: "${ix.name}" has ${ix.keyPaths.length} components, but ${tuple.length} ` +
+        `${tuple.length === 1 ? 'was' : 'were'} given. A range on a compound index needs the ` +
+        `whole tuple — a partial one does not mean what array-key ordering says it means.`
+    );
+  }
+
   const strict = op === '>' || op === '<';
   const dir = op.startsWith('>') ? '>' : '<';
   const parts: string[] = [];
@@ -122,7 +135,16 @@ function compoundRange(
     parts.push(`(${eqs.join(' AND ')})`);
   }
 
-  return { sql: parts.join(' OR '), params };
+  // The SAME sentinel exclusion every other range operator gets. Returning this
+  // fragment raw reintroduced, on compound indexes only, the exact bug `range()`
+  // was written to fix: rows whose key is null or absent leaking into an
+  // open-ended range. Applied to the FIRST component, which is what any
+  // lexicographic comparison keys off.
+  const first = indexExpr(store, ix, 0);
+  return {
+    sql: `(${parts.join(' OR ')}) AND ${first} NOT IN (${NON_KEY_SENTINELS.map(() => '?').join(', ')})`,
+    params: [...params, ...NON_KEY_SENTINELS],
+  };
 }
 
 function compileCond(store: StoreDef, cond: Condition): Fragment {
@@ -160,6 +182,17 @@ function compileCond(store: StoreDef, cond: Condition): Fragment {
       return compoundRange(store, ix, vals, '<=') ?? build((e) => range(e, `${e} <= ?`, P([vals[0]])));
     case 'between': {
       const [lo, hi, incLo = true, incHi = false] = vals;
+      // between never routed through compoundRange, so on a compound index it
+      // fell to the scalar path and bound the tuple ARRAY as a parameter —
+      // "Unknown named parameter". The docblock claimed this was fixed; it was
+      // fixed for above/below only. A between is just the two bounds ANDed.
+      if (ix.compound) {
+        const lower = compoundRange(store, ix, [lo], incLo ? '>=' : '>');
+        const upper = compoundRange(store, ix, [hi], incHi ? '<=' : '<');
+        if (lower && upper) {
+          return { sql: `(${lower.sql}) AND (${upper.sql})`, params: [...lower.params, ...upper.params] };
+        }
+      }
       return build((e) =>
         range(e, `${e} >${incLo ? '=' : ''} ? AND ${e} <${incHi ? '=' : ''} ?`, P([lo, hi]))
       );
@@ -221,7 +254,13 @@ function compileCond(store: StoreDef, cond: Condition): Fragment {
     case 'isNull':
       return build((e) => ({ sql: `(${e} IS NULL OR ${e} = ?)`, params: [NULL_SENTINEL] }));
     case 'notNull':
-      return build((e) => ({ sql: `(${e} IS NOT NULL AND ${e} <> ?)`, params: [NULL_SENTINEL] }));
+      // BOTH non-key sentinels. Excluding only null left `undefined` counted as
+      // a real value, so notNull disagreed with the range path on the same row —
+      // this file's own doctrine is that neither is a valid index key.
+      return build((e) => ({
+        sql: `(${e} IS NOT NULL AND ${e} NOT IN (${NON_KEY_SENTINELS.map(() => '?').join(', ')}))`,
+        params: [...NON_KEY_SENTINELS],
+      }));
     default:
       throw new Error(`granth: unknown operator "${cond.op}"`);
   }
