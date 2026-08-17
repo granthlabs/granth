@@ -7,9 +7,9 @@
 
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
-import { createEngine, rpcHandlers, schemaAt, VersionError } from '@granth/engine';
-import { parseStore } from '@granth/engine';
-import { compile } from '@granth/engine';
+import { createEngine, rpcHandlers, schemaAt, VersionError } from 'granth-engine';
+import { parseStore } from 'granth-engine';
+import { compile } from 'granth-engine';
 import { serveInWorker } from 'opfs-leader/worker';
 import { Granth } from 'granth';
 

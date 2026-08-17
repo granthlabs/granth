@@ -4,8 +4,8 @@
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import { Granth } from 'granth';
-import { inlineRuntime } from '@granth/runtime-inline';
-import { createEngine, rpcHandlers } from '@granth/engine';
+import { inlineRuntime } from 'granth-runtime-inline';
+import { createEngine, rpcHandlers } from 'granth-engine';
 
 assert.equal(typeof globalThis.Worker, 'undefined', 'this test is only meaningful without a Worker');
 

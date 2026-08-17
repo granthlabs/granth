@@ -1,5 +1,5 @@
 /**
- * @granth/protocol — the contracts every other package implements.
+ * granth-protocol — the contracts every other package implements.
  *
  * Types only, zero runtime, zero dependencies. It exists so that storage,
  * runtimes, bindings and addons can be written against a stable surface without
@@ -89,12 +89,23 @@ export interface RuntimePlugin {
 
 // ---------------------------------------------------------------- addons
 
-/** Operations an addon can intercept. */
+/**
+ * Operations an addon can intercept.
+ *
+ * These are the RPC method names that actually cross to the runtime, NOT the
+ * user-facing API. `table.count()` arrives here as `query` with `'count'` as
+ * its third argument; there is no `count` operation. Listing one would make a
+ * hook that never fires — a silent no-op, which is worse than an error.
+ */
 export type OperationName =
   | 'open' | 'get' | 'bulkGet' | 'query'
   | 'add' | 'put' | 'update' | 'upsert' | 'delete' | 'clear'
   | 'bulkAdd' | 'bulkPut' | 'bulkUpdate' | 'bulkDelete'
-  | 'deleteWhere' | 'modifyWhere' | 'batch';
+  | 'deleteWhere' | 'modifyWhere' | 'batch'
+  | 'exportTable' | 'importTable';
+
+/** The read modes `query` can be asked for, in `args[2]`. */
+export type QueryMode = 'docs' | 'keys' | 'count' | 'indexKeys' | 'uniqueIndexKeys';
 
 export interface OperationContext {
   readonly op: OperationName;

@@ -335,4 +335,6 @@ export function createLeaderClient({
   };
 }
 
-export { staleWhileRevalidate, raceFirstWin, hedge } from './race.js';
+// NOT re-exported from the barrel on purpose: the cache-race helpers are an
+// independent utility, and re-exporting them here drags ~3 kB into every bundle
+// that only wanted the leader client. Import 'opfs-leader/race' for them.

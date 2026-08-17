@@ -2,7 +2,7 @@
 // migrating a real Dexie database into granth.
 
 import { Granth } from 'granth';
-import { importFromIndexedDB, inspectIndexedDB, suggestSchema } from '@granth/plugin-migrate-idb';
+import { importFromIndexedDB, inspectIndexedDB, suggestSchema } from 'granth-migrate-idb';
 import Dexie from 'dexie';
 
 const results = [];

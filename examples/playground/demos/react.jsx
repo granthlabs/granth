@@ -1,6 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import { useState } from 'react';
-import { createLiveQueryHook, useIsSupported } from '@granth/react';
+import { createLiveQueryHook, useIsSupported } from 'granth-react';
 import { db, addTodo, toggle, remove } from './todo-db.js';
 
 // Bind the hook to one database once, for the Dexie-like call shape.
@@ -17,7 +17,7 @@ function App() {
     <>
       <h1>Todos — React</h1>
       <p className="sub">
-        <code>useLiveQuery</code> from <code>@granth/react</code>, backed by <code>useSyncExternalStore</code>.
+        <code>useLiveQuery</code> from <code>granth-react</code>, backed by <code>useSyncExternalStore</code>.
       </p>
       <form
         onSubmit={async (e) => {

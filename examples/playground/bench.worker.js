@@ -1,10 +1,8 @@
 // Separate OPFS file from the correctness playground — sharing one would make
 // the two suites fight over schema versions.
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
-import { startGranthWorker } from '@granth/runtime-worker/entry';
-import { opfsStorage } from '@granth/storage-opfs';
-import { indexeddbStorage } from '@granth/storage-indexeddb';
-import { memoryStorage } from '@granth/storage-memory';
+// One package, one import — the worker half is a separate bundle.
+import { startGranthWorker, opfsStorage, indexeddbStorage, memoryStorage } from 'granth/worker';
 
 // ?sync=normal lets the bench measure the durability/speed trade-off.
 const params = new URL(self.location.href).searchParams;

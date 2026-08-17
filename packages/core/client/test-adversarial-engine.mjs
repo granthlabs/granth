@@ -1,5 +1,5 @@
 import { DatabaseSync } from 'node:sqlite';
-import { createEngine } from '@granth/engine';
+import { createEngine } from 'granth-engine';
 const A = (db)=>({all:(s,p=[])=>db.prepare(s).all(...p).map(r=>({...r})),exec:s=>db.exec(s),
   run:(s,p=[])=>{const r=db.prepare(s).run(...p);return{changes:Number(r.changes),lastInsertRowid:Number(r.lastInsertRowid)}}});
 const e = createEngine(A(new DatabaseSync(':memory:')));

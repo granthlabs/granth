@@ -152,7 +152,7 @@ function compileCond(store: StoreDef, cond: Condition): Fragment {
     case 'notNull':
       return build((e) => ({ sql: `${e} IS NOT NULL`, params: [] }));
     default:
-      throw new Error(`litie: unknown operator "${cond.op}"`);
+      throw new Error(`granth: unknown operator "${cond.op}"`);
   }
 }
 
@@ -176,7 +176,7 @@ function compileOrderLimit(store: StoreDef, plan: QueryPlan): string {
   const pk = q(store.primKey.name);
   if (plan.order) {
     const ix = findIndex(store, plan.order.index);
-    if (ix.multi) throw new Error(`litie: cannot order by multiEntry index "${ix.name}"`);
+    if (ix.multi) throw new Error(`granth: cannot order by multiEntry index "${ix.name}"`);
     const dir = plan.order.desc ? 'DESC' : 'ASC';
     const cols = ix.keyPaths.map((_, i) => `${indexExpr(store, ix, i)} ${dir}`);
     // Tiebreak on the primary key so paging is stable across calls.

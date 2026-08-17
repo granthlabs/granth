@@ -1,5 +1,5 @@
 {
-  "name": "@granth/engine",
+  "name": "granth-engine",
   "version": "0.1.0",
   "description": "The granth storage engine: schema, query planner and SQL compiler. Environment-agnostic.",
   "type": "module",
@@ -38,6 +38,6 @@
   },
   "author": "sundarshahi <shahithakurisundar@gmail.com>",
   "dependencies": {
-    "@granth/protocol": "*"
+    "granth-protocol": "*"
   }
 }

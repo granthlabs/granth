@@ -1,5 +1,5 @@
 /**
- * @granth/runtime-inline — run the database on the calling thread. No Worker.
+ * granth-runtime-inline — run the database on the calling thread. No Worker.
  *
  * For environments where a dedicated Worker is unavailable or unwanted:
  * strict CSP without `worker-src`, some extension and embedded contexts,
@@ -15,7 +15,7 @@ import type {
   RuntimeConnection,
   RuntimeConnectOptions,
   RuntimePlugin,
-} from '@granth/protocol';
+} from 'granth-protocol';
 
 export interface InlineRuntimeOptions {
   /**

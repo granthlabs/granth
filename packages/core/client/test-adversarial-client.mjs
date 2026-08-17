@@ -1,5 +1,5 @@
 import { DatabaseSync } from 'node:sqlite';
-import { createEngine, rpcHandlers } from '@granth/engine';
+import { createEngine, rpcHandlers } from 'granth-engine';
 import { serveInWorker } from 'opfs-leader/worker';
 import { Granth } from 'granth';
 

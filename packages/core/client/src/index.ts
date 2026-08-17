@@ -4,8 +4,7 @@
 // Client side: builds serializable query plans and RPCs them. No SQL here.
 // Behaviour is matched against the real `dexie` package by compat-audit.mjs.
 
-import { workerRuntime } from '@granth/runtime-worker';
-import { inlineRuntime } from '@granth/runtime-inline';
+import { workerRuntime } from 'granth-runtime-worker';
 import type {
   LitiePlugin as GranthPlugin,
   OperationContext,
@@ -15,7 +14,27 @@ import type {
   RuntimeConnection,
   RuntimePlugin,
   StoragePlugin,
-} from '@granth/protocol';
+} from 'granth-protocol';
+
+/**
+ * Errors are flattened to {message,name} crossing postMessage, so the class is
+ * lost on the worker runtime while it survives on the inline one. Rehydrating by
+ * name here makes `instanceof` behave identically on both — otherwise the same
+ * catch block would work in tests and fail in production.
+ */
+export class VersionError extends Error {
+  constructor(message) { super(message); this.name = 'VersionError'; }
+}
+
+const ERRORS = { VersionError };
+
+function reviveError(err) {
+  const Ctor = ERRORS[err?.name];
+  if (!Ctor || err instanceof Ctor) return err;
+  const out = new Ctor(err.message);
+  if (err.stack) out.stack = err.stack;
+  return out;
+}
 
 const remove = (arr, item) => { const i = arr.indexOf(item); if (i >= 0) arr.splice(i, 1); };
 
@@ -580,9 +599,6 @@ export class Granth {
       });
       if (w.isAvailable()) return w;
     }
-    if (this._connectOpts.createHandlers) {
-      return inlineRuntime({ createHandlers: this._connectOpts.createHandlers });
-    }
     throw new Error(
       'granth: no runtime available. Pass `worker: () => new Worker(...)` for the ' +
         'default worker runtime, or `runtime: inlineRuntime({ createHandlers })` to run ' +
@@ -617,7 +633,12 @@ export class Granth {
       if (short !== undefined) return short;   // a hook answered; skip the round trip
     }
     const run = () => this._conn.call(method, ...ctx.args);
-    let result = this._inTx ? await run() : await this._conn.withLock('shared', run);
+    let result;
+    try {
+      result = this._inTx ? await run() : await this._conn.withLock('shared', run);
+    } catch (err) {
+      throw reviveError(err);
+    }
     for (const fn of this._after) {
       const replaced = await fn(ctx, result);
       if (replaced !== undefined) result = replaced;
@@ -979,7 +1000,6 @@ export function liveQuery(db, querier, opts) {
 export { Table, Collection, WhereClause };
 
 
-export { VersionError } from '@granth/engine';
 export { LeaderLostError, NoLeaderError } from 'opfs-leader';
 export default Granth;
 

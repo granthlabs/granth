@@ -14,4 +14,9 @@ jobs:
       # runtime suite, both adversarial suites, the generated Dexie compat audit
       # (which FAILS if we regress), and the codemod fixtures.
       - run: npm test
+      # The Node suites cannot see OPFS, the opfs-sahpool VFS, dedicated Workers
+      # or Web Locks. Without this job a change can be green in Node and broken
+      # in every browser — which has happened.
+      - run: npx playwright install --with-deps chromium
+      - run: node examples/playground/browser-test.mjs
       - run: npm run docs:build

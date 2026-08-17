@@ -1,4 +1,4 @@
-# @granth/runtime-worker
+# granth-runtime-worker
 
 The default runtime for [granth](https://github.com/sundarshahi/granth).
 
@@ -12,7 +12,7 @@ fix, not a mitigation.
 ## Install
 
 ```bash
-npm install @granth/runtime-worker
+npm install granth-runtime-worker
 ```
 
 Full documentation: **https://sundarshahi.github.io/granth**

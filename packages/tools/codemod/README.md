@@ -1,10 +1,10 @@
-# @granth/codemod
+# granth-codemod
 
 Automated Dexie → [granth](https://github.com/sundarshahi/granth) source migration.
 
 ```bash
-npx @granth/codemod ./src --dry      # preview
-npx @granth/codemod ./src --scaffold # write, and generate the worker file
+npx granth-codemod ./src --dry      # preview
+npx granth-codemod ./src --scaffold # write, and generate the worker file
 ```
 
 Uses the TypeScript compiler API rather than regex, because the constructs it rewrites are
@@ -18,7 +18,7 @@ look.
 ## Install
 
 ```bash
-npm install @granth/codemod
+npm install granth-codemod
 ```
 
 Full documentation: **https://sundarshahi.github.io/granth**

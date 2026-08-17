@@ -1,9 +1,9 @@
-# @granth/react
+# granth-react
 
 React bindings for [granth](https://github.com/sundarshahi/granth).
 
 ```jsx
-import { useLiveQuery, useIsSupported } from '@granth/react';
+import { useLiveQuery, useIsSupported } from 'granth-react';
 
 const friends = useLiveQuery(db, () => db.friends.orderBy('name').toArray(), [], []);
 ```
@@ -14,7 +14,7 @@ hydration mismatch. `react` is an optional peer dependency.
 ## Install
 
 ```bash
-npm install @granth/react
+npm install granth-react
 ```
 
 Full documentation: **https://sundarshahi.github.io/granth**

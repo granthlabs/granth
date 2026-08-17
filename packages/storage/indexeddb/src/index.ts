@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { StorageHandle, StorageOpenOptions, StoragePlugin } from '@granth/protocol';
-import { sqliteWasmAdapter } from '@granth/storage-opfs';
+import type { StorageHandle, StorageOpenOptions, StoragePlugin } from 'granth-protocol';
+import { sqliteWasmAdapter } from 'granth-storage-opfs';
 
 // IndexedDB fallback storage.
 //

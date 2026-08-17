@@ -1,5 +1,5 @@
 /**
- * @granth/storage-memory — an in-memory database that persists nothing.
+ * granth-storage-memory — an in-memory database that persists nothing.
  *
  * The point is not speed, it is that it works absolutely everywhere: Node, SSR,
  * unit tests, private browsing, sandboxed iframes with no storage access. Pair it
@@ -7,8 +7,8 @@
  * entry in a storage list so the app degrades to ephemeral rather than throwing.
  */
 
-import type { Adapter, StorageHandle, StorageOpenOptions, StoragePlugin } from '@granth/protocol';
-import { sqliteWasmAdapter } from '@granth/storage-opfs';
+import type { Adapter, StorageHandle, StorageOpenOptions, StoragePlugin } from 'granth-protocol';
+import { sqliteWasmAdapter } from 'granth-storage-opfs';
 
 export function memoryStorage(): StoragePlugin {
   return {

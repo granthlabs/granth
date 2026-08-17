@@ -47,7 +47,7 @@ export type Doc = Record<string, unknown>;
 export class VersionError extends Error {
   constructor(found: number, wanted: number) {
     super(
-      `litie: database is at version ${found}, this code declares ${wanted}. ` +
+      `granth: database is at version ${found}, this code declares ${wanted}. ` +
         `Another tab is probably running a newer build — reload.`
     );
     this.name = 'VersionError';
@@ -75,7 +75,7 @@ export function createEngine(adapter: Adapter) {
 
   const store = (table: string): StoreDef => {
     const s = stores[table];
-    if (!s) throw new Error(`litie: no table "${table}". Declared: ${Object.keys(stores).join(', ') || '(none)'}`);
+    if (!s) throw new Error(`granth: no table "${table}". Declared: ${Object.keys(stores).join(', ') || '(none)'}`);
     return s;
   };
 
@@ -88,10 +88,10 @@ export function createEngine(adapter: Adapter) {
   /** Key in the column, everything else in _doc. One source of truth for the key. */
   const split = (s: StoreDef, doc: unknown): { key: unknown; body: string } => {
     if (doc === null || typeof doc !== 'object' || Array.isArray(doc))
-      throw new Error(`litie: "${s.table}" documents must be plain objects`);
+      throw new Error(`granth: "${s.table}" documents must be plain objects`);
     const { [s.primKey.name]: key, ...rest } = doc as Doc;
     if (key === undefined && !s.primKey.auto)
-      throw new Error(`litie: "${s.table}" requires a "${s.primKey.name}" (schema has no ++)`);
+      throw new Error(`granth: "${s.table}" requires a "${s.primKey.name}" (schema has no ++)`);
     // Encode only a PRESENT key: `undefined` must stay undefined so the caller
     // can pick the auto-increment INSERT, not bind a sentinel into an INTEGER PK.
     return {
@@ -137,7 +137,7 @@ export function createEngine(adapter: Adapter) {
         }
         if (missing.length) {
           throw new Error(
-            `litie: the schema declared for version ${target} does not match the database — ` +
+            `granth: the schema declared for version ${target} does not match the database — ` +
               `missing ${missing.join(', ')}. Schema changes need a NEW version: ` +
               `db.version(${target + 1}).stores({ ... }).`
           );
@@ -162,7 +162,7 @@ export function createEngine(adapter: Adapter) {
           // ponytail: rebuilding a table to change its key is a lot of code for a
           // rare migration. Fail loudly instead of silently keeping the old key.
           throw new Error(
-            `litie: cannot change the primary key of "${table}" (${old.primKey.name} -> ${s.primKey.name}). ` +
+            `granth: cannot change the primary key of "${table}" (${old.primKey.name} -> ${s.primKey.name}). ` +
               `Create a new table and copy in an upgrade step.`
           );
         }
@@ -198,7 +198,10 @@ export function createEngine(adapter: Adapter) {
         adapter.exec(`PRAGMA user_version = ${target}`);
         adapter.exec('COMMIT');
       } catch (err) {
-        adapter.exec('ROLLBACK');
+        // SQLite auto-rolls back on some errors, so ROLLBACK can itself throw
+        // "no transaction is active" — which would replace the real cause and
+        // make every failure look identical. Never let cleanup mask the error.
+        try { adapter.exec('ROLLBACK'); } catch { /* already rolled back */ }
         throw err;
       }
       stores = next;
@@ -284,7 +287,8 @@ export function createEngine(adapter: Adapter) {
         if (!nested) adapter.exec('COMMIT');
         return out;
       } catch (err) {
-        if (!nested) adapter.exec('ROLLBACK');
+        // See migrate(): cleanup must never mask the original failure.
+        if (!nested) { try { adapter.exec('ROLLBACK'); } catch { /* already rolled back */ } }
         throw err;
       }
     },
@@ -363,21 +367,30 @@ export function createEngine(adapter: Adapter) {
      * stay open. Nested calls are rejected: SQLite has one write transaction.
      */
     txBegin(mode: 'r' | 'rw' = 'rw'): boolean {
-      if (inTx) throw new Error('litie: a transaction is already open on this connection');
+      if (inTx) throw new Error('granth: a transaction is already open on this connection');
+      // Defensive: if a previous failure left SQLite mid-transaction, clear it
+      // rather than failing every future BEGIN.
+      try { adapter.exec('ROLLBACK'); } catch { /* nothing was open */ }
       adapter.exec(mode === 'r' ? 'BEGIN' : 'BEGIN IMMEDIATE');
       inTx = true;
       return true;
     },
     txCommit(): boolean {
-      if (!inTx) throw new Error('litie: no transaction is open');
-      adapter.exec('COMMIT');
+      if (!inTx) throw new Error('granth: no transaction is open');
+      // Clear before committing: if COMMIT throws, the transaction is gone
+      // anyway and leaving the flag set would wedge the connection.
       inTx = false;
+      adapter.exec('COMMIT');
       return true;
     },
     txRollback(): boolean {
       if (!inTx) return false;
-      adapter.exec('ROLLBACK');
+      // `inTx` is our belief; SQLite may already have rolled back on its own
+      // after an error. Clear the flag either way, or the connection is wedged
+      // for every later call — which is how one failure became "cannot rollback"
+      // on every subsequent operation.
       inTx = false;
+      try { adapter.exec('ROLLBACK'); } catch { /* already rolled back */ }
       return true;
     },
     get inTransaction() {
@@ -398,13 +411,14 @@ export function createEngine(adapter: Adapter) {
         const out = ops.map(({ op, table, args }) => {
           const fn = (api as unknown as Record<string, unknown>)[op];
           if (typeof fn !== 'function' || op === 'batch' || op === 'migrate')
-            throw new Error(`litie: "${op}" is not allowed in a transaction`);
+            throw new Error(`granth: "${op}" is not allowed in a transaction`);
           return (fn as (...a: unknown[]) => unknown)(table, ...args);
         });
         if (!nested) adapter.exec('COMMIT');
         return out;
       } catch (err) {
-        if (!nested) adapter.exec('ROLLBACK');
+        // See migrate(): cleanup must never mask the original failure.
+        if (!nested) { try { adapter.exec('ROLLBACK'); } catch { /* already rolled back */ } }
         throw err;
       }
     },

@@ -26,7 +26,7 @@ export const db = new Granth('myapp', {
 db.version(1).stores({ friends: '++id, name, age, *tags' });
 
 // Friends.jsx
-import { useLiveQuery, useIsSupported } from '@granth/react';
+import { useLiveQuery, useIsSupported } from 'granth-react';
 import { db } from './db';
 
 export function Friends() {
@@ -85,7 +85,7 @@ Under SvelteKit SSR, guard with `browser` from `$app/environment` before queryin
 
 ```vue
 <script setup>
-import { useLiveQuery } from '@granth/vue';
+import { useLiveQuery } from 'granth-vue';
 import { db } from './db';
 
 const { data: friends } = useLiveQuery(db, () => db.friends.orderBy('name').toArray(), {
@@ -156,7 +156,7 @@ Node can all run granth — on the inline runtime, paired with a non-OPFS backen
 
 ```js
 import { Granth } from 'granth';
-import { inlineRuntime } from '@granth/runtime-inline';
+import { inlineRuntime } from 'granth-runtime-inline';
 
 const db = new Granth('myapp', { runtime: inlineRuntime({ createHandlers }) });
 ```

@@ -1,5 +1,5 @@
 {
-  "name": "@granth/runtime-worker",
+  "name": "granth-runtime-worker",
   "version": "0.1.0",
   "description": "Dedicated-worker runtime for granth. One elected tab owns the database; every tab can query it.",
   "type": "module",
@@ -42,8 +42,8 @@
   },
   "author": "sundarshahi <shahithakurisundar@gmail.com>",
   "dependencies": {
-    "@granth/protocol": "*",
+    "granth-protocol": "*",
     "opfs-leader": "*",
-    "@granth/engine": "*"
+    "granth-engine": "*"
   }
 }

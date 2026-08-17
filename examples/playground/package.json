@@ -10,25 +10,26 @@
   },
   "dependencies": {
     "@sqlite.org/sqlite-wasm": "3.53.0-build1",
-    "granth": "*",
-    "opfs-leader": "*",
     "dexie": "^4.4.5",
-    "@granth/runtime-worker": "*",
-    "@granth/runtime-inline": "*",
-    "@granth/storage-opfs": "*",
-    "@granth/storage-indexeddb": "*",
-    "@granth/storage-memory": "*",
-    "@granth/engine": "*",
-    "@granth/plugin-migrate-idb": "*",
+    "granth": "*",
+    "granth-engine": "*",
+    "granth-migrate-idb": "*",
+    "granth-react": "*",
+    "granth-runtime-inline": "*",
+    "granth-runtime-worker": "*",
+    "granth-storage-indexeddb": "*",
+    "granth-storage-memory": "*",
+    "granth-storage-opfs": "*",
+    "granth-vue": "*",
+    "opfs-leader": "*",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "vue": "^3.5.13",
-    "@granth/react": "*",
-    "@granth/vue": "*"
+    "vue": "^3.5.13"
   },
   "devDependencies": {
-    "vite": "^5.4.0",
     "@vitejs/plugin-react": "^4.3.4",
-    "@vitejs/plugin-vue": "^5.2.1"
+    "@vitejs/plugin-vue": "^5.2.1",
+    "playwright": "^1.62.1",
+    "vite": "^5.4.0"
   }
 }

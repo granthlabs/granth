@@ -1,4 +1,4 @@
-# @granth/storage-memory
+# granth-storage-memory
 
 In-memory storage backend for [granth](https://github.com/sundarshahi/granth).
 
@@ -9,7 +9,7 @@ ephemeral rather than throwing.
 ## Install
 
 ```bash
-npm install @granth/storage-memory
+npm install granth-storage-memory
 ```
 
 Full documentation: **https://sundarshahi.github.io/granth**

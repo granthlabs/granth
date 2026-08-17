@@ -1,4 +1,4 @@
-# @granth/engine
+# granth-engine
 
 The storage engine behind [granth](https://github.com/sundarshahi/granth).
 
@@ -13,7 +13,7 @@ over `json_extract` plus a real SQLite index. The codec preserves `Date`, `NaN`,
 ## Install
 
 ```bash
-npm install @granth/engine
+npm install granth-engine
 ```
 
 Full documentation: **https://sundarshahi.github.io/granth**

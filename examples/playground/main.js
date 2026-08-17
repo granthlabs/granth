@@ -35,7 +35,12 @@ const V2 = { friends: '++id, name, age, city, flag, when, *tags, [name+age]' };
 /** @param {1|2} upto  open the database declaring versions up to `upto` */
 function makeDb(upto = 2) {
   const db = new Granth('playground', {
-    worker: () => new Worker(new URL('./db.worker.js', import.meta.url), { type: 'module' }),
+    worker: () => {
+      const u = new URL('./db.worker.js', import.meta.url);
+      const f = new URLSearchParams(location.search).get('file');
+      if (f) u.searchParams.set('file', f);
+      return new Worker(u, { type: 'module' });
+    },
   });
   db.version(1).stores(V1);
   if (upto >= 2) db.version(2).stores(V2);

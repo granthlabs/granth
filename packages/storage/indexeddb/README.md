@@ -1,4 +1,4 @@
-# @granth/storage-indexeddb
+# granth-storage-indexeddb
 
 IndexedDB storage backend for [granth](https://github.com/sundarshahi/granth).
 
@@ -12,7 +12,7 @@ durability differs. Checkpoints are debounced and whole-file, so cost is O(datab
 ## Install
 
 ```bash
-npm install @granth/storage-indexeddb
+npm install granth-storage-indexeddb
 ```
 
 Full documentation: **https://sundarshahi.github.io/granth**

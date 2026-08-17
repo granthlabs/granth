@@ -1,5 +1,5 @@
 {
-  "name": "@granth/protocol",
+  "name": "granth-protocol",
   "version": "0.1.0",
   "description": "Plugin contracts for granth. Types only, zero runtime, zero dependencies.",
   "type": "module",

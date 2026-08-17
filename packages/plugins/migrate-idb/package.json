@@ -1,5 +1,5 @@
 {
-  "name": "@granth/plugin-migrate-idb",
+  "name": "granth-migrate-idb",
   "version": "0.1.0",
   "description": "Migrate an existing IndexedDB or Dexie database into granth.",
   "type": "module",
@@ -38,6 +38,6 @@
   },
   "author": "sundarshahi <shahithakurisundar@gmail.com>",
   "dependencies": {
-    "@granth/protocol": "*"
+    "granth-protocol": "*"
   }
 }

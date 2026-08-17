@@ -26,7 +26,7 @@ export interface StoreDef {
 export type StoresSpec = Record<string, string | null>;
 
 function assertKeyPath(kp: string): string {
-  if (!KEYPATH.test(kp)) throw new Error(`litie: invalid keyPath "${kp}"`);
+  if (!KEYPATH.test(kp)) throw new Error(`granth: invalid keyPath "${kp}"`);
   return kp;
 }
 
@@ -44,14 +44,14 @@ export function parseStore(table: string, spec: string): StoreDef {
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
-  if (!parts.length) throw new Error(`litie: store "${table}" has no primary key`);
+  if (!parts.length) throw new Error(`granth: store "${table}" has no primary key`);
 
   const [pkSpec, ...idxSpecs] = parts;
   const auto = pkSpec.startsWith('++');
   // Check this before the keyPath regex — "cannot be multiEntry" is a far more
   // actionable error than "invalid keyPath" for the same typo.
   if (pkSpec.includes('*') || pkSpec.includes('['))
-    throw new Error(`litie: primary key of "${table}" cannot be multiEntry or compound`);
+    throw new Error(`granth: primary key of "${table}" cannot be multiEntry or compound`);
   const pkName = assertKeyPath(pkSpec.replace(/^\+\+/, '').replace(/^&/, ''));
 
   const indexes: IndexDef[] = idxSpecs.map((raw): IndexDef => {
@@ -63,7 +63,7 @@ export function parseStore(table: string, spec: string): StoreDef {
 
     if (s.startsWith('[')) {
       const keyPaths = s.replace(/^\[|\]$/g, '').split('+').map((k: string) => assertKeyPath(k.trim()));
-      if (multi) throw new Error(`litie: compound index "${raw}" cannot be multiEntry`);
+      if (multi) throw new Error(`granth: compound index "${raw}" cannot be multiEntry`);
       return { name: `[${keyPaths.join('+')}]`, keyPaths, unique, multi: false, compound: true };
     }
     const kp = assertKeyPath(s);
@@ -161,7 +161,7 @@ export function findIndex(store: StoreDef, name: string): IndexDef {
   const ix = store.indexes.find((i) => i.name === name);
   if (!ix) {
     throw new Error(
-      `litie: "${name}" is not an index on "${store.table}". ` +
+      `granth: "${name}" is not an index on "${store.table}". ` +
         `Declared: ${[store.primKey.name, ...store.indexes.map((i) => i.name)].join(', ')}`
     );
   }

@@ -1,5 +1,5 @@
 {
-  "name": "@granth/codemod",
+  "name": "granth-codemod",
   "version": "0.1.0",
   "type": "module",
   "license": "MIT",

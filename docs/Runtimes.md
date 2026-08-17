@@ -4,8 +4,8 @@ A runtime decides **where the SQL executes**. Two ship; you can write your own.
 
 | Runtime | Package | SQL runs | Can use OPFS |
 |---|---|---|---|
-| `workerRuntime` | `@granth/runtime-worker` | in a dedicated Worker, owned by one elected tab | ✅ |
-| `inlineRuntime` | `@granth/runtime-inline` | on the calling thread | ❌ |
+| `workerRuntime` | `granth-runtime-worker` | in a dedicated Worker, owned by one elected tab | ✅ |
+| `inlineRuntime` | `granth-runtime-inline` | on the calling thread | ❌ |
 
 ## worker — the default
 
@@ -26,8 +26,8 @@ For strict CSP without `worker-src`, some extension and embedded contexts,
 server-side rendering, Node, and tests.
 
 ```js
-import { inlineRuntime } from '@granth/runtime-inline';
-import { createEngine, rpcHandlers } from '@granth/engine';
+import { inlineRuntime } from 'granth-runtime-inline';
+import { createEngine, rpcHandlers } from 'granth-engine';
 
 const db = new Granth('myapp', {
   runtime: inlineRuntime({
@@ -62,4 +62,4 @@ const runtime = Granth.isSupported()
 ## Writing one
 
 A runtime is five methods — see [Plugins](./Plugins.md) and the `RuntimePlugin`
-contract in `@granth/protocol`.
+contract in `granth-protocol`.

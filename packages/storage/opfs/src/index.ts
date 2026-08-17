@@ -1,5 +1,5 @@
 /**
- * @granth/storage-opfs — the fast path.
+ * granth-storage-opfs — the fast path.
  *
  * Uses the `opfs-sahpool` VFS: the highest-performance OPFS backend and, crucially,
  * the only one that needs no COOP/COEP cross-origin isolation headers. Its cost is
@@ -9,7 +9,7 @@
  * Requires a dedicated Worker: OPFS sync access handles exist nowhere else.
  */
 
-import type { Adapter, StorageHandle, StorageOpenOptions, StoragePlugin } from '@granth/protocol';
+import type { Adapter, StorageHandle, StorageOpenOptions, StoragePlugin } from 'granth-protocol';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export function sqliteWasmAdapter(sqlite3: any, db: any): Adapter {

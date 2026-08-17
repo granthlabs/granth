@@ -1,5 +1,5 @@
 import { createApp, ref, h } from 'vue';
-import { useLiveQuery } from '@granth/vue';
+import { useLiveQuery } from 'granth-vue';
 import { db, addTodo, toggle, remove } from './todo-db.js';
 
 createApp({
@@ -16,7 +16,7 @@ createApp({
     return () =>
       h('div', [
         h('h1', 'Todos — Vue'),
-        h('p', { class: 'sub' }, [h('code', 'useLiveQuery'), ' composable from ', h('code', '@granth/vue'), '.']),
+        h('p', { class: 'sub' }, [h('code', 'useLiveQuery'), ' composable from ', h('code', 'granth-vue'), '.']),
         h('form', { onSubmit: submit }, [
           h('input', {
             type: 'text', value: text.value, placeholder: 'What needs doing?',

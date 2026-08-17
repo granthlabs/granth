@@ -16,7 +16,7 @@ hero:
       link: https://github.com/sundarshahi/granth
 features:
   - title: Dexie-compatible
-    details: The API is diffed against the real dexie package by a generated audit that fails the build on regression — WhereClause 18/18. Run npx @granth/codemod to migrate your source, then import your existing IndexedDB data.
+    details: The API is diffed against the real dexie package by a generated audit that fails the build on regression — WhereClause 18/18. Run npx granth-codemod to migrate your source, then import your existing IndexedDB data.
   - title: A real query planner
     details: Filter on one index and order by another. A cursor-based store can only use one index per query; SQL has no such limit.
   - title: Structured-clone fidelity

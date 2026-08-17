@@ -17,7 +17,7 @@ The API is matched against the real `dexie` package by a generated audit
 ### Run the codemod
 
 ```bash
-npx @granth/codemod ./src
+npx granth-codemod ./src
 ```
 
 It rewrites the imports, `new Dexie(...)` / `extends Dexie`, and the binding
@@ -59,7 +59,7 @@ transaction without awaiting them. Here you must `await`.
 ## 2. Data
 
 ```js
-import { suggestSchema, importFromIndexedDB } from '@granth/plugin-migrate-idb';
+import { suggestSchema, importFromIndexedDB } from 'granth-migrate-idb';
 
 // Read the schema straight out of the old database
 const schema = await suggestSchema('my-old-dexie-db');

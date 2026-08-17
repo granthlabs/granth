@@ -8,10 +8,10 @@ prediction, opening is the proof.
 
 ```js
 // db.worker.js
-import { startGranthWorker } from '@granth/runtime-worker/entry';
-import { opfsStorage } from '@granth/storage-opfs';
-import { indexeddbStorage } from '@granth/storage-indexeddb';
-import { memoryStorage } from '@granth/storage-memory';
+import { startGranthWorker } from 'granth-runtime-worker/entry';
+import { opfsStorage } from 'granth-storage-opfs';
+import { indexeddbStorage } from 'granth-storage-indexeddb';
+import { memoryStorage } from 'granth-storage-memory';
 
 startGranthWorker({
   sqlite3InitModule,
@@ -26,9 +26,9 @@ await db.storageKind(); // -> 'opfs' | 'indexeddb' | 'memory'
 
 | Plugin | Persists | Works where |
 |---|---|---|
-| `@granth/storage-opfs` | in place, fastest | a dedicated Worker + OPFS |
-| `@granth/storage-indexeddb` | debounced whole-file checkpoint | anywhere IndexedDB exists, incl. Safari private browsing |
-| `@granth/storage-memory` | not at all | absolutely everywhere: Node, SSR, tests, sandboxed frames |
+| `granth-storage-opfs` | in place, fastest | a dedicated Worker + OPFS |
+| `granth-storage-indexeddb` | debounced whole-file checkpoint | anywhere IndexedDB exists, incl. Safari private browsing |
+| `granth-storage-memory` | not at all | absolutely everywhere: Node, SSR, tests, sandboxed frames |
 
 Drop `memoryStorage()` from the list if you would rather fail loudly than run
 against a store that silently forgets on reload.

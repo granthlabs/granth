@@ -1,5 +1,5 @@
 {
-  "name": "@granth/runtime-inline",
+  "name": "granth-runtime-inline",
   "version": "0.1.0",
   "description": "No-Worker runtime for granth. Runs on the calling thread for strict-CSP, SSR, Node and test environments.",
   "type": "module",
@@ -38,6 +38,6 @@
   },
   "author": "sundarshahi <shahithakurisundar@gmail.com>",
   "dependencies": {
-    "@granth/protocol": "*"
+    "granth-protocol": "*"
   }
 }

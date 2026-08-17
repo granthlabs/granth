@@ -8,9 +8,9 @@
  */
 
 import { serveInWorker } from 'opfs-leader/worker';
-import { createEngine, rpcHandlers } from '@granth/engine';
-import type { Engine, MigrateResult } from '@granth/engine';
-import type { StorageHandle, StoragePlugin } from '@granth/protocol';
+import { createEngine, rpcHandlers } from 'granth-engine';
+import type { Engine, MigrateResult } from 'granth-engine';
+import type { StorageHandle, StoragePlugin } from 'granth-protocol';
 
 export interface StartWorkerOptions {
   /** The default export of '@sqlite.org/sqlite-wasm'. */

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * npx @granth/codemod ./src
+ * npx granth-codemod ./src
  *
  * Rewrites what is safe, reports what is not. Defaults to writing; pass --dry to
  * preview. Never touches node_modules, dist or build output.
@@ -42,7 +42,7 @@ export async function run(argv: string[]): Promise<number> {
   const workerPath = flag(argv, '--worker') ?? './db.worker.js';
 
   if (!existsSync(target)) {
-    console.error(`@granth/codemod: no such path "${target}"`);
+    console.error(`granth-codemod: no such path "${target}"`);
     return 1;
   }
 

@@ -1,5 +1,5 @@
 /**
- * @granth/runtime-worker — the default runtime.
+ * granth-runtime-worker — the default runtime.
  *
  * Runs SQL in a dedicated Worker owned by exactly one tab, elected via Web Locks
  * by `opfs-leader`. Every other tab routes its calls to that tab. This is the
@@ -9,7 +9,7 @@
 
 import { createLeaderClient } from 'opfs-leader';
 import type { LeaderClient } from 'opfs-leader';
-import type { RuntimeConnection, RuntimeConnectOptions, RuntimePlugin } from '@granth/protocol';
+import type { RuntimeConnection, RuntimeConnectOptions, RuntimePlugin } from 'granth-protocol';
 
 export interface WorkerRuntimeOptions {
   /** Called ONLY in the tab that wins the election. */

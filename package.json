@@ -9,9 +9,10 @@
   ],
   "scripts": {
     "build": "tsc -b",
-    "test": "npm run build && npm run test -w opfs-leader && npm run test -w granth && npm run test -w @granth/codemod",
+    "test": "npm run build && npm run test -w opfs-leader && npm run test -w granth && npm run test -w granth-codemod",
+    "test:browser": "npm run build && node examples/playground/browser-test.mjs",
     "dev": "npm run dev -w playground",
-    "clean": "rm -rf packages/*/*/dist packages/opfs-leader/dist",
+    "clean": "tsc -b --clean && rm -rf packages/*/*/dist packages/opfs-leader/dist",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs"

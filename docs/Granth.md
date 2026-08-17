@@ -31,7 +31,7 @@ const db = new Granth('myapp', {
 To run without a Worker at all (strict CSP, SSR, Node, tests):
 
 ```js
-import { inlineRuntime } from '@granth/runtime-inline';
+import { inlineRuntime } from 'granth-runtime-inline';
 const db = new Granth('myapp', { runtime: inlineRuntime({ createHandlers }) });
 ```
 

@@ -48,10 +48,10 @@ await db.open();
 ```js
 // db.worker.js — the entire file
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
-import { startGranthWorker } from '@granth/runtime-worker/entry';
-import { opfsStorage } from '@granth/storage-opfs';
-import { indexeddbStorage } from '@granth/storage-indexeddb';
-import { memoryStorage } from '@granth/storage-memory';
+import { startGranthWorker } from 'granth-runtime-worker/entry';
+import { opfsStorage } from 'granth-storage-opfs';
+import { indexeddbStorage } from 'granth-storage-indexeddb';
+import { memoryStorage } from 'granth-storage-memory';
 
 startGranthWorker({
   sqlite3InitModule,

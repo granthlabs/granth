@@ -50,7 +50,7 @@ export class MyDB extends Dexie {
 {
   const src = `import { useLiveQuery } from 'dexie-react-hooks';\nimport Dexie from 'dexie';`;
   const { code, notes } = transform(src, 'c.tsx');
-  assert.match(code, /from '@granth\/react'/);
+  assert.match(code, /from 'granth-react'/);
   assert.ok(has(notes, /takes the db as its first argument/));
 }
 

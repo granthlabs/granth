@@ -1,5 +1,5 @@
 {
-  "name": "@granth/storage-memory",
+  "name": "granth-storage-memory",
   "version": "0.1.0",
   "description": "In-memory storage backend for granth. Works everywhere: Node, SSR, tests, private browsing.",
   "type": "module",
@@ -38,7 +38,7 @@
   },
   "author": "sundarshahi <shahithakurisundar@gmail.com>",
   "dependencies": {
-    "@granth/protocol": "*",
-    "@granth/storage-opfs": "*"
+    "granth-protocol": "*",
+    "granth-storage-opfs": "*"
   }
 }

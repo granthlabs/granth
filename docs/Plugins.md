@@ -1,6 +1,6 @@
 # Plugins
 
-Everything swappable is a plugin. `@granth/protocol` holds the contracts — types
+Everything swappable is a plugin. `granth-protocol` holds the contracts — types
 only, zero runtime, zero dependencies — so backends and bindings never import each
 other or the client.
 
@@ -89,10 +89,10 @@ inside your open transaction. A single-context runtime may no-op it.
 | Package | Role |
 |---|---|
 | `granth` | the client — what you import |
-| `@granth/protocol` | contracts, types only |
-| `@granth/engine` | schema, planner, SQL compiler, value codec |
-| `@granth/storage-opfs` · `-indexeddb` · `-memory` | storage backends |
-| `@granth/runtime-worker` · `-inline` | runtimes |
-| `@granth/react` · `@granth/vue` | framework bindings |
-| `@granth/plugin-migrate-idb` | import an existing IndexedDB/Dexie database |
+| `granth-protocol` | contracts, types only |
+| `granth-engine` | schema, planner, SQL compiler, value codec |
+| `granth-storage-opfs` · `-indexeddb` · `-memory` | storage backends |
+| `granth-runtime-worker` · `-inline` | runtimes |
+| `granth-react` · `granth-vue` | framework bindings |
+| `granth-migrate-idb` | import an existing IndexedDB/Dexie database |
 | `opfs-leader` | the multi-tab election, usable standalone |

@@ -2,10 +2,10 @@
 // on the main thread and handed to the inline runtime.
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
 import { Granth } from 'granth';
-import { inlineRuntime } from '@granth/runtime-inline';
-import { createEngine, rpcHandlers } from '@granth/engine';
-import { indexeddbStorage } from '@granth/storage-indexeddb';
-import { memoryStorage } from '@granth/storage-memory';
+import { inlineRuntime } from 'granth-runtime-inline';
+import { createEngine, rpcHandlers } from 'granth-engine';
+import { indexeddbStorage } from 'granth-storage-indexeddb';
+import { memoryStorage } from 'granth-storage-memory';
 
 const createHandlers = async () => {
   const sqlite3 = await sqlite3InitModule();

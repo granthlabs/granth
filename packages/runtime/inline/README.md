@@ -1,4 +1,4 @@
-# @granth/runtime-inline
+# granth-runtime-inline
 
 No-Worker runtime for [granth](https://github.com/sundarshahi/granth).
 
@@ -12,7 +12,7 @@ so a slow query blocks rendering. Cross-tab change notification still works.
 ## Install
 
 ```bash
-npm install @granth/runtime-inline
+npm install granth-runtime-inline
 ```
 
 Full documentation: **https://sundarshahi.github.io/granth**
