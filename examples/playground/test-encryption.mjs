@@ -12,7 +12,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { Granth } from 'granthdb';
 import { inlineRuntime } from 'granth-runtime-inline';
 import { createEngine, rpcHandlers } from 'granth-engine';
-import { encryptedFields, deriveKey } from './demos/encrypted-fields.js';
+import { encryptedFields, deriveKey, rotateKey } from './demos/encrypted-fields.js';
 
 const adapter = (db) => ({
   all: (s, p = []) => db.prepare(s).all(...p).map((r) => ({ ...r })),
@@ -72,6 +72,54 @@ const all = JSON.stringify(raw.prepare('SELECT "_doc" FROM "notes"').all());
 assert.ok(!all.includes(SECRET), 'put() must seal');
 assert.ok(!all.includes('updated secret'), 'update() must seal');
 assert.equal((await db.notes.get(2)).body, 'updated secret');
+
+// --- 6. key rotation --------------------------------------------------------
+{
+  const rotDb = new Granth('rot', {
+    runtime: inlineRuntime({ createHandlers: async () => rpcHandlers(() => engine) }),
+  });
+  rotDb.version(1).stores({ notes: '++id, title, folder' });
+  await rotDb.open();
+
+  const k1 = await deriveKey('first passphrase', 'salt-1');
+  const k2 = await deriveKey('second passphrase', 'salt-1');
+
+  let handle = rotDb.use(encryptedFields({ key: k1, fields: ['body'] }));
+  await rotDb.notes.clear();
+  // Capture the ids: clear() does not reset auto-increment, so assuming id 1
+  // silently tests nothing — get() would return undefined and never decrypt.
+  const idA = await rotDb.notes.add({ title: 'r1', folder: 'f', body: 'rotate me' });
+  await rotDb.notes.add({ title: 'r2', folder: 'f', body: 'me too' });
+
+  // Rotating with the addon still attached must REFUSE rather than silently
+  // no-op — a rotation that reports success and changed nothing is the worst
+  // possible outcome, because you then discard the old key.
+  await assert.rejects(
+    () => rotateKey(rotDb, 'notes', ['body'], k1, k2),
+    /dispose the encrypted-fields addon first/,
+    'rotation must refuse while the addon is attached'
+  );
+
+  await handle.dispose();
+  const n = await rotateKey(rotDb, 'notes', ['body'], k1, k2);
+  assert.equal(n, 2, 'both rows should be rewritten');
+
+  // The OLD key must no longer open it...
+  handle = rotDb.use(encryptedFields({ key: k1, fields: ['body'] }));
+  await assert.rejects(() => rotDb.notes.get(idA), 'the old key must stop working');
+  await handle.dispose();
+
+  // ...and the NEW key must.
+  handle = rotDb.use(encryptedFields({ key: k2, fields: ['body'] }));
+  const back = await rotDb.notes.toArray();
+  assert.deepEqual(back.map((r) => r.body).sort(), ['me too', 'rotate me']);
+
+  // Still ciphertext on disk after rotation.
+  const afterRot = JSON.stringify(raw.prepare('SELECT "_doc" FROM "notes"').all());
+  assert.ok(!afterRot.includes('rotate me'), 'plaintext must not appear after rotation');
+  await handle.dispose();
+  console.log('key rotation: verified (refuses while attached, old key dead, new key works)');
+}
 
 console.log('encryption addon: all assertions passed (plaintext absent from storage)');
 process.exit(0);

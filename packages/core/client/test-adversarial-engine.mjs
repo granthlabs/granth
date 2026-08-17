@@ -168,4 +168,47 @@ check('modifyWhere goes through the value codec', () => {
     : `note=${JSON.stringify(d.note)} when=${Object.prototype.toString.call(d.when)}`;
 });
 
+// 15. QUOTA EXHAUSTION. Browsers run out of space, and a half-applied batch is
+// the failure that turns a full disk into corrupted data. SQLITE_FULL is
+// injected mid-batch: the whole batch must roll back, and the engine must stay
+// usable rather than wedging on a stranded transaction.
+check('a full disk mid-batch rolls back and leaves the engine usable', () => {
+  const raw = new DatabaseSync(':memory:');
+  let failAfter = null, writes = 0;
+  const en = createEngine({
+    all: (s, p = []) => raw.prepare(s).all(...p).map((r) => ({ ...r })),
+    exec: (s) => raw.exec(s),
+    run: (s, p = []) => {
+      if (failAfter !== null && ++writes > failAfter) {
+        const err = new Error('database or disk is full'); err.code = 'SQLITE_FULL'; throw err;
+      }
+      const r = raw.prepare(s).run(...p);
+      return { changes: Number(r.changes), lastInsertRowid: Number(r.lastInsertRowid) };
+    },
+  });
+  en.migrate([{ version: 1, stores: { t: '++id, name' } }]);
+  en.add('t', { name: 'before' });
+
+  const before = en.query('t', { or: [] }, 'count');
+  failAfter = 2; writes = 0;                 // two inserts land, the third fails
+  let threw = false;
+  try {
+    en.batch([
+      { op: 'add', table: 't', args: [{ name: 'n1' }] },
+      { op: 'add', table: 't', args: [{ name: 'n2' }] },
+      { op: 'add', table: 't', args: [{ name: 'n3' }] },
+    ]);
+  } catch { threw = true; }
+  failAfter = null;
+
+  if (!threw) return 'a full disk did not surface an error';
+  const after = en.query('t', { or: [] }, 'count');
+  if (after !== before) return `partial write: ${after - before} row(s) survived a failed batch`;
+
+  try { en.add('t', { name: 'after' }); } catch (err) { return `engine unusable after: ${err.message}`; }
+  try { en.txBegin('rw'); en.add('t', { name: 'tx' }); en.txCommit(); }
+  catch (err) { return `transactions wedged after a full disk: ${err.message}`; }
+  return null;
+});
+
 console.log(bad.length ? 'FINDINGS:\n- ' + bad.join('\n- ') : 'no findings');

@@ -109,3 +109,57 @@ export function encryptedFields({ key, fields }) {
     },
   };
 }
+
+/**
+ * Re-encrypt every sealed field under a NEW key.
+ *
+ * Key rotation is the part people postpone until they need it urgently, which
+ * is the worst time to design it. The shape that works:
+ *
+ *  - decrypt with the OLD key and re-encrypt with the NEW one, row by row;
+ *  - inside ONE transaction, so a crash halfway leaves the table entirely on the
+ *    old key rather than half-and-half — a half-rotated table is readable by
+ *    neither key and is the genuinely unrecoverable state;
+ *  - the caller swaps the addon over afterwards.
+ *
+ * IMPORTANT: `db` must NOT have the encryption addon registered. Rotation works
+ * on the sealed envelopes, and an addon in the way would decrypt them on read
+ * and re-seal them under whichever key IT holds — silently doing nothing, or
+ * worse, writing plaintext. Dispose the addon, rotate, then re-register with the
+ * new key:
+ *
+ *     await handle.dispose();
+ *     await rotateKey(db, 'notes', ['body'], oldKey, newKey);
+ *     handle = db.use(encryptedFields({ key: newKey, fields: ['body'] }));
+ *
+ * Returns the number of rows rewritten.
+ */
+export async function rotateKey(db, table, fields, oldKey, newKey) {
+  if (db.plugins.includes('encrypted-fields')) {
+    throw new Error(
+      'rotateKey: dispose the encrypted-fields addon first — it would decrypt on ' +
+      'read and re-seal under its own key, so the rotation would silently do nothing.'
+    );
+  }
+
+  const secret = new Set(fields);
+  const rows = await db.table(table).toArray();
+  const rewritten = [];
+
+  for (const row of rows) {
+    const out = { ...row };
+    for (const f of secret) {
+      if (!isBox(out[f])) continue;               // never sealed, or already rotated
+      const plain = await decryptValue(oldKey, out[f]);
+      out[f] = await encryptValue(newKey, plain);
+    }
+    rewritten.push(out);
+  }
+
+  // One transaction: every row moves to the new key, or none does.
+  await db.transaction('rw', [db.table(table)], async () => {
+    for (const row of rewritten) await db.table(table).put(row);
+  });
+
+  return rewritten.length;
+}

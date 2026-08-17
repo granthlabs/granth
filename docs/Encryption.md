@@ -122,9 +122,53 @@ The addon is the easy half. Decide these before shipping:
 - **Where does the key come from?** A user passphrase is honest but means a
   forgotten passphrase is unrecoverable data. A server-delivered key means the
   server can decrypt, so state that plainly in your privacy policy.
-- **What happens on rotation?** Re-encrypting means reading and rewriting every
-  row; do it in a transaction with a version marker on each document.
+- **What happens on rotation?** `rotateKey()` ships with the addon and is tested.
+  See below.
 - **What happens on logout?** Drop the key and call `db.deleteDatabase()`. A key
   in memory survives a soft navigation.
 - **Do you need recovery?** If yes, you need an escrow mechanism, and that is a
   design decision with real consequences — not a library feature.
+
+## Rotating the key
+
+```js
+import { rotateKey, encryptedFields } from './encrypted-fields.js';
+
+await handle.dispose();                                   // detach the addon FIRST
+const moved = await rotateKey(db, 'notes', ['body'], oldKey, newKey);
+handle = db.use(encryptedFields({ key: newKey, fields: ['body'] }));
+```
+
+Three things make this safe, and all three are tested:
+
+- **It refuses while the addon is attached.** An attached addon decrypts on read
+  and re-seals under the key *it* holds, so the rotation would report success and
+  change nothing — after which you would discard the old key and lose the data.
+  Silently doing nothing is the worst possible outcome, so it throws instead.
+- **One transaction.** Every row moves to the new key or none does. A
+  half-rotated table is readable by *neither* key, and that is the genuinely
+  unrecoverable state — worse than not having rotated at all.
+- **Verified end to end**: after rotation the old key fails to decrypt, the new
+  key reads every row, and the raw file still contains no plaintext.
+
+Rotation rewrites every affected row, so it costs one read plus one write per
+row. Do it once, on a deliberate trigger — a password change, a device
+re-enrolment — not on a schedule.
+
+## When storage runs out
+
+Browsers evict and quotas fill. If a write fails with `SQLITE_FULL`, a batch or
+transaction **rolls back whole** — there is no partial application — and the
+database stays usable for reads and later writes. There is a test that injects a
+full disk mid-batch and asserts exactly that, because a half-applied batch is how
+a full disk turns into corrupted data.
+
+What you should still do:
+
+```js
+await navigator.storage.persist();                 // ask not to be evicted
+const { quota, usage } = await navigator.storage.estimate();
+```
+
+Catch write failures and degrade deliberately — queue to memory, prompt the user,
+or drop the oldest cached rows. Do not assume a write succeeded.
