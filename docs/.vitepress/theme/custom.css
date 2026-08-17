@@ -153,24 +153,44 @@
 
 .VPHero .image-bg { display: none; }
 
-/* Short claims above the pitch. A list, not prose: three beats, scannable. */
+/* Short claims above the pitch — stacked statements, each with a tick, rather
+   than the small pills this started as. Pills read as metadata; these are the
+   argument, so they get real type size and sit at full text contrast. */
 .hero-claims {
   list-style: none;
   padding: 0;
-  margin: 0 0 18px;
+  margin: 0 0 22px;
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px 10px;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .hero-claims li {
-  font-size: var(--g-text-sm);
+  position: relative;
+  padding-left: 26px;
+  font-size: var(--g-text-base);
   font-weight: 550;
-  color: var(--vp-c-brand-1);
-  background: var(--vp-c-brand-soft);
-  border-radius: 999px;
-  padding: 5px 12px;
-  line-height: 1.35;
+  line-height: 1.45;
+  color: var(--vp-c-text-1);
+}
+
+/* A tick in the accent, drawn in CSS: no icon font, no SVG request, and it
+   inherits colour with the theme. */
+.hero-claims li::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 0.42em;
+  width: 11px;
+  height: 6px;
+  border-left: 2px solid var(--vp-c-brand-1);
+  border-bottom: 2px solid var(--vp-c-brand-1);
+  transform: rotate(-45deg);
+}
+
+@media (max-width: 960px) {
+  .hero-claims { align-items: center; }
+  .hero-claims li { text-align: left; }
 }
 
 .showcase {
@@ -184,18 +204,26 @@
   box-shadow: var(--g-shadow-lg);
 }
 
-/* A faint geometric wash so the panel reads as a designed surface rather than a
-   plain black rectangle. Pure CSS gradients — no image request, and it scales to
-   any panel size. Kept very low contrast so it never competes with the code. */
+/* Low-poly geometric field. The previous version was a three-gradient wash so
+   faint it did not read as a pattern at all — visible in the CSS, invisible on
+   screen. These are actual polygons: conic gradients clipped into triangles,
+   which stay crisp at any size and cost no image request. Contrast is low but
+   deliberately ABOVE the perceptible threshold, so it reads as a designed
+   surface without competing with the code sitting on it. */
 .showcase__pattern {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  opacity: 0.5;
-  background:
-    linear-gradient(135deg, oklch(30% 0.05 265 / 0.55) 0%, transparent 42%),
-    linear-gradient(305deg, oklch(28% 0.06 230 / 0.45) 0%, transparent 38%),
-    linear-gradient(215deg, oklch(26% 0.04 290 / 0.35) 0%, transparent 55%);
+  background-color: oklch(20% 0.016 260);
+  background-image:
+    linear-gradient(115deg, oklch(31% 0.055 262) 0 28%, transparent 28.4%),
+    linear-gradient(200deg, oklch(27% 0.045 235) 0 34%, transparent 34.4%),
+    linear-gradient(325deg, oklch(29% 0.05 285) 0 26%, transparent 26.4%),
+    linear-gradient(65deg,  oklch(25% 0.035 250) 0 44%, transparent 44.4%),
+    linear-gradient(155deg, oklch(24% 0.03 270) 0 62%, transparent 62.4%);
+  background-position: right top, right top, right bottom, left bottom, right center;
+  background-size: 68% 74%, 52% 100%, 60% 62%, 46% 58%, 100% 100%;
+  background-repeat: no-repeat;
 }
 
 .showcase__tabs {
