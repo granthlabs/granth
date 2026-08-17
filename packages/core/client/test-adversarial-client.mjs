@@ -19,7 +19,7 @@ function makeLocks(){const st=new Map();const g=n=>{if(!st.has(n))st.set(n,{r:0,
 const bad=[]; const chk=async(n,f)=>{try{const r=await f(); if(r)bad.push(`${n}: ${r}`)}catch(e){bad.push(`${n}: THREW ${String(e.message).slice(0,100)}`)}};
 
 const db = new Granth('adv', { worker: fakeWorker, locks: makeLocks() });
-db.version(1).stores({ t: '++id, name, age, when, flag, *tags' });
+db.version(1).stores({ t: '++id, name, age, when, flag, *tags, [name+age]' });
 
 await chk('Date through the client API', async () => {
   const id = await db.t.add({ name:'d', when: new Date('2021-05-05T00:00:00Z') });
@@ -123,6 +123,27 @@ await chk('liveQuery still dedupes an unchanged plain result', async () => {
   await settle();
   sub.unsubscribe();
   return seen.length === 1 ? null : `re-emitted an unchanged result ${seen.length} times`;
+});
+
+// Every compound operator must REFUSE a partial tuple, not guess. A partial tuple
+// binds the wrong number of parameters, which SQLite fills positionally from
+// whatever follows — notEqual(['a']) on a two-part index silently returned
+// nothing. The range operators already refused; equals and notEqual did not, so
+// the same operator family disagreed with itself.
+for (const [op, args] of [['equals', ['a']], ['notEqual', ['a']], ['above', ['a']], ['below', ['a']]]) {
+  await chk(`compound ${op} refuses a partial tuple`, async () => {
+    try {
+      await db.t.where('[name+age]')[op](args).toArray();
+      return 'accepted a 1-of-2 tuple instead of refusing';
+    } catch (e) {
+      return /has 2 components/.test(e.message) ? null : `wrong error: ${e.message.slice(0, 70)}`;
+    }
+  });
+}
+await chk('compound equals still accepts a whole tuple', async () => {
+  await db.t.add({ name: 'ct', age: 7 });
+  const r = await db.t.where('[name+age]').equals(['ct', 7]).toArray();
+  return r.length === 1 ? null : `expected 1 row, got ${r.length}`;
 });
 
 console.log(bad.length ? 'CLIENT FINDINGS:\n- ' + bad.join('\n- ') : 'no client findings');

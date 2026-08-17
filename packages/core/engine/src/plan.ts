@@ -114,6 +114,27 @@ function multiEntryIn(store: StoreDef, ix: IndexDef, sqlCond: (expr: string) => 
 
 
 /**
+ * A compound condition needs the WHOLE tuple.
+ *
+ * A partial tuple produces the wrong number of bound parameters, which SQLite
+ * fills positionally from whatever follows — `notEqual(['a'])` on a two-part
+ * index silently returned NOTHING rather than refusing. The range operators
+ * already refused; this is the same check, now shared, so the operator family
+ * cannot disagree with itself again.
+ */
+function assertWholeTuple(ix: IndexDef, vals: unknown[]): unknown[] {
+  const tuple = vals.length === 1 && Array.isArray(vals[0]) ? (vals[0] as unknown[]) : vals;
+  if (tuple.length !== ix.keyPaths.length) {
+    throw new Error(
+      `granth: "${ix.name}" has ${ix.keyPaths.length} components, but ${tuple.length} ` +
+        `${tuple.length === 1 ? 'was' : 'were'} given. A condition on a compound index needs ` +
+        `the whole tuple — a partial one does not mean what array-key ordering says it means.`
+    );
+  }
+  return tuple;
+}
+
+/**
  * Range comparison on a COMPOUND index, as a lexicographic tuple compare.
  *
  * The old code called indexExpr with the default component and bound vals[0] —
@@ -139,21 +160,13 @@ function compoundRange(
   // Accept both .above([a, b]) and .above(a, b): the client unwraps a single
   // array argument for equals, and the two shapes reaching here differently is
   // exactly the kind of asymmetry that produced the original bug.
-  const tuple = vals.length === 1 && Array.isArray(vals[0]) ? (vals[0] as unknown[]) : vals;
-  if (!tuple.length) return undefined;
-
+  if (!vals.length) return undefined;
   // A PARTIAL tuple is not a scalar compare. IndexedDB array-key ordering puts a
   // prefix BEFORE any longer array starting with it ([1] < [1,'x']), so treating
   // .above([1]) as `a > 1` silently drops every a=1 row while .belowOrEqual([1])
   // silently includes them. Two of the four operators happened to come out right,
   // which is what makes it hard to notice. Refuse rather than guess.
-  if (tuple.length !== ix.keyPaths.length) {
-    throw new Error(
-      `granth: "${ix.name}" has ${ix.keyPaths.length} components, but ${tuple.length} ` +
-        `${tuple.length === 1 ? 'was' : 'were'} given. A range on a compound index needs the ` +
-        `whole tuple — a partial one does not mean what array-key ordering says it means.`
-    );
-  }
+  const tuple = assertWholeTuple(ix, vals);
 
   const strict = op === '>' || op === '<';
   const dir = op.startsWith('>') ? '>' : '<';
@@ -206,7 +219,7 @@ function condSql(store: StoreDef, ix: IndexDef, cond: Condition, e: string): Fra
       if (ix.compound) {
         return {
           sql: ix.keyPaths.map((_, i) => `${indexExpr(store, ix, i)} = ?`).join(' AND '),
-          params: P(vals),
+          params: P(assertWholeTuple(ix, vals)),
         };
       }
       return build((e) => ({ sql: `${e} = ?`, params: P([vals[0]]) }));
@@ -214,7 +227,7 @@ function condSql(store: StoreDef, ix: IndexDef, cond: Condition, e: string): Fra
       // "Not equal" still means "has a key in this index". `IS NULL OR` did the
       // exact opposite: it PULLED IN every row whose key was absent.
       if (ix.compound) {
-        const tuple = vals.length === 1 && Array.isArray(vals[0]) ? (vals[0] as unknown[]) : vals;
+        const tuple = assertWholeTuple(ix, vals);
         const eq = ix.keyPaths.map((_, i) => `${indexExpr(store, ix, i)} = ?`).join(' AND ');
         const pres = presence(store, ix);
         return { sql: `NOT (${eq}) AND ${pres.sql}`, params: [...P(tuple), ...pres.params] };
