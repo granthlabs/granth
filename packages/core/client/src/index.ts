@@ -528,6 +528,9 @@ export class Granth {
     this._after = [];
     this._client = null;
     this._offRemote = null;
+    this._offLeader = null;
+    /** Serialises top-level transactions in THIS tab. See transaction(). */
+    this._txChain = Promise.resolve();
 
     // liveQuery records which tables a querier touched so unrelated writes don't
     // re-run it. Concurrent subscriptions can over-record into each other's sets;
@@ -587,6 +590,16 @@ export class Granth {
     this._conn = chosen.connect({ name: this.name, timeoutMs: this._connectOpts.timeoutMs });
     this._runtimeName = chosen.name;
     this._offRemote = this._conn.onRemoteChange((tables) => this._emit(tables, false));
+
+    // Schema lives in the LEADER's engine, not in the file. When leadership moves
+    // to this tab, our worker has never run migrate(), so `_opened` — a cached
+    // promise that was resolved against the OLD leader — has to be dropped or
+    // every call fails with `no table "x". Declared: (none)` until a reload.
+    // Two tabs is the case that shows it: the survivor elects ITSELF, and a
+    // BroadcastChannel never delivers to its own sender.
+    this._offLeader = this._conn.onLeadershipChange?.((isLeader) => {
+      if (isLeader) this._opened = null;
+    }) ?? null;
   }
 
   _resolveRuntime() {
@@ -786,17 +799,36 @@ export class Granth {
     const [mode, ...rest] = args;
     const fn = rest.pop();
     if (typeof fn !== 'function') throw new TypeError('granth: transaction() needs a callback');
-    if (this._inTx) return fn(this); // Dexie allows nesting; SQLite has one write txn
+    // Genuine NESTING only — recognised by the scope object handed to the
+    // callback. `_inTx` alone could not tell "nested inside the running
+    // transaction" from "started concurrently while it was awaiting", so a
+    // second, independent transaction ran bare: no txBegin, no lock, its writes
+    // joining the first one's. A REJECTED transaction's write then committed
+    // with the other, and a rolled-back one silently took its neighbour's
+    // writes with it.
+    if (this._isTxScope) return fn(this);
+
+    // Top-level transactions are serialised per tab. Without this, two
+    // concurrent calls merge into one SQLite transaction with a single shared
+    // _inTx flag between them.
+    const previous = this._txChain;
+    let releaseChain;
+    this._txChain = new Promise((r) => { releaseChain = r; });
+    await previous.catch(() => {});
 
     const run = async () => {
       this._inTx = true;
+      // Inherits every table and method; the marker is what makes a nested
+      // db.transaction() inside the callback resolvable without async context.
+      const scope = Object.create(this);
+      scope._isTxScope = true;
       // force = true is safe HERE and only here: we are inside withLock('exclusive'),
       // and the browser releases a dead tab's Web Lock. Holding it proves no live
       // tab owns a transaction, so anything still open belongs to a tab that died
       // and must be rolled back rather than left to swallow everyone's writes.
       await this._conn.call('txBegin', null, String(mode).includes('w') ? 'rw' : 'r', true);
       try {
-        const out = await fn(this);
+        const out = await fn(scope);
         await this._conn.call('txCommit');
         return out;
       } catch (err) {
@@ -809,9 +841,13 @@ export class Granth {
       }
     };
 
-    const result = await this._conn.withLock('exclusive', run);
-    this._emit([...this._tables.keys()], true);
-    return result;
+    try {
+      const result = await this._conn.withLock('exclusive', run);
+      this._emit([...this._tables.keys()], true);
+      return result;
+    } finally {
+      releaseChain();
+    }
   }
 
   async _batchTransaction(fn) {
@@ -916,6 +952,8 @@ export class Granth {
     // so it released nothing: leadership was held until the tab itself died,
     // blocking failover, and the database kept working after "close".
     this._offRemote?.();
+    this._offLeader?.();
+    this._offLeader = null;
     await this._conn?.close?.();
     this._conn = null;
     this._client = null;

@@ -275,6 +275,19 @@ export function createLeaderClient({
     }
   });
 
+  /**
+   * The leader is gone until someone claims otherwise.
+   *
+   * `leaderKnown` used to be set once and never cleared, which made the
+   * "hold calls until a leader exists" guard a ONE-SHOT: after a failover,
+   * followers still believed a leader was listening and broadcast into the gap
+   * where no tab had won the lock yet. BroadcastChannel does not queue, so those
+   * messages were simply dropped and the caller waited out the full timeout.
+   */
+  function forgetLeader(): void {
+    if (!isLeader) leaderKnown = false;
+  }
+
   channel.postMessage({ kind: 'whois', from: tabId } satisfies ChannelMessage);
 
   async function call<T = unknown>(method: string, ...args: unknown[]): Promise<T> {
@@ -300,7 +313,10 @@ export function createLeaderClient({
       };
       entry.timer = setTimeout(() => {
         // Never ACKed => no leader took ownership => nothing ran. Safe to retry.
-        if (!entry.acked) settle(callId, { error: new NoLeaderError(method) });
+        // Also forget the leader: nobody answered, so the one we believed in is
+        // gone and the next call must wait for a real election instead of
+        // broadcasting into a gap where no tab is listening.
+        if (!entry.acked) { forgetLeader(); settle(callId, { error: new NoLeaderError(method) }); }
       }, timeoutMs);
       pending.set(callId, entry);
       channel.postMessage({
@@ -317,6 +333,15 @@ export function createLeaderClient({
     closed = true;
     for (const [callId, entry] of pending) {
       settle(callId, { error: new Error(`opfs-leader: closed during "${entry.method}"`) });
+    }
+    // `running` holds calls in flight ON OUR OWN WORKER (the leader's own calls
+    // never create a pending entry and arm no timer). terminate() below makes
+    // their replies impossible, so without this they hang forever — and because
+    // _dispatch awaits them inside withLock('shared'), a hung call holds that
+    // lock and deadlocks every tab's transactions.
+    for (const [callId, reply] of [...running]) {
+      running.delete(callId);
+      reply({ callId, error: { message: 'opfs-leader: closed while the call was running', name: 'ClosedError' } });
     }
     releaseLeadership();
     dbWorker?.terminate();

@@ -19,4 +19,10 @@ jobs:
       # in every browser — which has happened.
       - run: npx playwright install --with-deps chromium
       - run: node examples/playground/browser-test.mjs
+      # Multi-tab is where the worst bugs live: schema loss on failover, writes
+      # absorbed by an abandoned transaction, transactions merging. None of it is
+      # reachable from a single page. Two tabs and three tabs behave DIFFERENTLY
+      # — with two, the survivor elects itself — so both run.
+      - run: node examples/playground/twotab-test.mjs
+      - run: node examples/playground/concurrency-test.mjs
       - run: npm run docs:build

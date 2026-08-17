@@ -73,6 +73,15 @@ export interface RuntimeConnection {
    * transactions take 'exclusive'. A single-context runtime can no-op this.
    */
   withLock<T>(mode: 'shared' | 'exclusive', fn: () => Promise<T>): Promise<T>;
+  /**
+   * Fired when THIS context becomes the writer (or stops being it).
+   *
+   * The client needs it because schema lives in the leader's engine, not in the
+   * file: a newly elected worker has never run migrate(), so every call fails
+   * with `no table "x". Declared: (none)` until open() is re-sent. Optional —
+   * single-context runtimes have no leadership to report.
+   */
+  onLeadershipChange?(fn: (isLeader: boolean) => void): () => void;
 }
 
 export interface RuntimeConnectOptions {

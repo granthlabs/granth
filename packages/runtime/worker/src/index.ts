@@ -37,9 +37,11 @@ export function workerRuntime({ worker, timeoutMs, locks }: WorkerRuntimeOptions
         typeof globalThis.navigator?.locks?.request === 'function'),
 
     connect({ name, timeoutMs: t }: RuntimeConnectOptions): RuntimeConnection {
+      const leadershipListeners = new Set<(isLeader: boolean) => void>();
       const client: LeaderClient = createLeaderClient({
         name: `granth:${name}`,
         worker,
+        onLeadership: (isLeader: boolean) => { for (const fn of leadershipListeners) fn(isLeader); },
         ...(timeoutMs ?? t ? { timeoutMs: timeoutMs ?? t } : {}),
         ...(locks ? { locks } : {}),
       });
@@ -55,6 +57,11 @@ export function workerRuntime({ worker, timeoutMs, locks }: WorkerRuntimeOptions
 
       return {
         call: (method, ...args) => client.call(method, ...args),
+
+        onLeadershipChange(fn) {
+          leadershipListeners.add(fn);
+          return () => leadershipListeners.delete(fn);
+        },
 
         close() {
           client.close();
