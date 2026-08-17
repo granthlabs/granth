@@ -3,3 +3,13 @@ dist/
 .DS_Store
 *.tgz
 .vite/
+
+# docs site build output
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+
+# TypeScript incremental build cache — committing these makes tsc report
+# "up to date" on a fresh clone and emit nothing, so dependents cannot resolve.
+*.tsbuildinfo
+packages/*/*/dist/
+packages/opfs-leader/dist/

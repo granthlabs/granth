@@ -1,17 +1,17 @@
 # Collection
 
-A query that has not run yet. Mirrors
-[Dexie's `Collection`](https://dexie.org/docs/Collection/Collection).
+A query that has not run yet — build it up, then execute it with `toArray()`,
+`count()` and friends.
 
-## ⚠️ Two deliberate differences from Dexie
+## ⚠️ Two easily-confused methods
 
-| | Dexie | granth |
-|---|---|---|
-| `sortBy(keyPath)` | resolves to a sorted **array** | **same** — returns `Promise<T[]>`, not a Collection |
-| `keys()` | the **index** keys | **same** — index keys, *not* primary keys (use `primaryKeys()`) |
+| Method | Returns |
+|---|---|
+| `sortBy(keyPath)` | a sorted **array** — `Promise<T[]>`, not a Collection |
+| `keys()` | the **index** keys — *not* the primary keys (use `primaryKeys()` for those) |
 
-Both are matched to Dexie exactly and asserted in the test suite, because getting either wrong
-breaks migrated code *silently*.
+Both are asserted in the test suite, because getting either wrong fails
+*silently* rather than loudly.
 
 ## Filtering & ordering
 

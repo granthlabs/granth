@@ -1,7 +1,7 @@
 # liveQuery
 
-Reactive queries that re-run when the data changes — **including changes made in other tabs**.
-Mirrors [Dexie's `liveQuery()`](https://dexie.org/docs/liveQuery()).
+Reactive queries that re-run when the data changes — **including changes made in
+other tabs** — and emit only when the result actually differs.
 
 ```js
 const sub = db.liveQuery(() => db.friends.where('age').above(30).toArray())

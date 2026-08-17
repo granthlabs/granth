@@ -1,7 +1,6 @@
 # Table
 
-One object store. Mirrors [Dexie's `Table`](https://dexie.org/docs/Table/Table).
-Reach it as `db.friends` or `db.table('friends')`.
+One table. Reach it as `db.friends` or `db.table('friends')`.
 
 ## Properties
 

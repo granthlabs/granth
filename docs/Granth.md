@@ -1,6 +1,6 @@
 # Granth
 
-The database. Mirrors [Dexie's `Dexie` class](https://dexie.org/docs/Dexie/Dexie).
+The database: schema and versions, opening and closing, transactions, plugins.
 
 ```js
 import Granth from 'granth';

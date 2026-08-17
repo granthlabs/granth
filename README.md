@@ -205,8 +205,6 @@ npm install && npm run dev     # then open /demos/
 
 ## Documentation
 
-Mirrors [Dexie's API Reference](https://dexie.org/docs/API-Reference) page for page.
-
 **Site: https://sundarshahi.github.io/granth**
 
 - [Tutorial](./docs/Tutorial.md) · [Migrating from Dexie](./docs/MigratingFromDexie.md) · [Frameworks](./docs/Frameworks.md)

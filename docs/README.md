@@ -3,9 +3,10 @@
 SQLite in the browser with a **Dexie-compatible API**. OPFS-backed, one worker, safe across
 tabs, with an IndexedDB fallback.
 
-These pages mirror [Dexie's API Reference](https://dexie.org/docs/API-Reference) page for page,
-so if you know Dexie you already know where to look. Every difference is called out inline and
-listed in [Migrating from Dexie](./MigratingFromDexie.md).
+One page per class, plus guides for the parts that are structural rather than
+API-shaped — storage, runtimes and plugins. Coming from another IndexedDB
+wrapper? Start with [Migrating from Dexie](./MigratingFromDexie.md), which lists
+every behavioural difference.
 
 ## Getting started
 
