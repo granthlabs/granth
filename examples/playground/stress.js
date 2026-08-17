@@ -48,6 +48,13 @@ window.__stress = {
     return { ok, failedAt: null, error: null };
   },
 
+  /** Used by opfs-disk-probe.mjs: writes a canary we then hunt for on disk. */
+  async writeSecret(secret) {
+    await db.rows.put({ id: 'canary', tab: 'probe', n: 0, secret });
+    return true;
+  },
+  async flush() { return db.flush(); },
+
   async count() { return db.rows.count(); },
   async all() { return (await db.rows.toArray()).map((r) => r.id); },
   async wipe() { await db.rows.clear(); return db.rows.count(); },

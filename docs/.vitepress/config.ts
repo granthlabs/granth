@@ -15,6 +15,8 @@ export default defineConfig({
     ['meta', { property: 'og:description', content: 'A Dexie-compatible API over SQLite/WASM on OPFS. Real indexes, a real query planner, off the main thread.' }],
   ],
   themeConfig: {
+    logo: '/logo.svg',
+    siteTitle: 'granthdb',
     nav: [
       { text: 'Guide', link: '/Tutorial' },
       { text: 'API', link: '/Granth' },

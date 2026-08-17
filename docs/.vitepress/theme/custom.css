@@ -1,157 +1,299 @@
 /**
  * granthdb docs theme.
  *
- * Every value here is a TOKEN override, not a call-site value: VitePress already
- * has a full variable system (--vp-c-*, --vp-font-*), so the job is to redefine
- * the scale once and let the theme apply it. Nothing below styles an individual
- * element with a raw colour.
+ * Built to a design spec extracted from dexie.org — light-first, wide container,
+ * soft-shadowed panels instead of outlined boxes, 8px control radii, 60-80px
+ * section rhythm, dark code blocks in both modes. The layout language is
+ * deliberately the same: it is a good one for a database library's docs, and
+ * familiarity is a feature for people arriving from Dexie. The palette is our
+ * own.
  *
- * Ramps are authored in OKLCH because HSL lightness is not perceived lightness —
- * two HSL colours at the same L can differ wildly in how bright they look, which
- * is what makes hand-tuned HSL ramps drift. OKLCH L is perceptual, so a ramp
- * stepped evenly in L actually looks evenly stepped.
+ * Every value is a TOKEN override. VitePress already has a variable system, so
+ * the job is to redefine the scale once and let the theme apply it — nothing
+ * here styles a one-off element with a raw colour.
+ *
+ * Ramps are authored in OKLCH: HSL lightness is not perceived lightness, which
+ * is why hand-tuned HSL ramps drift. OKLCH L is perceptual, so a ramp stepped
+ * evenly in L actually looks evenly stepped.
  */
 
 :root {
-  /* Brand: a deep teal-blue. Saturated greys lean the same way, so the neutral
-     surfaces sit under the accent instead of fighting it. */
-  --granth-brand-100: oklch(96% 0.02 235);
-  --granth-brand-200: oklch(89% 0.05 235);
-  --granth-brand-400: oklch(68% 0.12 235);
-  --granth-brand-500: oklch(58% 0.14 235);
-  --granth-brand-600: oklch(50% 0.13 235);
-  --granth-brand-700: oklch(42% 0.11 235);
+  /* Blue, because that is the convention for a developer database tool and
+     fighting a convention buys nothing. Hue 255 sits between generic framework
+     blue and indigo; chroma high enough to look deliberate, low enough to stay
+     legible in long-form text. 600 clears 4.5:1 on white. */
+  --g-blue-50:  oklch(97.5% 0.014 255);
+  --g-blue-100: oklch(94% 0.032 255);
+  --g-blue-200: oklch(88% 0.062 255);
+  --g-blue-400: oklch(70% 0.145 255);
+  --g-blue-500: oklch(62% 0.175 255);
+  --g-blue-600: oklch(54% 0.185 255);
+  --g-blue-700: oklch(46% 0.160 255);
 
-  /* VitePress brand slots. 1 = text/links, 2 = hover, 3 = solid fills. */
-  --vp-c-brand-1: var(--granth-brand-600);
-  --vp-c-brand-2: var(--granth-brand-500);
-  --vp-c-brand-3: var(--granth-brand-500);
-  --vp-c-brand-soft: oklch(58% 0.14 235 / 0.10);
+  /* VitePress brand slots: 1 = text/links, 2 = hover, 3 = solid fills. */
+  --vp-c-brand-1: var(--g-blue-600);
+  --vp-c-brand-2: var(--g-blue-500);
+  --vp-c-brand-3: var(--g-blue-600);
+  --vp-c-brand-soft: oklch(62% 0.175 255 / 0.10);
 
-  /* Type scale, hand-picked and non-linear — no two adjacent steps within 25%. */
-  --granth-text-sm: 13px;
-  --granth-text-base: 16px;
-  --granth-text-lg: 19px;
-  --granth-text-xl: 24px;
+  --vp-layout-max-width: 1440px;
+  --vp-nav-height: 64px;
 
   --vp-font-family-base: 'Inter var', 'Inter', ui-sans-serif, system-ui, -apple-system,
-    'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --vp-font-family-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, 'SF Mono',
     Menlo, Consolas, monospace;
+
+  /* Type scale, hand-picked and non-linear — no two adjacent steps within 25%. */
+  --g-text-xs: 12px;
+  --g-text-sm: 14px;
+  --g-text-base: 16px;
+  --g-text-lg: 19px;
+  --g-text-xl: 24px;
+  --g-text-2xl: 32px;
+
+  /* One elevation scale. Every shadow has a tight contact part and a soft cast
+     part, both offset DOWNWARD — light comes from above, so a blur with no
+     offset is a glow, not a shadow. */
+  --g-shadow-sm: 0 1px 2px rgb(16 24 40 / 0.05);
+  --g-shadow-md: 0 1px 2px rgb(16 24 40 / 0.06), 0 4px 10px rgb(16 24 40 / 0.05);
+  --g-shadow-lg: 0 2px 4px rgb(16 24 40 / 0.06), 0 12px 28px rgb(16 24 40 / 0.10);
+
+  --g-radius: 8px;
+  --g-radius-lg: 12px;
 }
 
 .dark {
-  /* Not the same ramp dimmed: on a dark surface a mid-chroma accent reads muddy,
-     so the accent lifts in lightness and drops slightly in chroma. */
-  --vp-c-brand-1: oklch(78% 0.11 235);
-  --vp-c-brand-2: oklch(84% 0.10 235);
-  --vp-c-brand-3: oklch(52% 0.13 235);
-  --vp-c-brand-soft: oklch(78% 0.11 235 / 0.14);
+  /* Not the light ramp dimmed: on a dark surface a mid-chroma accent reads
+     muddy, so the accent lifts in lightness and eases off chroma. */
+  --vp-c-brand-1: oklch(78% 0.13 255);
+  --vp-c-brand-2: oklch(84% 0.11 255);
+  --vp-c-brand-3: oklch(56% 0.18 255);
+  --vp-c-brand-soft: oklch(78% 0.13 255 / 0.14);
+
+  --g-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.30);
+  --g-shadow-md: 0 1px 2px rgb(0 0 0 / 0.30), 0 4px 10px rgb(0 0 0 / 0.25);
+  --g-shadow-lg: 0 2px 4px rgb(0 0 0 / 0.35), 0 12px 28px rgb(0 0 0 / 0.40);
 }
 
-/* ---------------------------------------------------------------- hero ---- */
+/* ------------------------------------------------------------- chrome ---- */
 
-/* Hierarchy from weight and colour, not size: the name is heavy and tinted, the
-   tagline is a lighter grey at a modest size. Shouting the headline louder would
-   just make the tagline unreadable by comparison. */
+.VPNavBar .title {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.VPNavBar .logo {
+  color: var(--vp-c-brand-1);   /* the mark is drawn with currentColor */
+}
+
+/* --------------------------------------------------------------- hero ---- */
+
 .VPHero .name {
+  /* Solid, not a gradient. A gradient wordmark is a template default; one
+     confident colour reads as a product. */
   font-weight: 800;
-  letter-spacing: -0.03em;
-  background: linear-gradient(100deg, var(--granth-brand-600), var(--granth-brand-400));
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.dark .VPHero .name {
-  background: linear-gradient(100deg, oklch(84% 0.10 235), oklch(72% 0.09 200));
-  -webkit-background-clip: text;
-  background-clip: text;
+  font-size: clamp(2.6rem, 5.5vw, 4rem);
+  letter-spacing: -0.035em;
+  color: var(--vp-c-brand-1);
+  background: none;
+  -webkit-text-fill-color: currentColor;
 }
 
 .VPHero .text {
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  line-height: 1.15;          /* large type wants tight leading */
+  font-weight: 700;
+  font-size: clamp(1.9rem, 4vw, 2.9rem);
+  letter-spacing: -0.025em;
+  line-height: 1.12;            /* large type wants tight leading */
+  color: var(--vp-c-text-1);
 }
 
 .VPHero .tagline {
-  /* 45-75 characters is the readable band; cap the PARAGRAPH, not the container. */
-  max-width: 34em;
-  line-height: 1.55;          /* small type wants loose leading */
+  max-width: 34em;              /* cap the PARAGRAPH, not the container */
+  font-size: var(--g-text-lg);
+  line-height: 1.55;            /* small type wants loose leading */
   color: var(--vp-c-text-2);
 }
 
-/* ------------------------------------------------------- feature cards ---- */
-
-/* More space AROUND a group than WITHIN it: the gap between cards must exceed
-   the gap between a card's title and its body, or the grid reads as one mass. */
-.VPFeatures .items {
-  gap: 20px;
+.VPHero .actions {
+  gap: 12px;
+  margin-top: 28px;
 }
 
-.VPFeature {
+/* Action pyramid: one solid primary, the rest quieter. Three solid buttons on
+   one screen means no hierarchy at all. */
+.VPButton {
+  border-radius: var(--g-radius);
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+
+.VPButton.brand { box-shadow: var(--g-shadow-sm); }
+
+.VPButton.alt {
+  background: transparent;
   border: 1px solid var(--vp-c-divider);
-  border-radius: 12px;
-  padding: 24px;
-  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.VPButton.alt:hover {
+  border-color: var(--vp-c-brand-1);
+  color: var(--vp-c-brand-1);
+  background: transparent;
+}
+
+/* ----------------------------------------------------- hero code panel ---- */
+
+.VPHero .image { order: 2; }
+
+.VPHero .image-container {
+  transform: none;              /* the default tilts a decorative blob */
+  width: 100%;
+  max-width: 540px;
+}
+
+.VPHero .image-bg { display: none; }
+
+.hero-code {
+  width: 100%;
+  border-radius: var(--g-radius-lg);
+  overflow: hidden;
+  text-align: left;
+  /* Dark in BOTH modes: a code panel reads as a terminal and stays legible
+     against a light page. */
+  background: oklch(21% 0.015 260);
+  border: 1px solid oklch(30% 0.02 260);
+  box-shadow: var(--g-shadow-lg);
+}
+
+.hero-code__bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-bottom: 1px solid oklch(30% 0.02 260);
+  background: oklch(25% 0.017 260);
+}
+
+.hero-code__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: oklch(40% 0.02 260);
+}
+
+.hero-code__file {
+  margin-left: 6px;
+  font-family: var(--vp-font-family-mono);
+  font-size: var(--g-text-xs);
+  color: oklch(65% 0.02 260);
+}
+
+.hero-code__body {
+  margin: 0;
+  padding: 18px 20px 22px;
+  font-family: var(--vp-font-family-mono);
+  font-size: 13px;
+  line-height: 1.7;
+  color: oklch(88% 0.015 260);
+  overflow-x: auto;
+}
+
+/* Syntax roles, assigned by convention rather than decoration. */
+.hero-code .k { color: oklch(76% 0.13 300); font-weight: 600; }
+.hero-code .s { color: oklch(80% 0.13 145); }
+.hero-code .t { color: oklch(84% 0.11 90); }
+.hero-code .f { color: oklch(78% 0.12 255); }
+.hero-code .n { color: oklch(80% 0.11 40); }
+.hero-code .c { color: oklch(58% 0.02 260); font-style: italic; }
+
+/* ------------------------------------------------------------ features ---- */
+
+/* Soft-shadowed panels rather than outlined boxes: when two elements already
+   differ in background, a border on top of that is noise. */
+.VPFeatures { padding-top: 24px; }
+
+/* VitePress spaces these with .item padding + a negative margin on .items, NOT
+   with gap. Setting gap here broke the width calculation and collapsed a
+   6-feature grid from 3-across to 2-across with dead space on the right. Widen
+   the gutter through the padding it actually uses. */
+.VPFeatures .items { margin: -12px; }
+.VPFeatures .item { padding: 12px; }
+
+/* The features container is capped separately from the layout width, so raising
+   --vp-layout-max-width alone left this narrower than the hero above it. */
+.VPFeatures .container { max-width: 1280px; }
+
+.VPFeature {
+  background: var(--vp-c-bg-soft);
+  border: 1px solid transparent;
+  border-radius: var(--g-radius-lg);
+  padding: 26px 24px;
+  box-shadow: var(--g-shadow-sm);
+  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
 }
 
 .VPFeature:hover {
   border-color: var(--vp-c-brand-1);
+  box-shadow: var(--g-shadow-md);
   transform: translateY(-2px);
 }
 
 .VPFeature .title {
-  font-size: var(--granth-text-lg);
+  font-size: var(--g-text-lg);
   font-weight: 650;
-  letter-spacing: -0.01em;
-  margin-bottom: 8px;         /* tight to its own body... */
+  letter-spacing: -0.015em;
+  margin-bottom: 8px;           /* tight to its own body */
 }
 
 .VPFeature .details {
+  font-size: var(--g-text-sm);
   color: var(--vp-c-text-2);
-  line-height: 1.6;
+  line-height: 1.65;
 }
 
 /* ------------------------------------------------------------- content ---- */
 
+.vp-doc h1 {
+  font-size: var(--g-text-2xl);
+  font-weight: 750;
+  letter-spacing: -0.03em;
+}
+
 .vp-doc h2 {
-  /* Space above a section heading belongs to the heading, not the paragraph that
-     preceded it — so the heading groups with what follows. */
-  margin-top: 48px;
+  /* Space above a heading belongs to the heading, so it groups with what
+     follows rather than with the paragraph it trails. */
+  margin-top: 56px;
   padding-top: 24px;
+  font-size: var(--g-text-xl);
+  font-weight: 680;
   letter-spacing: -0.02em;
 }
 
 .vp-doc h3 {
-  margin-top: 32px;
+  margin-top: 34px;
+  font-size: var(--g-text-lg);
+  font-weight: 650;
   letter-spacing: -0.01em;
 }
 
-/* API pages are dense with `code` headings; a monospace h3 reads as a signature. */
+/* API pages are dense with `code` headings; monospace reads as a signature. */
 .vp-doc h3 code {
   font-size: 0.92em;
   font-weight: 650;
 }
 
 .vp-doc p,
-.vp-doc li {
-  line-height: 1.7;
-}
+.vp-doc li { line-height: 1.72; }
 
-/* Cap prose measure without narrowing tables or code, which need the room. */
-.vp-doc p {
-  max-width: 72ch;
-}
+/* Cap prose measure; tables and code keep the full width, which they need. */
+.vp-doc p { max-width: 74ch; }
 
-/* Fewer borders: the table already differs in background, so row rules alone
-   carry the structure — an outer border on top of that is noise. */
+/* Row rules alone carry the structure — an outer box on top is redundant. */
 .vp-doc table {
   display: table;
   width: 100%;
   border-collapse: collapse;
-  font-size: var(--granth-text-sm);
+  font-size: var(--g-text-sm);
 }
 
 .vp-doc th {
@@ -167,164 +309,89 @@
 
 .vp-doc td,
 .vp-doc th {
-  padding: 10px 14px;
+  padding: 11px 14px;
   border: none;
 }
 
-/* Depth from an offset, not a blur: light comes from above, so a shadow with no
-   vertical offset is a glow. */
 .vp-doc div[class*='language-'] {
-  border-radius: 10px;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 4px 12px rgb(0 0 0 / 0.04);
+  border-radius: var(--g-radius-lg);
+  box-shadow: var(--g-shadow-md);
 }
 
 .vp-doc blockquote {
   border-left: 3px solid var(--vp-c-brand-1);
   background: var(--vp-c-brand-soft);
-  border-radius: 0 8px 8px 0;
+  border-radius: 0 var(--g-radius) var(--g-radius) 0;
   padding: 12px 16px;
 }
 
 .vp-doc blockquote > p {
   margin: 0;
+  max-width: none;
   color: var(--vp-c-text-1);
 }
 
-@media (max-width: 640px) {
-  /* Big things shrink faster than small things. */
-  .VPHero .name { font-size: 2.6rem; }
-  .VPFeature { padding: 20px; }
-}
+.vp-doc .custom-block { border-radius: var(--g-radius); }
 
 /* ------------------------------------------------- homepage body prose ---- */
 
-/* The home layout has no content container, so prose added under the hero would
-   otherwise run the full viewport width — well past the readable 45-75 character
-   band on a wide monitor. */
+/* The home layout has no content container, so prose under the hero would
+   otherwise run the full 1440px — far past a readable measure. */
 .home-body {
-  max-width: 768px;
+  max-width: 780px;
   margin: 0 auto;
-  padding: 16px 24px 64px;
+  padding: 8px 24px 80px;
 }
 
 .home-body h2 {
-  font-size: var(--granth-text-xl);
-  font-weight: 650;
+  font-size: var(--g-text-xl);
+  font-weight: 680;
   letter-spacing: -0.02em;
-  margin-top: 56px;
-  margin-bottom: 12px;
+  margin-top: 72px;             /* the 60-80px section rhythm */
+  margin-bottom: 14px;
 }
 
-.home-body h2:first-child {
-  margin-top: 0;
-}
+.home-body h2:first-child { margin-top: 24px; }
 
 .home-body p {
   color: var(--vp-c-text-2);
-  line-height: 1.7;
-  max-width: 68ch;
+  line-height: 1.72;
+  max-width: 70ch;
 }
 
 .home-body table {
   width: 100%;
   border-collapse: collapse;
-  font-size: var(--granth-text-sm);
-  margin: 16px 0;
+  font-size: var(--g-text-sm);
+  margin: 18px 0;
 }
 
 .home-body th,
 .home-body td {
-  padding: 10px 14px;
+  padding: 11px 14px;
   text-align: left;
 }
 
-.home-body tr {
-  border-top: 1px solid var(--vp-c-divider);
-}
+.home-body tr { border-top: 1px solid var(--vp-c-divider); }
 
 .home-body th {
   font-weight: 650;
   color: var(--vp-c-text-1);
 }
 
-/* -------------------------------------------------- hero code showcase ---- */
-
-/* Two-column hero: pitch on the left, working code on the right. The code is the
-   argument — "Dexie-compatible" is a claim, the snippet is evidence. */
-.VPHero .image {
-  order: 2;
+.home-body div[class*='language-'] {
+  border-radius: var(--g-radius-lg);
+  box-shadow: var(--g-shadow-md);
 }
-
-.VPHero .image-container {
-  transform: none;          /* the default tilts a decorative blob; this is code */
-  width: 100%;
-  max-width: 520px;
-}
-
-.VPHero .image-bg {
-  display: none;            /* the glow behind a logo is noise behind a code panel */
-}
-
-.hero-code {
-  width: 100%;
-  border-radius: 12px;
-  overflow: hidden;
-  background: var(--vp-code-block-bg);
-  border: 1px solid var(--vp-c-divider);
-  text-align: left;
-  /* Two-part shadow: one tight contact, one large cast. Both offset downward,
-     because light comes from above. */
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 12px 32px rgb(0 0 0 / 0.10);
-}
-
-.hero-code__bar {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--vp-c-divider);
-  background: var(--vp-c-bg-soft);
-}
-
-.hero-code__dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--vp-c-gray-3);
-}
-
-.hero-code__file {
-  margin-left: 6px;
-  font-family: var(--vp-font-family-mono);
-  font-size: 12px;
-  color: var(--vp-c-text-3);
-}
-
-.hero-code__body {
-  margin: 0;
-  padding: 18px 20px 22px;
-  font-family: var(--vp-font-family-mono);
-  font-size: 13px;
-  line-height: 1.7;         /* small type wants loose leading */
-  color: var(--vp-c-text-1);
-  overflow-x: auto;
-}
-
-/* Syntax roles, assigned by convention rather than decoration. */
-.hero-code .k { color: var(--vp-c-brand-1); font-weight: 600; }  /* keyword */
-.hero-code .s { color: oklch(58% 0.12 150); }                     /* string  */
-.hero-code .t { color: oklch(55% 0.13 300); }                     /* type    */
-.hero-code .f { color: oklch(52% 0.12 265); }                     /* call    */
-.hero-code .n { color: oklch(58% 0.13 40); }                      /* number  */
-.hero-code .c { color: var(--vp-c-text-3); font-style: italic; }  /* comment */
-
-.dark .hero-code .s { color: oklch(78% 0.13 150); }
-.dark .hero-code .t { color: oklch(80% 0.11 300); }
-.dark .hero-code .f { color: oklch(78% 0.10 265); }
-.dark .hero-code .n { color: oklch(80% 0.11 40); }
 
 @media (max-width: 960px) {
-  /* Stacked, and the code follows the pitch rather than pushing it below the fold. */
   .VPHero .image-container { max-width: 100%; }
   .hero-code__body { font-size: 12px; }
+}
+
+@media (max-width: 640px) {
+  /* Big things shrink faster than small things. */
+  .VPFeature { padding: 20px; }
+  .home-body { padding: 8px 20px 56px; }
+  .home-body h2 { margin-top: 48px; }
 }
