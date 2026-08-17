@@ -141,70 +141,257 @@
   background: transparent;
 }
 
-/* ----------------------------------------------------- hero code panel ---- */
+/* ------------------------------------------------------ hero showcase ---- */
 
 .VPHero .image { order: 2; }
 
 .VPHero .image-container {
   transform: none;              /* the default tilts a decorative blob */
   width: 100%;
-  max-width: 540px;
+  max-width: 600px;
 }
 
 .VPHero .image-bg { display: none; }
 
-.hero-code {
+/* Short claims above the pitch. A list, not prose: three beats, scannable. */
+.hero-claims {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 18px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+}
+
+.hero-claims li {
+  font-size: var(--g-text-sm);
+  font-weight: 550;
+  color: var(--vp-c-brand-1);
+  background: var(--vp-c-brand-soft);
+  border-radius: 999px;
+  padding: 5px 12px;
+  line-height: 1.35;
+}
+
+.showcase {
+  position: relative;
   width: 100%;
   border-radius: var(--g-radius-lg);
   overflow: hidden;
   text-align: left;
-  /* Dark in BOTH modes: a code panel reads as a terminal and stays legible
-     against a light page. */
-  background: oklch(21% 0.015 260);
-  border: 1px solid oklch(30% 0.02 260);
+  background: oklch(20% 0.016 260);
+  border: 1px solid oklch(29% 0.02 260);
   box-shadow: var(--g-shadow-lg);
 }
 
-.hero-code__bar {
+/* A faint geometric wash so the panel reads as a designed surface rather than a
+   plain black rectangle. Pure CSS gradients — no image request, and it scales to
+   any panel size. Kept very low contrast so it never competes with the code. */
+.showcase__pattern {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background:
+    linear-gradient(135deg, oklch(30% 0.05 265 / 0.55) 0%, transparent 42%),
+    linear-gradient(305deg, oklch(28% 0.06 230 / 0.45) 0%, transparent 38%),
+    linear-gradient(215deg, oklch(26% 0.04 290 / 0.35) 0%, transparent 55%);
+}
+
+.showcase__tabs {
+  position: relative;
+  display: flex;
+  gap: 4px;
+  padding: 12px 12px 0;
+}
+
+/* Pill tabs: the active one is a filled capsule, the rest are quiet text. That
+   is the action pyramid applied to navigation — one thing is selected, and the
+   others must not compete with it. */
+.showcase__tab {
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  color: oklch(70% 0.02 260);
+  font-family: var(--vp-font-family-base);
+  font-size: var(--g-text-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 7px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.showcase__tab:hover { color: oklch(92% 0.01 260); }
+
+.showcase__tab.is-active {
+  color: oklch(96% 0.01 260);
+  border-color: oklch(45% 0.03 260);
+  background: oklch(26% 0.02 260);
+}
+
+.showcase__tab:focus-visible {
+  outline: 2px solid var(--vp-c-brand-1);
+  outline-offset: 2px;
+}
+
+.showcase__panel { position: relative; }
+
+.showcase__bar {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 10px 14px;
-  border-bottom: 1px solid oklch(30% 0.02 260);
-  background: oklch(25% 0.017 260);
+  justify-content: space-between;
+  padding: 10px 14px 8px;
 }
 
-.hero-code__dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: oklch(40% 0.02 260);
-}
-
-.hero-code__file {
-  margin-left: 6px;
+.showcase__file {
   font-family: var(--vp-font-family-mono);
   font-size: var(--g-text-xs);
-  color: oklch(65% 0.02 260);
+  color: oklch(62% 0.02 260);
 }
 
-.hero-code__body {
-  margin: 0;
-  padding: 18px 20px 22px;
+.showcase__copy {
+  appearance: none;
+  border: 1px solid oklch(35% 0.02 260);
+  background: oklch(25% 0.017 260);
+  color: oklch(80% 0.015 260);
+  font-family: var(--vp-font-family-base);
+  font-size: var(--g-text-xs);
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.showcase__copy:hover { color: oklch(96% 0.01 260); border-color: oklch(48% 0.03 260); }
+
+.showcase__copy:focus-visible {
+  outline: 2px solid var(--vp-c-brand-1);
+  outline-offset: 2px;
+}
+
+.showcase__code {
+  padding: 4px 0 18px;
   font-family: var(--vp-font-family-mono);
   font-size: 13px;
-  line-height: 1.7;
-  color: oklch(88% 0.015 260);
+  line-height: 1.65;
   overflow-x: auto;
 }
 
-/* Syntax roles, assigned by convention rather than decoration. */
-.hero-code .k { color: oklch(76% 0.13 300); font-weight: 600; }
-.hero-code .s { color: oklch(80% 0.13 145); }
-.hero-code .t { color: oklch(84% 0.11 90); }
-.hero-code .f { color: oklch(78% 0.12 255); }
-.hero-code .n { color: oklch(80% 0.11 40); }
-.hero-code .c { color: oklch(58% 0.02 260); font-style: italic; }
+.showcase__line {
+  display: flex;
+  align-items: baseline;
+  padding: 0 14px;
+  white-space: pre;
+}
+
+/* Highlighted range: a lighter band plus an accent edge, so the eye lands on the
+   two lines that carry the point instead of scanning all twenty. */
+.showcase__line.is-hl {
+  background: oklch(28% 0.03 262);
+  box-shadow: inset 2px 0 0 var(--vp-c-brand-1);
+}
+
+.showcase__num {
+  flex: 0 0 auto;
+  width: 26px;
+  text-align: right;
+  margin-right: 14px;
+  color: oklch(45% 0.015 260);
+  user-select: none;
+  font-size: 12px;
+}
+
+.showcase__text {
+  color: oklch(88% 0.015 260);
+  background: none;
+  padding: 0;
+  font-size: 13px;
+}
+
+/* -------------------------------------------------------- benefits ------- */
+
+.benefits {
+  border-top: 1px solid var(--vp-c-divider);
+  margin-top: 64px;
+  padding: 72px 24px 16px;
+}
+
+.benefits__inner {
+  max-width: 1152px;
+  margin: 0 auto;
+}
+
+.benefits__eyebrow {
+  margin: 0 0 6px;
+  font-size: var(--g-text-xs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--vp-c-brand-1);
+}
+
+.benefits__title {
+  margin: 0 0 12px;
+  font-size: var(--g-text-2xl);
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  color: var(--vp-c-text-1);
+}
+
+.benefits__lede {
+  margin: 0 0 40px;
+  max-width: 62ch;
+  font-size: var(--g-text-lg);
+  line-height: 1.6;
+  color: var(--vp-c-text-2);
+}
+
+.benefits__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+.benefit {
+  background: var(--vp-c-bg-soft);
+  border: 1px solid transparent;
+  border-radius: var(--g-radius-lg);
+  padding: 26px 24px;
+  box-shadow: var(--g-shadow-sm);
+  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+
+.benefit:hover {
+  border-color: var(--vp-c-brand-1);
+  box-shadow: var(--g-shadow-md);
+  transform: translateY(-2px);
+}
+
+.benefit h3 {
+  margin: 0 0 8px;
+  font-size: var(--g-text-lg);
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  color: var(--vp-c-text-1);
+}
+
+.benefit p {
+  margin: 0;
+  font-size: var(--g-text-sm);
+  line-height: 1.65;
+  color: var(--vp-c-text-2);
+}
+
+.benefit code {
+  font-size: 0.92em;
+  background: var(--vp-c-brand-soft);
+  color: var(--vp-c-brand-1);
+  padding: 2px 5px;
+  border-radius: 4px;
+}
 
 /* ------------------------------------------------------------ features ---- */
 
