@@ -26,6 +26,8 @@ export default defineConfig({
       { text: 'API', link: '/Granth' },
       { text: 'Use cases', link: '/ReplacingWebStorage' },
       { text: 'Migrate', link: '/MigratingFromDexie' },
+      { text: 'Sandbox', link: '/play/sandbox.html', target: '_self' },
+      { text: 'Examples', link: '/play/demos/', target: '_self' },
       { text: 'GitHub', link: 'https://github.com/sundarshahi/granth' },
     ],
     sidebar: [

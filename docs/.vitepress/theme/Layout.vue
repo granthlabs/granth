@@ -203,9 +203,9 @@ async function copy() {
                 </svg>
                 Get started
               </a>
-              <a class="ghero__secondary" :href="withBase('/CacheFirstApps')">
+              <a class="ghero__secondary" :href="withBase('/play/sandbox.html')">
                 <span class="ghero__play" aria-hidden="true" />
-                How it works
+                Try it in your browser
               </a>
             </div>
           </div>

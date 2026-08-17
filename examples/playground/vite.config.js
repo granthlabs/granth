@@ -1,7 +1,41 @@
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import solid from 'vite-plugin-solid';
-export default {
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
+
+const here = dirname(fileURLToPath(import.meta.url));
+const page = (p) => resolve(here, p);
+
+/**
+ * The sandbox and the framework demos are BUILT into the docs site, so the
+ * hosted docs and the runnable examples deploy as one artifact. They used to
+ * exist only under `vite dev` on a laptop — the site's only reference to the
+ * sandbox was a GitHub source link, which shows HTML, not a running database.
+ *
+ * Deliberately NOT shipped: index.html, compat.html, stress.html and bench.html.
+ * Those are test harnesses that wipe OPFS and auto-run on load; the browser
+ * suites drive them from the dev server, where they belong.
+ */
+const HOSTED = {
+  sandbox: page('sandbox.html'),
+  demos: page('demos/index.html'),
+  vanilla: page('demos/vanilla.html'),
+  react: page('demos/react.html'),
+  vue: page('demos/vue.html'),
+  svelte: page('demos/svelte.html'),
+  solid: page('demos/solid.html'),
+  'no-worker': page('demos/no-worker.html'),
+};
+
+export default defineConfig(({ command }) => ({
+  // Dev is root-served and every browser suite drives it that way; the built
+  // copy lands under the docs site's own base. Getting this wrong is invisible
+  // locally and 404s everything in production — the same trap link-check exists
+  // for on the docs side.
+  base: command === 'build' ? '/granth/play/' : '/',
+
   // solid() must precede react(): both claim .jsx, and whichever runs first wins.
   // Scoped by directory so each only compiles its own demo.
   plugins: [
@@ -12,9 +46,19 @@ export default {
   // sqlite-wasm must not be pre-bundled — esbuild mangles its wasm loading.
   optimizeDeps: { exclude: ['@sqlite.org/sqlite-wasm'] },
   worker: { format: 'es' },
+
+  build: {
+    // Written INTO the VitePress output, so `docs:build` must run VitePress
+    // FIRST — VitePress empties its own dist and would delete this.
+    outDir: resolve(here, '../../docs/.vitepress/dist/play'),
+    emptyOutDir: true,
+    rollupOptions: { input: HOSTED },
+    chunkSizeWarningLimit: 3000,
+  },
+
   server: {
     // Deliberately NO COOP/COEP headers: proving opfs-sahpool works without
     // cross-origin isolation is the entire reason we picked that VFS.
     headers: {},
   },
-};
+}));

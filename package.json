@@ -14,7 +14,7 @@
     "dev": "npm run dev -w playground",
     "clean": "tsc -b --clean && rm -rf packages/*/*/dist packages/opfs-leader/dist",
     "docs:dev": "vitepress dev docs",
-    "docs:build": "vitepress build docs",
+    "docs:build": "vitepress build docs && npm run build:play -w playground",
     "docs:preview": "vitepress preview docs"
   },
   "devDependencies": {

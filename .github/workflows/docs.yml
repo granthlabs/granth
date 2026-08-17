@@ -1,6 +1,10 @@
 name: Docs
 on:
-  push: { branches: [main], paths: ['docs/**', '.github/workflows/docs.yml'] }
+  # examples/playground and the packages are BUILT INTO the site (the sandbox and
+  # demos live under /play/), so a change to either must redeploy it too.
+  push:
+    branches: [main]
+    paths: ['docs/**', 'examples/playground/**', 'packages/**', '.github/workflows/docs.yml']
   workflow_dispatch:
 permissions: { contents: read, pages: write, id-token: write }
 concurrency: { group: pages, cancel-in-progress: false }
@@ -12,7 +16,15 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: '22', cache: npm }
       - run: npm ci
+      # The sandbox and demos import the workspace packages from their dist/,
+      # which a fresh `npm ci` does not produce — without this the site builds
+      # with no /play/ at all, or fails resolving `granthdb`.
+      - run: npm run build
       - run: npm run docs:build
+      # A deploy that ships a broken sandbox is worse than not shipping one.
+      - run: npx playwright install --with-deps chromium
+      - run: node examples/playground/link-check.mjs
+      - run: node examples/playground/hosted-play-test.mjs
       # enablement:true lets the action turn Pages on itself; without it the run
       # fails with "Get Pages site failed" until someone flips the setting by hand.
       - uses: actions/configure-pages@v5

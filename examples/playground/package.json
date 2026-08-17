@@ -6,6 +6,7 @@
   "description": "Browser verification for opfs-sqlite against real sqlite-wasm + OPFS. Not published.",
   "scripts": {
     "dev": "vite --port 5178",
+    "build:play": "vite build",
     "test": "node test-encryption.mjs && node test-integrations.mjs"
   },
   "dependencies": {

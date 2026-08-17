@@ -42,3 +42,8 @@ jobs:
       # root-served dev server and 404s in production. That asymmetry lets broken
       # links reach a deploy looking fine locally.
       - run: node examples/playground/link-check.mjs
+      # The sandbox and demos are BUILT into the site now, and a rollup bundle
+      # under /granth/play/ can break where the dev server works: base-relative
+      # asset URLs, the new Worker(new URL(...)) rewrite, and sqlite-wasm's .wasm
+      # fetch. This drives the artifact a visitor actually loads.
+      - run: node examples/playground/hosted-play-test.mjs
