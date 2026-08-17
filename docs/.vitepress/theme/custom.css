@@ -246,3 +246,85 @@
   font-weight: 650;
   color: var(--vp-c-text-1);
 }
+
+/* -------------------------------------------------- hero code showcase ---- */
+
+/* Two-column hero: pitch on the left, working code on the right. The code is the
+   argument — "Dexie-compatible" is a claim, the snippet is evidence. */
+.VPHero .image {
+  order: 2;
+}
+
+.VPHero .image-container {
+  transform: none;          /* the default tilts a decorative blob; this is code */
+  width: 100%;
+  max-width: 520px;
+}
+
+.VPHero .image-bg {
+  display: none;            /* the glow behind a logo is noise behind a code panel */
+}
+
+.hero-code {
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--vp-code-block-bg);
+  border: 1px solid var(--vp-c-divider);
+  text-align: left;
+  /* Two-part shadow: one tight contact, one large cast. Both offset downward,
+     because light comes from above. */
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 12px 32px rgb(0 0 0 / 0.10);
+}
+
+.hero-code__bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--vp-c-divider);
+  background: var(--vp-c-bg-soft);
+}
+
+.hero-code__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--vp-c-gray-3);
+}
+
+.hero-code__file {
+  margin-left: 6px;
+  font-family: var(--vp-font-family-mono);
+  font-size: 12px;
+  color: var(--vp-c-text-3);
+}
+
+.hero-code__body {
+  margin: 0;
+  padding: 18px 20px 22px;
+  font-family: var(--vp-font-family-mono);
+  font-size: 13px;
+  line-height: 1.7;         /* small type wants loose leading */
+  color: var(--vp-c-text-1);
+  overflow-x: auto;
+}
+
+/* Syntax roles, assigned by convention rather than decoration. */
+.hero-code .k { color: var(--vp-c-brand-1); font-weight: 600; }  /* keyword */
+.hero-code .s { color: oklch(58% 0.12 150); }                     /* string  */
+.hero-code .t { color: oklch(55% 0.13 300); }                     /* type    */
+.hero-code .f { color: oklch(52% 0.12 265); }                     /* call    */
+.hero-code .n { color: oklch(58% 0.13 40); }                      /* number  */
+.hero-code .c { color: var(--vp-c-text-3); font-style: italic; }  /* comment */
+
+.dark .hero-code .s { color: oklch(78% 0.13 150); }
+.dark .hero-code .t { color: oklch(80% 0.11 300); }
+.dark .hero-code .f { color: oklch(78% 0.10 265); }
+.dark .hero-code .n { color: oklch(80% 0.11 40); }
+
+@media (max-width: 960px) {
+  /* Stacked, and the code follows the pitch rather than pushing it below the fold. */
+  .VPHero .image-container { max-width: 100%; }
+  .hero-code__body { font-size: 12px; }
+}

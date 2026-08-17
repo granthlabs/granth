@@ -18,6 +18,7 @@ export default defineConfig({
     nav: [
       { text: 'Guide', link: '/Tutorial' },
       { text: 'API', link: '/Granth' },
+      { text: 'Use cases', link: '/ReplacingWebStorage' },
       { text: 'Migrate', link: '/MigratingFromDexie' },
       { text: 'GitHub', link: 'https://github.com/sundarshahi/granth' },
     ],
@@ -28,6 +29,14 @@ export default defineConfig({
           { text: 'Tutorial', link: '/Tutorial' },
           { text: 'Migrating from Dexie', link: '/MigratingFromDexie' },
           { text: 'Frameworks', link: '/Frameworks' },
+        ],
+      },
+      {
+        text: 'Use cases',
+        items: [
+          { text: 'Replacing web storage', link: '/ReplacingWebStorage' },
+          { text: 'Cache-first apps', link: '/CacheFirstApps' },
+          { text: 'Encryption at rest', link: '/Encryption' },
         ],
       },
       {
@@ -53,11 +62,15 @@ export default defineConfig({
       },
     ],
     socialLinks: [{ icon: 'github', link: 'https://github.com/sundarshahi/granth' }],
+    footer: {
+      message:
+        'MIT licensed. Not affiliated with Dexie.js — granthdb is an independent project with a compatible API.',
+      copyright: 'Built by Sundar Shahi Thakuri',
+    },
     search: { provider: 'local' },
     editLink: {
       pattern: 'https://github.com/sundarshahi/granth/edit/main/docs/:path',
       text: 'Edit this page on GitHub',
     },
-    footer: { message: 'MIT licensed', copyright: '© 2026 sundarshahi' },
   },
 });

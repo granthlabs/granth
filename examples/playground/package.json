@@ -6,7 +6,7 @@
   "description": "Browser verification for opfs-sqlite against real sqlite-wasm + OPFS. Not published.",
   "scripts": {
     "dev": "vite --port 5178",
-    "test": "vite --port 5178"
+    "test": "node test-encryption.mjs"
   },
   "dependencies": {
     "@sqlite.org/sqlite-wasm": "3.53.0-build1",
