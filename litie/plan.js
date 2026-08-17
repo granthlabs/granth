@@ -5,9 +5,14 @@
 // Pure module: testable without SQLite or a browser.
 
 import { findIndex, indexExpr, quoteIdent as q, shadowTable } from './schema.js';
+import { encodeParam, prefixUpperBound } from './codec.js';
 
-/** Highest code point, so `prefix` .. `prefix￿` is a clean prefix range. */
-const HIGH = '￿';
+/**
+ * Every parameter goes through the codec on the way to SQLite: booleans have no
+ * SQLite type and cannot be bound at all, and Dates must match the encoded form
+ * stored in the document.
+ */
+const P = (values) => values.map(encodeParam);
 
 /**
  * Match rows having ANY element satisfying the condition.
@@ -46,36 +51,42 @@ function compileCond(store, cond) {
       if (ix.compound) {
         return {
           sql: ix.keyPaths.map((_, i) => `${indexExpr(store, ix, i)} = ?`).join(' AND '),
-          params: vals,
+          params: P(vals),
         };
       }
-      return build((e) => ({ sql: `${e} = ?`, params: [vals[0]] }));
+      return build((e) => ({ sql: `${e} = ?`, params: P([vals[0]]) }));
     case 'notEqual':
-      return build((e) => ({ sql: `(${e} IS NULL OR ${e} <> ?)`, params: [vals[0]] }));
+      return build((e) => ({ sql: `(${e} IS NULL OR ${e} <> ?)`, params: P([vals[0]]) }));
     case 'above':
-      return build((e) => ({ sql: `${e} > ?`, params: [vals[0]] }));
+      return build((e) => ({ sql: `${e} > ?`, params: P([vals[0]]) }));
     case 'aboveOrEqual':
-      return build((e) => ({ sql: `${e} >= ?`, params: [vals[0]] }));
+      return build((e) => ({ sql: `${e} >= ?`, params: P([vals[0]]) }));
     case 'below':
-      return build((e) => ({ sql: `${e} < ?`, params: [vals[0]] }));
+      return build((e) => ({ sql: `${e} < ?`, params: P([vals[0]]) }));
     case 'belowOrEqual':
-      return build((e) => ({ sql: `${e} <= ?`, params: [vals[0]] }));
+      return build((e) => ({ sql: `${e} <= ?`, params: P([vals[0]]) }));
     case 'between': {
       const [lo, hi, incLo = true, incHi = false] = vals;
       return build((e) => ({
         sql: `${e} >${incLo ? '=' : ''} ? AND ${e} <${incHi ? '=' : ''} ?`,
-        params: [lo, hi],
+        params: P([lo, hi]),
       }));
     }
     case 'startsWith':
-      return build((e) => ({ sql: `${e} >= ? AND ${e} < ?`, params: [vals[0], vals[0] + HIGH] }));
+      {
+        const hi = prefixUpperBound(vals[0]);
+        if (hi === undefined) return build((e) => ({ sql: `${e} IS NOT NULL`, params: [] }));
+        return build((e) => ({ sql: `${e} >= ? AND ${e} < ?`, params: P([vals[0], hi]) }));
+      }
     case 'startsWithIgnoreCase':
       // ponytail: lower() defeats the index. Fine for small stores; add a lowercase
       // shadow index if this ever shows up in a profile.
-      return build((e) => ({
-        sql: `lower(${e}) >= ? AND lower(${e}) < ?`,
-        params: [String(vals[0]).toLowerCase(), String(vals[0]).toLowerCase() + HIGH],
-      }));
+      {
+        const lo = String(vals[0]).toLowerCase();
+        const hi = prefixUpperBound(lo);
+        if (hi === undefined) return build((e) => ({ sql: `${e} IS NOT NULL`, params: [] }));
+        return build((e) => ({ sql: `lower(${e}) >= ? AND lower(${e}) < ?`, params: [lo, hi] }));
+      }
     case 'equalsIgnoreCase':
       return build((e) => ({ sql: `lower(${e}) = ?`, params: [String(vals[0]).toLowerCase()] }));
     case 'anyOfIgnoreCase': {
@@ -91,7 +102,7 @@ function compileCond(store, cond) {
       const params = [];
       const parts = vals.map((v) => {
         const p = ci ? String(v).toLowerCase() : v;
-        params.push(p, p + HIGH);
+        params.push(encodeParam(p), prefixUpperBound(p) ?? String(p));
         return null;
       });
       return build((e) => {

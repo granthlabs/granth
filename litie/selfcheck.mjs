@@ -138,8 +138,11 @@ const V1 = [{ version: 1, stores: { friends: '++id, name, age, *tags, [name+age]
   assert.equal(e.get('friends', id).age, 37);
   e.update('friends', id, { meta: { zip: 'N1' } });
   assert.deepEqual(e.get('friends', id).meta, { city: 'london', zip: 'N1' }, 'merge, not replace');
+  // Dexie SETS null here (structured clone stores it); RFC 7396 json_patch would
+  // have DELETED the key, so the codec encodes null as a sentinel to preserve it.
   e.update('friends', id, { meta: null });
-  assert.equal(e.get('friends', id).meta, undefined, 'null deletes the key');
+  assert.ok('meta' in e.get('friends', id), 'update({x: null}) must keep the key');
+  assert.equal(e.get('friends', id).meta, null, 'update({x: null}) must SET null, not delete');
 
   // an index must follow the doc after a patch
   e.update('friends', id, { tags: ['solo'] });
@@ -328,7 +331,7 @@ function nodeAdapterRaw(engine) {
   }
 
   const db = new Litie('demo', { worker: fakeWorker, locks: makeLocks() });
-  db.version(1).stores({ friends: '++id, name, age, *tags, [name+age]', notes: '++id, owner' });
+  db.version(1).stores({ friends: '++id, name, age, flag, when, *tags, [name+age]', notes: '++id, owner' });
   await db.open();
 
   const adaId = await db.friends.add({ name: 'ada', age: 36, tags: ['math'] });
@@ -552,6 +555,60 @@ function nodeAdapterRaw(engine) {
     const interop = obs[Symbol.observable ?? '@@observable'];
     assert.equal(typeof interop, 'function', 'must expose Symbol.observable for RxJS/Angular');
     assert.equal(interop.call(obs), obs);
+  }
+
+  // --- value fidelity (found by adversarial review, all were real bugs) --------
+  // IndexedDB uses structured clone, which preserves these. Plain JSON does not:
+  // Date silently became a string and NaN/Infinity silently became null.
+  {
+    const when = new Date('2021-05-05T06:07:08.900Z');
+    const id = await db.friends.add({
+      name: 'codec', age: 1, tags: [],
+      when, flag: true, off: false, nan: NaN, inf: Infinity, ninf: -Infinity,
+      nil: null, big: 12345678901234567890n, empty: '', zero: 0,
+    });
+    const g = await db.friends.get(id);
+    assert.ok(g.when instanceof Date, 'Date must survive as a Date');
+    assert.equal(g.when.toISOString(), when.toISOString());
+    assert.equal(g.flag, true);  assert.equal(g.off, false);
+    assert.ok(Number.isNaN(g.nan), 'NaN must survive');
+    assert.equal(g.inf, Infinity); assert.equal(g.ninf, -Infinity);
+    assert.equal(g.nil, null, 'null must survive as null');
+    assert.equal(g.big, 12345678901234567890n, 'BigInt must survive');
+    assert.equal(g.empty, ''); assert.equal(g.zero, 0);
+    // a real string starting with the sentinel must not be mistaken for a tag
+    const id2 = await db.friends.add({ name: '\u0000D2020-01-01', age: 1, tags: [] });
+    assert.equal((await db.friends.get(id2)).name, '\u0000D2020-01-01', 'sentinel-lookalike strings must round-trip');
+    await db.friends.bulkDelete([id, id2]);
+  }
+
+  // Booleans could not be bound as SQL parameters at all before the codec.
+  {
+    const id = await db.friends.add({ name: 'boolq', age: 2, flag: true, tags: [] });
+    assert.equal(await db.friends.where('flag').equals(true).count(), 1, 'where(x).equals(true) must work');
+    assert.equal(await db.friends.where('flag').equals(false).count(), 0);
+    await db.friends.delete(id);
+  }
+
+  // Dates must remain ORDER-comparable through an index, not just readable.
+  {
+    const ids = [];
+    for (const iso of ['2020-01-01', '2021-01-01', '2022-01-01']) {
+      ids.push(await db.friends.add({ name: `d${iso}`, age: 3, when: new Date(iso), tags: [] }));
+    }
+    const after = await db.friends.where('when').above(new Date('2020-06-01')).toArray();
+    assert.equal(after.length, 2, 'a Date range query must use the index correctly');
+    assert.ok(after.every((f) => f.when instanceof Date));
+    await db.friends.bulkDelete(ids);
+  }
+
+  // Appending U+FFFF as a prefix bound silently missed strings containing it.
+  {
+    const ids = [await db.friends.add({ name: 'pre\uffffZ', age: 4, tags: [] }),
+                 await db.friends.add({ name: 'prefix', age: 4, tags: [] })];
+    assert.equal(await db.friends.where('name').startsWith('pre').count(), 2,
+      'startsWith must not miss values containing U+FFFF');
+    await db.friends.bulkDelete(ids);
   }
 
   // db lifecycle members Dexie code expects

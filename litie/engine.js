@@ -14,6 +14,7 @@ import {
   shadowTable,
 } from './schema.js';
 import { compile, compileDelete, compileModify, boundIndex } from './plan.js';
+import { encode, decode, encodeValue } from './codec.js';
 
 export class VersionError extends Error {
   constructor(found, wanted) {
@@ -51,7 +52,7 @@ export function createEngine(adapter) {
   };
 
   const hydrate = (s, row) => {
-    const doc = JSON.parse(row._doc);
+    const doc = decode(JSON.parse(row._doc));
     doc[s.primKey.name] = row[s.primKey.name]; // the key lives in the column, not the JSON
     return doc;
   };
@@ -63,7 +64,9 @@ export function createEngine(adapter) {
     const { [s.primKey.name]: key, ...rest } = doc;
     if (key === undefined && !s.primKey.auto)
       throw new Error(`litie: "${s.table}" requires a "${s.primKey.name}" (schema has no ++)`);
-    return { key, body: JSON.stringify(rest) };
+    // Encode only a PRESENT key: `undefined` must stay undefined so the caller
+    // can pick the auto-increment INSERT, not bind a sentinel into an INTEGER PK.
+    return { key: key === undefined ? undefined : encodeValue(key), body: JSON.stringify(encode(rest)) };
   };
 
   function insert(table, doc, mode) {
@@ -188,7 +191,7 @@ export function createEngine(adapter) {
       const s = store(table);
       const rows = adapter.all(
         `SELECT ${q(s.primKey.name)}, "_doc" FROM ${q(table)} WHERE ${q(s.primKey.name)} = ?`,
-        [key]
+        [encodeValue(key)]
       );
       return rows.length ? hydrate(s, rows[0]) : undefined;
     },
@@ -202,7 +205,7 @@ export function createEngine(adapter) {
       // SQLite caps bound parameters (999 on older builds), so chunk rather than
       // building one giant IN list that fails only on large inputs.
       for (let i = 0; i < keys.length; i += 500) {
-        const chunk = keys.slice(i, i + 500);
+        const chunk = keys.slice(i, i + 500).map(encodeValue);
         const ph = chunk.map(() => '?').join(', ');
         for (const row of adapter.all(
           `SELECT ${pk}, "_doc" FROM ${q(table)} WHERE ${pk} IN (${ph})`,
@@ -211,18 +214,18 @@ export function createEngine(adapter) {
           found.set(row[s.primKey.name], hydrate(s, row));
         }
       }
-      return keys.map((k) => found.get(k));
+      return keys.map((k) => found.get(encodeValue(k)));
     },
 
     /** Dexie's upsert(key, changes): insert if absent, merge-patch if present. */
     upsert(table, key, changes) {
       const s = store(table);
       const { [s.primKey.name]: _drop, ...rest } = changes;
-      const body = JSON.stringify(rest);
+      const body = JSON.stringify(encode(rest));
       adapter.run(
         `INSERT INTO ${q(table)}(${q(s.primKey.name)}, "_doc") VALUES (?, ?) ` +
           `ON CONFLICT(${q(s.primKey.name)}) DO UPDATE SET "_doc" = json_patch("_doc", ?)`,
-        [key, body, body]
+        [encodeValue(key), body, body]
       );
       return key;
     },
@@ -235,14 +238,14 @@ export function createEngine(adapter) {
       const { [s.primKey.name]: _ignored, ...rest } = changes;
       const info = adapter.run(
         `UPDATE ${q(table)} SET "_doc" = json_patch("_doc", ?) WHERE ${q(s.primKey.name)} = ?`,
-        [JSON.stringify(rest), key]
+        [JSON.stringify(encode(rest)), encodeValue(key)]
       );
       return info.changes;
     },
 
     delete(table, key) {
       const s = store(table);
-      return adapter.run(`DELETE FROM ${q(table)} WHERE ${q(s.primKey.name)} = ?`, [key]).changes;
+      return adapter.run(`DELETE FROM ${q(table)} WHERE ${q(s.primKey.name)} = ?`, [encodeValue(key)]).changes;
     },
 
     bulkDelete: (table, keys) => api.batch(keys.map((k) => ({ op: 'delete', table, args: [k] }))),

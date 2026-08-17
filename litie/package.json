@@ -52,10 +52,11 @@
     "react.d.ts",
     "vue.d.ts",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "codec.js"
   ],
   "scripts": {
-    "test": "node selfcheck.mjs && node compat-audit.mjs --assert",
+    "test": "node selfcheck.mjs && node test/adversarial-engine.mjs && node test/adversarial-client.mjs && node compat-audit.mjs --assert",
     "prepublishOnly": "node selfcheck.mjs && node compat-audit.mjs --assert"
   },
   "engines": {

@@ -29,8 +29,8 @@ const eq = (a, b, msg = '') => {
   if (A !== B) throw new Error(`${msg} expected ${B}, got ${A}`);
 };
 
-const V1 = { friends: '++id, name, age, *tags, [name+age]', notes: '++id, owner' };
-const V2 = { friends: '++id, name, age, city, *tags, [name+age]' };
+const V1 = { friends: '++id, name, age, flag, when, *tags, [name+age]', notes: '++id, owner' };
+const V2 = { friends: '++id, name, age, city, flag, when, *tags, [name+age]' };
 
 /** @param {1|2} upto  open the database declaring versions up to `upto` */
 function makeDb(upto = 2) {
@@ -207,6 +207,48 @@ async function run() {
       eq(await db.friends.count(), n + 1, 'a write from the second client must be visible to the first:');
       await db2.friends.where('name').equals('zed').delete();
       await db2.close();
+    });
+
+    await check('value fidelity vs structured clone (Date/bool/NaN/BigInt/null)', async () => {
+      const when = new Date('2021-05-05T06:07:08.900Z');
+      const id = await db.friends.add({
+        name: 'codec', age: 1, tags: [], when, flag: true, off: false,
+        nan: NaN, inf: Infinity, nil: null, big: 12345678901234567890n, empty: '', zero: 0,
+      });
+      const g = await db.friends.get(id);
+      if (!(g.when instanceof Date)) throw new Error(`Date came back as ${typeof g.when}`);
+      eq(g.when.toISOString(), when.toISOString(), 'Date:');
+      eq([g.flag, g.off, g.nil, g.empty, g.zero], [true, false, null, '', 0], 'scalars:');
+      if (!Number.isNaN(g.nan)) throw new Error('NaN lost');
+      if (g.inf !== Infinity) throw new Error('Infinity lost');
+      if (g.big !== 12345678901234567890n) throw new Error('BigInt lost');
+      await db.friends.delete(id);
+    });
+
+    await check('boolean binds as a SQL parameter (sqlite-wasm)', async () => {
+      const id = await db.friends.add({ name: 'boolq', age: 2, flag: true, tags: [] });
+      eq(await db.friends.where('flag').equals(true).count(), 1);
+      eq(await db.friends.where('flag').equals(false).count(), 0);
+      await db.friends.delete(id);
+    });
+
+    await check('Date stays order-comparable through its index', async () => {
+      const ids = [];
+      for (const iso of ['2020-01-01', '2021-01-01', '2022-01-01'])
+        ids.push(await db.friends.add({ name: `d${iso}`, age: 3, when: new Date(iso), tags: [] }));
+      const after = await db.friends.where('when').above(new Date('2020-06-01')).toArray();
+      eq(after.length, 2, 'Date range query:');
+      if (!after.every((f) => f.when instanceof Date)) throw new Error('revive failed in a range query');
+      await db.friends.bulkDelete(ids);
+    });
+
+    await check('update({x: null}) SETS null (json_patch would delete)', async () => {
+      const id = await db.friends.add({ name: 'nulls', age: 4, tags: [] });
+      await db.friends.update(id, { age: null });
+      const g = await db.friends.get(id);
+      if (!('age' in g)) throw new Error('key was deleted instead of set to null');
+      eq(g.age, null);
+      await db.friends.delete(id);
     });
 
     await check('bulkGet returns docs in order', async () => {
