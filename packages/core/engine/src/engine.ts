@@ -72,6 +72,15 @@ const indexKey = (ix: IndexDef): string => `${ix.unique ? '&' : ''}${ix.multi ? 
 export function createEngine(adapter: Adapter) {
   let stores: Record<string, StoreDef> = {};
   let inTx = false;
+  let txStartedAt = 0;
+  const now = () => Date.now();
+  /**
+   * How long an interactive transaction may stay open before it is treated as
+   * abandoned. Only reached when the driving tab died: a live transaction is
+   * driven across round trips and commits or rolls back. Dexie transactions are
+   * meant to be short-lived, so this is generous.
+   */
+  const txMaxMs = 30_000;
 
   const store = (table: string): StoreDef => {
     const s = stores[table];
@@ -381,19 +390,44 @@ export function createEngine(adapter: Adapter) {
      * Interactive transaction support. The leader worker holds ONE open SQLite
      * transaction; the client drives it across round trips.
      *
-     * Safe because SQLite rolls back automatically if the connection dies, and the
-     * connection lives in the leader tab's worker. The residual risk is a FOLLOWER
-     * tab dying mid-transaction, leaving the leader holding an open transaction —
-     * so the client sends txRollback on close and the worker caps how long one may
-     * stay open. Nested calls are rejected: SQLite has one write transaction.
+     * THE HAZARD, stated honestly: the transaction lives in the LEADER's worker,
+     * but it is driven by whichever tab called transaction() — possibly a
+     * follower. If that tab dies between txBegin and txCommit, nothing rolls it
+     * back. An earlier version of this comment claimed the client sent
+     * txRollback on close and that the worker capped transaction lifetime.
+     * Neither was true. The damage was severe and silent: every later write from
+     * every tab was acknowledged, was readable, executed INSIDE the abandoned
+     * transaction, and then vanished when the connection finally rolled back —
+     * while every future txBegin threw "already open" forever.
+     *
+     * Two real mitigations now:
+     *  - `force`, which the client passes because it holds the EXCLUSIVE
+     *    cross-tab lock at that point. The browser releases a dead tab's Web
+     *    Lock, so holding it proves no live tab owns a transaction.
+     *  - a lease (`txMaxMs`), which covers the case where no new transaction is
+     *    ever started and ordinary writes would otherwise be swallowed.
      */
-    txBegin(mode: 'r' | 'rw' = 'rw'): boolean {
-      if (inTx) throw new Error('granth: a transaction is already open on this connection');
-      // Defensive: if a previous failure left SQLite mid-transaction, clear it
-      // rather than failing every future BEGIN.
+    txBegin(mode: 'r' | 'rw' = 'rw', force = false): boolean {
+      if (inTx && !force) throw new Error('granth: a transaction is already open on this connection');
+      // Defensive: clears both a stale flag and any transaction SQLite still has
+      // open. Unlike before, this is now REACHABLE when inTx is set, which is
+      // exactly when it is needed.
+      inTx = false;
       try { adapter.exec('ROLLBACK'); } catch { /* nothing was open */ }
       adapter.exec(mode === 'r' ? 'BEGIN' : 'BEGIN IMMEDIATE');
       inTx = true;
+      txStartedAt = now();
+      return true;
+    },
+
+    /**
+     * Roll back a transaction whose owner is gone, so its writes cannot be
+     * silently absorbed. Returns true if it actually reaped one.
+     */
+    reapStaleTx(): boolean {
+      if (!inTx || now() - txStartedAt < txMaxMs) return false;
+      inTx = false;
+      try { adapter.exec('ROLLBACK'); } catch { /* already gone */ }
       return true;
     },
     txCommit(): boolean {
@@ -473,32 +507,44 @@ export function rpcHandlers(
   { onMigrated }: { onMigrated?: (result: MigrateResult, engine: Engine) => void } = {}
 ): Record<string, (...args: never[]) => unknown> {
   const E = getEngine;
+
+  /**
+   * Every RPC first reaps an abandoned transaction.
+   *
+   * A tab that dies between txBegin and txCommit leaves the leader's connection
+   * mid-transaction. Without this, ordinary writes from OTHER tabs execute
+   * inside it — acknowledged, readable, then destroyed when the connection
+   * finally rolls back. Reaping here means the worst case is a rolled-back
+   * transaction rather than silently discarded writes.
+   */
+  const reap = <T>(fn: () => T): T => { E().reapStaleTx(); return fn(); };
+
   return {
     open(versions: VersionSpec[]) {
       const result = E().migrate(versions);
       if (result.migrated) onMigrated?.(result, E());
       return { ...result, schema: E().schema() };
     },
-    get: (t: string, k: unknown) => E().get(t, k),
-    bulkGet: (t: string, keys: unknown[]) => E().bulkGet(t, keys),
+    get: (t: string, k: unknown) => reap(() => E().get(t, k)),
+    bulkGet: (t: string, keys: unknown[]) => reap(() => E().bulkGet(t, keys)),
     exportTable: (t: string) => E().exportTable(t),
     importTable: (t: string, rows: Array<{ k: unknown; d: unknown }>) => E().importTable(t, rows),
-    upsert: (t: string, k: unknown, c: Doc) => E().upsert(t, k, c),
-    bulkUpdate: (t: string, ops: Array<{ key: unknown; changes: Doc }>) => E().bulkUpdate(t, ops),
-    txBegin: (_t: unknown, mode: 'r' | 'rw') => E().txBegin(mode),
+    upsert: (t: string, k: unknown, c: Doc) => reap(() => E().upsert(t, k, c)),
+    bulkUpdate: (t: string, ops: Array<{ key: unknown; changes: Doc }>) => reap(() => E().bulkUpdate(t, ops)),
+    txBegin: (_t: unknown, mode: 'r' | 'rw', force?: boolean) => E().txBegin(mode, force),
     txCommit: () => E().txCommit(),
     txRollback: () => E().txRollback(),
-    add: (t: string, d: unknown) => E().add(t, d),
-    put: (t: string, d: unknown) => E().put(t, d),
-    bulkAdd: (t: string, d: unknown[]) => E().bulkAdd(t, d),
-    bulkPut: (t: string, d: unknown[]) => E().bulkPut(t, d),
-    update: (t: string, k: unknown, c: Doc) => E().update(t, k, c),
-    delete: (t: string, k: unknown) => E().delete(t, k),
-    bulkDelete: (t: string, k: unknown[]) => E().bulkDelete(t, k),
-    clear: (t: string) => E().clear(t),
-    query: (t: string, plan: QueryPlan, mode: QueryMode) => E().query(t, plan, mode),
-    deleteWhere: (t: string, plan: QueryPlan) => E().deleteWhere(t, plan),
-    modifyWhere: (t: string, plan: QueryPlan, c: object) => E().modifyWhere(t, plan, c),
+    add: (t: string, d: unknown) => reap(() => E().add(t, d)),
+    put: (t: string, d: unknown) => reap(() => E().put(t, d)),
+    bulkAdd: (t: string, d: unknown[]) => reap(() => E().bulkAdd(t, d)),
+    bulkPut: (t: string, d: unknown[]) => reap(() => E().bulkPut(t, d)),
+    update: (t: string, k: unknown, c: Doc) => reap(() => E().update(t, k, c)),
+    delete: (t: string, k: unknown) => reap(() => E().delete(t, k)),
+    bulkDelete: (t: string, k: unknown[]) => reap(() => E().bulkDelete(t, k)),
+    clear: (t: string) => reap(() => E().clear(t)),
+    query: (t: string, plan: QueryPlan, mode: QueryMode) => reap(() => E().query(t, plan, mode)),
+    deleteWhere: (t: string, plan: QueryPlan) => reap(() => E().deleteWhere(t, plan)),
+    modifyWhere: (t: string, plan: QueryPlan, c: object) => reap(() => E().modifyWhere(t, plan, c)),
     batch: (_table: unknown, ops: BatchOp[]) => E().batch(ops),
   };
 }

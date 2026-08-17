@@ -40,6 +40,8 @@ const check = (name, ok, detail = '') => {
 
 /** Counts how often opening a database races a dying leader. See FINDING below. */
 let openRetries = 0;
+/** Counts reads that had to be retried after a failover. See FINDING below. */
+let readRetries = 0;
 
 const newTab = async () => {
   const page = await context.newPage();
@@ -106,8 +108,21 @@ console.log(`— ${engineName}: multi-tab failover —`);
   const errored = results.filter((r) => r.failedAt);
 
   // Give the survivors a moment to re-elect before reading back.
+  //
+  // FINDING: this read has to be retried. A read ACKed by the dying leader
+  // rejects with LeaderLostError — "may or may not have committed" — but a READ
+  // commits nothing, so it is unconditionally safe to retry. Treating reads like
+  // writes makes every app hand-roll this loop after any failover.
   await new Promise((r) => setTimeout(r, 500));
-  const actual = await tabs[1].evaluate(() => window.__stress.all());
+  let actual;
+  for (let attempt = 0; ; attempt++) {
+    try { actual = await tabs[1].evaluate(() => window.__stress.all()); break; }
+    catch (err) {
+      if (attempt >= 5 || !/LeaderLost|NoLeader/.test(String(err))) throw err;
+      readRetries++;
+      await new Promise((r) => setTimeout(r, 200));
+    }
+  }
   const missing = claimed.filter((id) => !actual.includes(id));
 
   check('leader killed mid-write: no acknowledged write was lost', missing.length === 0,
@@ -131,6 +146,10 @@ console.log(`— ${engineName}: multi-tab failover —`);
   for (const p of tabs) await p.close();
 }
 
+if (readRetries) {
+  console.log(`\nNOTE: a read after failover rejected ${readRetries}x with LeaderLost/NoLeader.`);
+  console.log('      A read commits nothing, so it is always safe to retry — the library should.');
+}
 if (openRetries) {
   console.log(`\nNOTE: open() hit LeaderLostError/NoLeaderError ${openRetries}x and needed a retry.`);
   console.log('      open() is idempotent, so the library could retry it itself.');

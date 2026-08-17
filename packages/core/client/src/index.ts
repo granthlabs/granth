@@ -790,7 +790,11 @@ export class Granth {
 
     const run = async () => {
       this._inTx = true;
-      await this._conn.call('txBegin', null, String(mode).includes('w') ? 'rw' : 'r');
+      // force = true is safe HERE and only here: we are inside withLock('exclusive'),
+      // and the browser releases a dead tab's Web Lock. Holding it proves no live
+      // tab owns a transaction, so anything still open belongs to a tab that died
+      // and must be rolled back rather than left to swallow everyone's writes.
+      await this._conn.call('txBegin', null, String(mode).includes('w') ? 'rw' : 'r', true);
       try {
         const out = await fn(this);
         await this._conn.call('txCommit');
@@ -903,8 +907,17 @@ export class Granth {
     // The IndexedDB fallback checkpoints on a debounce, so closing without a
     // flush can drop the last few hundred milliseconds of writes.
     if (this._isOpen) await this.flush().catch(() => {});
-    this._client?.close();
-    this._changes?.close();
+    // Close a transaction this tab was driving. Without this the leader keeps it
+    // open and every other tab's writes get absorbed into it and then lost.
+    if (this._inTx) await this._conn?.call('txRollback').catch(() => {});
+    this._inTx = false;
+    // _conn is the real connection. close() used to poke _client and _changes —
+    // _client is only ever assigned null and _changes was never assigned at all —
+    // so it released nothing: leadership was held until the tab itself died,
+    // blocking failover, and the database kept working after "close".
+    this._offRemote?.();
+    await this._conn?.close?.();
+    this._conn = null;
     this._client = null;
     this._offRemote = null;
     this._listeners.clear();
