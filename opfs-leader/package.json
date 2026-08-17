@@ -50,13 +50,13 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/sundarshahi/litie.git",
+    "url": "git+https://github.com/sundarshahi/granth.git",
     "directory": "opfs-leader"
   },
   "bugs": {
-    "url": "https://github.com/sundarshahi/litie/issues"
+    "url": "https://github.com/sundarshahi/granth/issues"
   },
-  "homepage": "https://github.com/sundarshahi/litie/tree/main/opfs-leader#readme",
+  "homepage": "https://github.com/sundarshahi/granth/tree/main/opfs-leader#readme",
   "publishConfig": {
     "access": "public"
   },

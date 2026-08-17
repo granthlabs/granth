@@ -1,4 +1,4 @@
-# litie — API Reference
+# granth — API Reference
 
 SQLite in the browser with a **Dexie-compatible API**. OPFS-backed, one worker, safe across
 tabs, with an IndexedDB fallback.
@@ -17,7 +17,7 @@ listed in [Migrating from Dexie](./MigratingFromDexie.md).
 
 | Class | Purpose |
 |---|---|
-| [Litie](./Litie.md) | The database itself — schema, versions, open/close, transactions |
+| [Granth](./Granth.md) | The database itself — schema, versions, open/close, transactions |
 | [Table](./Table.md) | One object store: CRUD, bulk operations, hooks |
 | [Collection](./Collection.md) | A pending query result: ordering, paging, iteration, bulk edit |
 | [WhereClause](./WhereClause.md) | The operators you reach through `table.where(index)` |
@@ -28,9 +28,9 @@ listed in [Migrating from Dexie](./MigratingFromDexie.md).
 ## Quick reference
 
 ```js
-import Litie from 'litie';
+import Granth from 'granth';
 
-const db = new Litie('myapp', {
+const db = new Granth('myapp', {
   worker: () => new Worker(new URL('./db.worker.js', import.meta.url), { type: 'module' }),
 });
 
@@ -45,9 +45,9 @@ await db.open();
 ```js
 // db.worker.js — the entire file
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
-import { startLitieWorker } from 'litie/worker';
+import { startGranthWorker } from 'granth/worker';
 
-startLitieWorker({ sqlite3InitModule, filename: '/myapp.sqlite3' });
+startGranthWorker({ sqlite3InitModule, filename: '/myapp.sqlite3' });
 ```
 
 ### Schema syntax

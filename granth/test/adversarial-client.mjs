@@ -1,7 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import { createEngine, rpcHandlers } from '../engine.js';
 import { serveInWorker } from '../../opfs-leader/worker.js';
-import { Litie } from '../index.js';
+import { Granth } from '../index.js';
 
 const A = (db)=>({all:(s,p=[])=>db.prepare(s).all(...p).map(r=>({...r})),exec:s=>db.exec(s),
   run:(s,p=[])=>{const r=db.prepare(s).run(...p);return{changes:Number(r.changes),lastInsertRowid:Number(r.lastInsertRowid)}}});
@@ -17,7 +17,7 @@ function makeLocks(){const st=new Map();const g=n=>{if(!st.has(n))st.set(n,{r:0,
 
 const bad=[]; const chk=async(n,f)=>{try{const r=await f(); if(r)bad.push(`${n}: ${r}`)}catch(e){bad.push(`${n}: THREW ${String(e.message).slice(0,100)}`)}};
 
-const db = new Litie('adv', { worker: fakeWorker, locks: makeLocks() });
+const db = new Granth('adv', { worker: fakeWorker, locks: makeLocks() });
 db.version(1).stores({ t: '++id, name, age, when, flag, *tags' });
 
 await chk('Date through the client API', async () => {

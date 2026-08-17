@@ -1,4 +1,4 @@
-// Litie — a Dexie-shaped API over SQLite/OPFS, running in one worker,
+// Granth — a Dexie-shaped API over SQLite/OPFS, running in one worker,
 // coordinated across tabs by opfs-leader.
 //
 // Client side: builds serializable query plans and RPCs them. No SQL here.
@@ -320,8 +320,8 @@ class Table {
    * so a hook cannot veto a write that has already been committed.
    */
   hook(name, fn) {
-    if (!HOOK_NAMES.includes(name)) throw new Error(`litie: unknown hook "${name}"`);
-    if (typeof name === 'object') throw new TypeError('litie: hook(object) form is not supported');
+    if (!HOOK_NAMES.includes(name)) throw new Error(`granth: unknown hook "${name}"`);
+    if (typeof name === 'object') throw new TypeError('granth: hook(object) form is not supported');
     this._hooks[name].push(fn);
     return this;
   }
@@ -418,9 +418,9 @@ for (const op of ['add', 'put', 'bulkAdd', 'bulkPut', 'update', 'upsert', 'delet
   };
 }
 
-// -------------------------------------------------------------------- Litie
+// -------------------------------------------------------------------- Granth
 
-export class Litie {
+export class Granth {
   constructor(name, { worker, timeoutMs, ...leaderOpts } = {}) {
     this.name = name;
     this.verno = 0;
@@ -479,7 +479,7 @@ export class Litie {
   }
 
   /**
-   * Browser APIs are touched here, NOT in the constructor, so `new Litie(...)` is
+   * Browser APIs are touched here, NOT in the constructor, so `new Granth(...)` is
    * safe at module scope under SSR (Next.js, Nuxt, Angular Universal) where there
    * is no navigator.locks. Nothing happens until you actually use the database.
    */
@@ -489,18 +489,18 @@ export class Litie {
     const locks = this._leaderOpts.locks ?? globalThis.navigator?.locks;
     if (typeof locks?.request !== 'function' || typeof globalThis.BroadcastChannel !== 'function') {
       throw new Error(
-        'litie: this environment cannot run the database. It needs a browser with ' +
+        'granth: this environment cannot run the database. It needs a browser with ' +
           'Web Locks + Workers in a secure context (HTTPS or localhost). ' +
-          'Guard with `if (Litie.isSupported())`, or only touch the db in a client-side effect.'
+          'Guard with `if (Granth.isSupported())`, or only touch the db in a client-side effect.'
       );
     }
     this._locks = locks;
-    this._client = createLeaderClient({ name: `litie:${this.name}`, ...this._leaderOpts });
-    this._changes = new BroadcastChannel(`litie-changes:${this.name}`);
+    this._client = createLeaderClient({ name: `granth:${this.name}`, ...this._leaderOpts });
+    this._changes = new BroadcastChannel(`granth-changes:${this.name}`);
     this._changes.addEventListener('message', (e) => this._emit(e.data.tables, false));
   }
 
-  /** True when this environment can actually run litie. Safe to call during SSR. */
+  /** True when this environment can actually run granth. Safe to call during SSR. */
   static isSupported() {
     return (
       typeof globalThis.Worker === 'function' &&
@@ -517,7 +517,7 @@ export class Litie {
    */
   _shared(fn) {
     if (this._inTx || !this._locks?.request) return fn();
-    return this._locks.request(`litie-tx:${this.name}`, { mode: 'shared' }, fn);
+    return this._locks.request(`granth-tx:${this.name}`, { mode: 'shared' }, fn);
   }
 
   version(n) {
@@ -544,8 +544,8 @@ export class Litie {
         return {
           upgrade: () => {
             throw new Error(
-              'litie: upgrade() functions cannot cross into the worker — ' +
-                'register them in your worker file as startLitieWorker({ upgrades: { 2: fn } })'
+              'granth: upgrade() functions cannot cross into the worker — ' +
+                'register them in your worker file as startGranthWorker({ upgrades: { 2: fn } })'
             );
           },
         };
@@ -555,7 +555,7 @@ export class Litie {
 
   table(name) {
     const t = this._tables.get(name);
-    if (!t) throw new Error(`litie: no table "${name}"`);
+    if (!t) throw new Error(`granth: no table "${name}"`);
     return t;
   }
   get tables() { return [...this._tables.values()]; }
@@ -588,7 +588,7 @@ export class Litie {
   hasFailed() { return this._hasFailed; }
 
   on(event, fn) {
-    if (!(event in this._events)) throw new Error(`litie: unknown event "${event}"`);
+    if (!(event in this._events)) throw new Error(`granth: unknown event "${event}"`);
     this._events[event].push(fn);
     return this;
   }
@@ -624,7 +624,7 @@ export class Litie {
 
     const [mode, ...rest] = args;
     const fn = rest.pop();
-    if (typeof fn !== 'function') throw new TypeError('litie: transaction() needs a callback');
+    if (typeof fn !== 'function') throw new TypeError('granth: transaction() needs a callback');
     if (this._inTx) return fn(this); // Dexie allows nesting; SQLite has one write txn
 
     const run = async () => {
@@ -645,7 +645,7 @@ export class Litie {
     };
 
     const result = this._locks?.request
-      ? await this._locks.request(`litie-tx:${this.name}`, { mode: 'exclusive' }, run)
+      ? await this._locks.request(`granth-tx:${this.name}`, { mode: 'exclusive' }, run)
       : await run();
     this._emit([...this._tables.keys()], true);
     return result;
@@ -659,7 +659,7 @@ export class Litie {
     const maybe = fn(tx);
     if (maybe && typeof maybe.then === 'function')
       throw new TypeError(
-        'litie: the one-argument transaction(fn) callback must be synchronous — it records ' +
+        'granth: the one-argument transaction(fn) callback must be synchronous — it records ' +
           'writes. For reads inside a transaction use transaction(mode, tables, async fn).'
       );
     if (!ops.length) return [];
@@ -782,11 +782,11 @@ export class Litie {
 }
 
 // Dexie exposes these on the instance; mirror it so `db.Table` etc. resolve.
-Litie.prototype.Table = Table;
-Litie.prototype.Collection = Collection;
-Litie.prototype.WhereClause = WhereClause;
-Litie.prototype.Version = class Version {};
-Litie.prototype.Transaction = class Transaction {};
+Granth.prototype.Table = Table;
+Granth.prototype.Collection = Collection;
+Granth.prototype.WhereClause = WhereClause;
+Granth.prototype.Version = class Version {};
+Granth.prototype.Transaction = class Transaction {};
 
 /** Standalone form, mirroring Dexie: liveQuery(db, () => db.friends.toArray()) */
 export function liveQuery(db, querier, opts) {
@@ -798,9 +798,9 @@ export { Table, Collection, WhereClause };
 
 export { VersionError } from './engine.js';
 export { LeaderLostError, NoLeaderError } from 'opfs-leader';
-export default Litie;
+export default Granth;
 
-/** Back-compat alias from the pre-1.0 `litie` name. */
+/** Back-compat alias from the pre-1.0 `granth` name. */
 
 /** Neutral alias, for code that prefers a generic name. */
-export { Litie as Database };
+export { Granth as Database };

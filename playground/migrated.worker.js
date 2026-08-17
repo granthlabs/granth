@@ -1,6 +1,6 @@
 // Separate database for the migration target, so it cannot collide with the
 // fallback suite's schema version.
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
-import { startLitieWorker } from 'litie/worker';
+import { startGranthWorker } from 'granth/worker';
 
-startLitieWorker({ sqlite3InitModule, filename: '/migrated.sqlite3', storage: 'indexeddb', checkpointMs: 50 });
+startGranthWorker({ sqlite3InitModule, filename: '/migrated.sqlite3', storage: 'indexeddb', checkpointMs: 50 });

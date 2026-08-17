@@ -1,16 +1,16 @@
-# litie
+# granth
 
 **SQLite in the browser, with a Dexie-compatible API.**
 OPFS-backed, runs in a Web Worker, safe across tabs, with an IndexedDB fallback.
 
 ```bash
-npm install litie @sqlite.org/sqlite-wasm
+npm install granth @sqlite.org/sqlite-wasm
 ```
 
 ```js
-import Litie from 'litie';
+import Granth from 'granth';
 
-const db = new Litie('myapp', {
+const db = new Granth('myapp', {
   worker: () => new Worker(new URL('./db.worker.js', import.meta.url), { type: 'module' }),
 });
 
@@ -27,9 +27,9 @@ Your entire worker file:
 ```js
 // db.worker.js
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
-import { startLitieWorker } from 'litie/worker';
+import { startGranthWorker } from 'granth/worker';
 
-startLitieWorker({ sqlite3InitModule, filename: '/myapp.sqlite3' });
+startGranthWorker({ sqlite3InitModule, filename: '/myapp.sqlite3' });
 ```
 
 **No COOP/COEP headers. No build plugins. No server.**
@@ -39,10 +39,10 @@ startLitieWorker({ sqlite3InitModule, filename: '/myapp.sqlite3' });
 ## Why
 
 Dexie is excellent, but it is a wrapper over **IndexedDB** — per-row cost, cursor walking, no
-query planner, and main-thread work. litie keeps the API and swaps the engine for **SQLite**:
+query planner, and main-thread work. granth keeps the API and swaps the engine for **SQLite**:
 real indexes, a real query planner, real transactions, running off the main thread.
 
-The name follows Dexie's own: *inDEXed → Dexie*, so *sq**LITE** → litie*.
+The name follows Dexie's own: *inDEXed → Dexie*, so *sq**LITE** → granth*.
 
 ### What a SQL engine gives you
 
@@ -79,7 +79,7 @@ Every gap is an explicit, documented waiver (middleware, `idbdb`, PSD zones — 
 meaning once the store isn't IndexedDB). Migrating? → **[Migrating from Dexie](./docs/MigratingFromDexie.md)**
 
 ```js
-import { suggestSchema, importFromIndexedDB } from 'litie/migrate-idb';
+import { suggestSchema, importFromIndexedDB } from 'granth/migrate-idb';
 
 db.version(1).stores(await suggestSchema('my-old-dexie-db'));
 await importFromIndexedDB(db, { from: 'my-old-dexie-db' });
@@ -92,13 +92,13 @@ and is idempotent.
 
 | | |
 |---|---|
-| **React / Next.js** | `import { useLiveQuery } from 'litie/react'` — SSR-safe |
-| **Vue / Nuxt** | `import { useLiveQuery } from 'litie/vue'` |
+| **React / Next.js** | `import { useLiveQuery } from 'granth/react'` — SSR-safe |
+| **Vue / Nuxt** | `import { useLiveQuery } from 'granth/vue'` |
 | **Angular** | `from(db.liveQuery(...))` — implements `Symbol.observable` |
 | **Svelte** | `$query` directly — `subscribe()` *is* the Svelte store contract |
 | **Vanilla / Solid / Qwik / Lit** | `.subscribe(fn)` |
 
-`new Litie(...)` touches no browser API, so it is safe at module scope under SSR.
+`new Granth(...)` touches no browser API, so it is safe at module scope under SSR.
 → **[Frameworks guide](./docs/Frameworks.md)**
 
 ## Live queries
@@ -154,7 +154,7 @@ This is the fix, not a mitigation.
 Mirrors [Dexie's API Reference](https://dexie.org/docs/API-Reference) page for page.
 
 - [Tutorial](./docs/Tutorial.md) · [Migrating from Dexie](./docs/MigratingFromDexie.md) · [Frameworks](./docs/Frameworks.md) · [Storage](./docs/Storage.md)
-- API: [Litie](./docs/Litie.md) · [Table](./docs/Table.md) · [Collection](./docs/Collection.md) · [WhereClause](./docs/WhereClause.md) · [Transaction](./docs/Transaction.md) · [liveQuery](./docs/liveQuery.md) · [Errors](./docs/Errors.md)
+- API: [Granth](./docs/Granth.md) · [Table](./docs/Table.md) · [Collection](./docs/Collection.md) · [WhereClause](./docs/WhereClause.md) · [Transaction](./docs/Transaction.md) · [liveQuery](./docs/liveQuery.md) · [Errors](./docs/Errors.md)
 
 ## How it works
 
@@ -187,7 +187,7 @@ Chrome 108+ · Safari 16.4+ · Firefox 111+ · secure context (HTTPS or `localho
 
 | Package | Description |
 |---|---|
-| [`litie`](./litie) | The database |
+| [`granth`](./granth) | The database |
 | [`opfs-leader`](./opfs-leader) | Just the multi-tab single-writer topology, usable on its own |
 
 ## License

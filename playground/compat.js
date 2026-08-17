@@ -1,8 +1,8 @@
 // Verifies the two things Node cannot: the IndexedDB fallback backend, and
-// migrating a real Dexie database into litie.
+// migrating a real Dexie database into granth.
 
-import { Litie } from 'litie';
-import { importFromIndexedDB, inspectIndexedDB, suggestSchema } from 'litie/migrate-idb';
+import { Granth } from 'granth';
+import { importFromIndexedDB, inspectIndexedDB, suggestSchema } from 'granth/migrate-idb';
 import Dexie from 'dexie';
 
 const results = [];
@@ -24,7 +24,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const PHASE = new URLSearchParams(location.search).get('phase') ?? 'fresh';
 const idbDb = () =>
-  new Litie('fallback', {
+  new Granth('fallback', {
     worker: () => new Worker(new URL('./idb.worker.js', import.meta.url), { type: 'module' }),
   });
 
@@ -66,7 +66,7 @@ async function run() {
 
     await check('a real IndexedDB snapshot exists and is non-trivial', async () => {
       const bytes = await new Promise((resolve, reject) => {
-        const r = indexedDB.open('litiefallbacksqlite3');
+        const r = indexedDB.open('granthfallbacksqlite3');
         r.onsuccess = () => {
           const idb = r.result;
           const g = idb.transaction('files', 'readonly').objectStore('files').get('/fallback.sqlite3');
@@ -104,7 +104,7 @@ async function run() {
       if (!f.indexes.some((i) => i.name === 'tags' && i.multiEntry)) throw new Error('multiEntry index not detected');
     });
 
-    await check('suggestSchema derives a litie stores() spec', async () => {
+    await check('suggestSchema derives a granth stores() spec', async () => {
       const schema = await suggestSchema(LEGACY);
       if (!/\+\+id/.test(schema.friends)) throw new Error(`no auto key: ${schema.friends}`);
       if (!/\*tags/.test(schema.friends)) throw new Error(`multiEntry lost: ${schema.friends}`);
@@ -113,7 +113,7 @@ async function run() {
 
     await check('importFromIndexedDB copies a Dexie database in, with no manual work', async () => {
       const schema = await suggestSchema(LEGACY);
-      const target = new Litie('migrated', {
+      const target = new Granth('migrated', {
         worker: () => new Worker(new URL('./migrated.worker.js', import.meta.url), { type: 'module' }),
       });
       target.version(1).stores(schema); // schema derived from the OLD database

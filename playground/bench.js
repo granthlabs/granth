@@ -1,4 +1,4 @@
-import { Litie } from 'litie';
+import { Granth } from 'granth';
 
 const rows = [];
 const out = (name, ms, n, unit = 'ops') => {
@@ -17,7 +17,7 @@ async function time(name, n, fn, unit) {
 
 const N = Number(new URLSearchParams(location.search).get('n') ?? 5000);
 
-const db = new Litie('bench', {
+const db = new Granth('bench', {
   worker: () => {
     const u = new URL('./bench.worker.js', import.meta.url);
     for (const k of ['sync', 'journal']) {

@@ -1,14 +1,14 @@
 {
-  "name": "litie-workspace",
+  "name": "granth-workspace",
   "private": true,
   "type": "module",
   "workspaces": [
     "opfs-leader",
-    "litie",
+    "granth",
     "playground"
   ],
   "scripts": {
-    "test": "npm run test -w opfs-leader && npm run test -w litie && npm run typecheck",
+    "test": "npm run test -w opfs-leader && npm run test -w granth && npm run typecheck",
     "test:browser": "npm run test -w playground",
     "dev": "npm run dev -w playground",
     "typecheck": "tsc -p tsconfig.json"

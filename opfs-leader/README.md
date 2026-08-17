@@ -113,7 +113,7 @@ verified in Node. Node's `BroadcastChannel` is real, so the cross-tab messaging 
 
 ## Related
 
-[`litie`](https://www.npmjs.com/package/litie) — a Dexie-shaped database built on this.
+[`granth`](https://www.npmjs.com/package/granth) — a Dexie-shaped database built on this.
 
 ## License
 

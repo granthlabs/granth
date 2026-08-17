@@ -2,9 +2,9 @@
 // Constructed ONLY in the tab opfs-leader elects, so it is the single writer.
 
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
-import { startLitieWorker } from './worker.js';
+import { startGranthWorker } from './worker.js';
 
-startLitieWorker({
+startGranthWorker({
   sqlite3InitModule,
   filename: '/myapp.sqlite3',
 

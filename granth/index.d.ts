@@ -24,7 +24,7 @@ export interface Observable<T> {
 }
 
 export declare class Collection<T = any, K = any> {
-  readonly db: Litie;
+  readonly db: Granth;
   /** Union: adds a second OR group. */
   or(index: string): WhereClause<T, K>;
   /** JS predicate — runs client-side after fetching. */
@@ -76,7 +76,7 @@ export declare class Collection<T = any, K = any> {
 }
 
 export declare class WhereClause<T = any, K = any> {
-  readonly db: Litie;
+  readonly db: Granth;
   readonly Collection: typeof Collection;
   /** On a compound index, pass the tuple as an array. */
   equals(value: IndexableValue | IndexableValue[]): Collection<T, K>;
@@ -119,7 +119,7 @@ export type HookName = 'creating' | 'reading' | 'updating' | 'deleting';
 
 export declare class Table<T = any, K = any> {
   readonly name: string;
-  readonly db: Litie;
+  readonly db: Granth;
   readonly schema: TableSchema;
 
   get(key: K): Promise<T | undefined>;
@@ -176,7 +176,7 @@ export interface TxTable<T = any, K = any> {
 
 export type TxScope = Record<string, TxTable> & { table(name: string): TxTable };
 
-export interface LitieOptions {
+export interface GranthOptions {
   /** Factory for the dedicated worker. Called only in the elected tab. */
   worker: () => Worker;
   /** Milliseconds to wait for a leader before failing. Default 5000. */
@@ -197,8 +197,8 @@ export interface LiveQueryOptions {
   debounceMs?: number;
 }
 
-export declare class Litie {
-  constructor(name: string, opts: LitieOptions);
+export declare class Granth {
+  constructor(name: string, opts: GranthOptions);
 
   readonly name: string;
   readonly tables: Table[];
@@ -250,14 +250,14 @@ export declare class Litie {
 }
 
 export declare function liveQuery<T>(
-  db: Litie,
+  db: Granth,
   querier: () => Promise<T>,
   opts?: LiveQueryOptions
 ): Observable<T>;
 
-export default Litie;
+export default Granth;
 
-/** Back-compat alias from the pre-1.0 `litie` name. */
+/** Back-compat alias from the pre-1.0 `granth` name. */
 
 /** Neutral alias, for code that prefers a generic name. */
-export { Litie as Database };
+export { Granth as Database };

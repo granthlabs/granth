@@ -1,4 +1,4 @@
-// Run: node --experimental-sqlite lib/litie/selfcheck.mjs   (Node 22+)
+// Run: node --experimental-sqlite lib/granth/selfcheck.mjs   (Node 22+)
 //
 // The engine runs against REAL SQLite (node:sqlite), not a mock — so the DDL,
 // generated columns, multiEntry triggers and compiled SQL are genuinely executed.
@@ -11,7 +11,7 @@ import { createEngine, rpcHandlers, schemaAt, VersionError } from './engine.js';
 import { parseStore } from './schema.js';
 import { compile } from './plan.js';
 import { serveInWorker } from 'opfs-leader/worker';
-import { Litie } from './index.js';
+import { Granth } from './index.js';
 
 // ---------------------------------------------------------------- adapters
 
@@ -284,7 +284,7 @@ function nodeAdapterRaw(engine) {
   }
 
   /**
-   * A real shared/exclusive lock, not a mutex: litie takes SHARED for ordinary
+   * A real shared/exclusive lock, not a mutex: granth takes SHARED for ordinary
    * calls and EXCLUSIVE for interactive transactions, so a stub that ignored the
    * mode would let the isolation test pass without testing anything.
    */
@@ -330,7 +330,7 @@ function nodeAdapterRaw(engine) {
     };
   }
 
-  const db = new Litie('demo', { worker: fakeWorker, locks: makeLocks() });
+  const db = new Granth('demo', { worker: fakeWorker, locks: makeLocks() });
   db.version(1).stores({ friends: '++id, name, age, flag, when, *tags, [name+age]', notes: '++id, owner' });
   await db.open();
 
@@ -429,7 +429,7 @@ function nodeAdapterRaw(engine) {
 
   // hooks + mapToClass
   {
-    const hooked = new Litie('hooks', { worker: fakeWorker, locks: makeLocks() });
+    const hooked = new Granth('hooks', { worker: fakeWorker, locks: makeLocks() });
     hooked.version(1).stores({ t: '++id, name' });
     await hooked.open();
     class Row { greet() { return `hi ${this.name}`; } }
@@ -511,7 +511,7 @@ function nodeAdapterRaw(engine) {
 
   // dexie#1571: clear every table in one call
   {
-    const tmp = new Litie('clearall', { worker: fakeWorker, locks: makeLocks() });
+    const tmp = new Granth('clearall', { worker: fakeWorker, locks: makeLocks() });
     tmp.version(1).stores({ a: '++id, x', b: '++id, y' });
     await tmp.open();
     await tmp.a.bulkAdd([{ x: 1 }, { x: 2 }]);
@@ -524,7 +524,7 @@ function nodeAdapterRaw(engine) {
 
   // dexie#1273 shape: a query issued WITHOUT awaiting open() must not return [].
   {
-    const eager = new Litie('eager', { worker: fakeWorker, locks: makeLocks() });
+    const eager = new Granth('eager', { worker: fakeWorker, locks: makeLocks() });
     eager.version(1).stores({ a: '++id, x' });
     await eager.a.bulkAdd([{ x: 1 }, { x: 2 }]);   // never called open()
     const first = await eager.a.toArray();          // the call that returns [] in dexie#1273
@@ -537,8 +537,8 @@ function nodeAdapterRaw(engine) {
   // SSR safety: constructing at module scope must not touch browser APIs.
   {
     const savedLocks = globalThis.navigator?.locks;
-    assert.equal(typeof Litie.isSupported, 'function');
-    const ssr = new Litie('ssr', { worker: () => { throw new Error('never'); } });
+    assert.equal(typeof Granth.isSupported, 'function');
+    const ssr = new Granth('ssr', { worker: () => { throw new Error('never'); } });
     ssr.version(1).stores({ a: '++id' });         // schema declaration is pure
     assert.equal(ssr.a.name, 'a');
     await assert.rejects(() => ssr.open(), /cannot run the database/, 'must fail with a clear message, not a cryptic one');
@@ -679,4 +679,4 @@ function tick(ms = 10) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-console.log('litie selfcheck: all assertions passed');
+console.log('granth selfcheck: all assertions passed');

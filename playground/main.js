@@ -3,7 +3,7 @@
 // opfs-sahpool without COOP/COEP, the dedicated worker, Web Locks election,
 // and — the thing only a browser can show — durability across a reload.
 
-import { Litie } from 'litie';
+import { Granth } from 'granth';
 
 const results = [];
 const log = (name, ok, detail = '') => {
@@ -34,7 +34,7 @@ const V2 = { friends: '++id, name, age, city, flag, when, *tags, [name+age]' };
 
 /** @param {1|2} upto  open the database declaring versions up to `upto` */
 function makeDb(upto = 2) {
-  const db = new Litie('playground', {
+  const db = new Granth('playground', {
     worker: () => new Worker(new URL('./db.worker.js', import.meta.url), { type: 'module' }),
   });
   db.version(1).stores(V1);

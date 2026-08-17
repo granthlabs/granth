@@ -5,7 +5,7 @@ A query that has not run yet. Mirrors
 
 ## ⚠️ Two deliberate differences from Dexie
 
-| | Dexie | litie |
+| | Dexie | granth |
 |---|---|---|
 | `sortBy(keyPath)` | resolves to a sorted **array** | **same** — returns `Promise<T[]>`, not a Collection |
 | `keys()` | the **index** keys | **same** — index keys, *not* primary keys (use `primaryKeys()`) |

@@ -1,25 +1,25 @@
-# Litie
+# Granth
 
 The database. Mirrors [Dexie's `Dexie` class](https://dexie.org/docs/Dexie/Dexie).
 
 ```js
-import Litie from 'litie';
+import Granth from 'granth';
 
-const db = new Litie('myapp', {
+const db = new Granth('myapp', {
   worker: () => new Worker(new URL('./db.worker.js', import.meta.url), { type: 'module' }),
 });
 ```
 
 ## Constructor
 
-`new Litie(name, options)`
+`new Granth(name, options)`
 
 | Option | Type | Description |
 |---|---|---|
 | `worker` | `() => Worker` | **Required.** Factory for the dedicated worker. Called only in the tab elected leader. |
 | `timeoutMs` | `number` | How long to wait for a leader before failing. Default `5000`. |
 
-The constructor is **side-effect free** — it touches no browser API. `new Litie(...)` at module
+The constructor is **side-effect free** — it touches no browser API. `new Granth(...)` at module
 scope is safe under SSR (Next.js, Nuxt, Angular Universal); nothing happens until you use it.
 
 ## Properties
@@ -48,7 +48,7 @@ silently ignored. Data transforms go in your worker file (see [Storage](./Storag
 a function cannot cross into a worker:
 
 ```js
-startLitieWorker({ sqlite3InitModule, upgrades: { 2: (engine) => { /* backfill */ } } });
+startGranthWorker({ sqlite3InitModule, upgrades: { 2: (engine) => { /* backfill */ } } });
 ```
 
 ### `open()` → `Promise<OpenResult>`
@@ -98,10 +98,10 @@ Forces a checkpoint. No-op on OPFS; on the IndexedDB fallback it persists immedi
 
 Events: `ready`, `versionchange`, `blocked`, `close`.
 
-### `Litie.isSupported()` → `boolean` *(static)*
+### `Granth.isSupported()` → `boolean` *(static)*
 
 `false` during SSR and in browsers without Web Locks or a secure context. Safe to call anywhere.
 
 ```js
-if (!Litie.isSupported()) return <ServerFallback />;
+if (!Granth.isSupported()) return <ServerFallback />;
 ```

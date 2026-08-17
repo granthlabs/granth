@@ -5,16 +5,16 @@
 //   - Vue      see ./vue.js.
 // React has no store contract, so it needs useSyncExternalStore.
 //
-// `react` is an OPTIONAL peer dependency: importing 'litie' never pulls this in.
+// `react` is an OPTIONAL peer dependency: importing 'granth' never pulls this in.
 
 import { useSyncExternalStore, useMemo, useRef, useCallback } from 'react';
 
-const PENDING = Symbol('litie.pending');
+const PENDING = Symbol('granth.pending');
 
 /**
  * Subscribe a component to a live query.
  *
- * @param {import('./index.js').Litie} db
+ * @param {import('./index.js').Granth} db
  * @param {() => Promise<T>} querier  re-runs whenever a table it read changes
  * @param {any[]} [deps]              re-subscribe when these change (like useEffect)
  * @param {T} [initialValue]          returned before the first result arrives
@@ -53,7 +53,7 @@ export function useLiveQuery(db, querier, deps = [], initialValue = undefined) {
  *
  * @example
  *   // db.js
- *   export const db = new Litie('myapp', { worker: () => new Worker(...) });
+ *   export const db = new Granth('myapp', { worker: () => new Worker(...) });
  *   export const useLiveQuery = createLiveQueryHook(db);
  *
  *   // Component.jsx

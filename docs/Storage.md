@@ -3,7 +3,7 @@
 ## OPFS first, IndexedDB as fallback
 
 ```js
-startLitieWorker({ sqlite3InitModule, storage: 'auto' }); // 'auto' | 'opfs' | 'indexeddb'
+startGranthWorker({ sqlite3InitModule, storage: 'auto' }); // 'auto' | 'opfs' | 'indexeddb'
 await db.storageKind(); // -> 'opfs' | 'indexeddb'
 ```
 
@@ -60,7 +60,7 @@ fix, not a mitigation.
 ## Worker options
 
 ```js
-startLitieWorker({
+startGranthWorker({
   sqlite3InitModule,
   filename: '/myapp.sqlite3',
   storage: 'auto',

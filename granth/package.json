@@ -1,7 +1,7 @@
 {
-  "name": "litie",
+  "name": "granth",
   "version": "0.1.0",
-  "description": "SQLite in the browser with a Dexie-compatible API. OPFS-backed, runs in one worker, safe across tabs, with an IndexedDB fallback.",
+  "description": "SQLite in the browser with a Dexie-compatible API. OPFS-backed, runs in a Web Worker, safe across tabs, with an IndexedDB fallback.",
   "type": "module",
   "license": "MIT",
   "sideEffects": false,
@@ -82,7 +82,7 @@
     }
   },
   "keywords": [
-    "litie",
+    "granth",
     "sqlite",
     "opfs",
     "sqlite-wasm",
@@ -101,13 +101,13 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/sundarshahi/litie.git",
-    "directory": "litie"
+    "url": "git+https://github.com/sundarshahi/granth.git",
+    "directory": "granth"
   },
   "bugs": {
-    "url": "https://github.com/sundarshahi/litie/issues"
+    "url": "https://github.com/sundarshahi/granth/issues"
   },
-  "homepage": "https://github.com/sundarshahi/litie#readme",
+  "homepage": "https://github.com/sundarshahi/granth#readme",
   "publishConfig": {
     "access": "public"
   },

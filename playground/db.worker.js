@@ -1,7 +1,7 @@
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
-import { startLitieWorker } from 'litie/worker';
+import { startGranthWorker } from 'granth/worker';
 
-startLitieWorker({
+startGranthWorker({
   sqlite3InitModule,
   filename: '/playground.sqlite3',
   upgrades: {

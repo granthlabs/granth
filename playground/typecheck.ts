@@ -1,9 +1,9 @@
-import { Litie, Table, VersionError, NoLeaderError } from 'litie';
+import { Granth, Table, VersionError, NoLeaderError } from 'granth';
 import { staleWhileRevalidate } from 'opfs-leader';
 
 interface Friend { id?: number; name: string; age: number; tags?: string[] }
 
-class MyDB extends Litie {
+class MyDB extends Granth {
   friends!: Table<Friend, number>;
   constructor() {
     super('myapp', { worker: () => new Worker('/db.worker.js', { type: 'module' }) });
@@ -31,7 +31,7 @@ async function main() {
 main();
 
 // --- Dexie-compatible surface must typecheck too ---------------------------
-import { importFromIndexedDB, suggestSchema } from 'litie/migrate-idb';
+import { importFromIndexedDB, suggestSchema } from 'granth/migrate-idb';
 
 async function compat(db: MyDB) {
   const arr: Friend[] = await db.friends.where('age').above(1).sortBy('name'); // ARRAY, not Collection

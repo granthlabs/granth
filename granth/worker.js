@@ -34,7 +34,7 @@ async function openStorage(sqlite3, { filename, storage, idbName, debounceMs }) 
       // opfs-sahpool: highest OPFS performance and — the reason it is the only
       // realistic choice — needs no COOP/COEP cross-origin isolation headers.
       // Its cost is a single connection, which is exactly what opfs-leader guarantees.
-      const pool = await sqlite3.installOpfsSAHPoolVfs({ name: `litie${filename.replace(/\W/g, '')}` });
+      const pool = await sqlite3.installOpfsSAHPoolVfs({ name: `granth${filename.replace(/\W/g, '')}` });
       const db = new pool.OpfsSAHPoolDb(filename);
       return {
         kind: 'opfs',
@@ -47,23 +47,23 @@ async function openStorage(sqlite3, { filename, storage, idbName, debounceMs }) 
     } catch (err) {
       if (storage === 'opfs') throw err;
       // eslint-disable-next-line no-console
-      console.warn(`litie: OPFS unavailable (${err?.message ?? err}); falling back to IndexedDB.`);
+      console.warn(`granth: OPFS unavailable (${err?.message ?? err}); falling back to IndexedDB.`);
     }
   }
-  return openIdbBackedDb(sqlite3, { dbName: idbName ?? `litie${filename.replace(/\W/g, '')}`, key: filename, debounceMs });
+  return openIdbBackedDb(sqlite3, { dbName: idbName ?? `granth${filename.replace(/\W/g, '')}`, key: filename, debounceMs });
 }
 
 /**
  * @param {object}   opts
  * @param {Function} opts.sqlite3InitModule  from '@sqlite.org/sqlite-wasm'
- * @param {string}   [opts.filename]  OPFS path / IndexedDB key. Default /litie.sqlite3
+ * @param {string}   [opts.filename]  OPFS path / IndexedDB key. Default /granth.sqlite3
  * @param {'auto'|'opfs'|'indexeddb'} [opts.storage]  Default 'auto'.
  * @param {object}   [opts.upgrades]  { [version]: (engine) => void }
  * @param {object}   [opts.pragmas]
  */
-export function startLitieWorker({
+export function startGranthWorker({
   sqlite3InitModule,
-  filename = '/litie.sqlite3',
+  filename = '/granth.sqlite3',
   storage = 'auto',
   upgrades = {},
   pragmas = {},
@@ -127,7 +127,7 @@ export function startLitieWorker({
   return ready;
 }
 
-/** Back-compat alias from the pre-1.0 `litie` name. */
+/** Back-compat alias from the pre-1.0 `granth` name. */
 
 /** Neutral alias, for code that prefers a generic name. */
-export { startLitieWorker as startDatabaseWorker };
+export { startGranthWorker as startDatabaseWorker };

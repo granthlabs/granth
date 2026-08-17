@@ -1,7 +1,7 @@
 # Errors
 
 ```js
-import { VersionError, NoLeaderError, LeaderLostError } from 'litie';
+import { VersionError, NoLeaderError, LeaderLostError } from 'granth';
 ```
 
 ## `VersionError`
@@ -40,10 +40,10 @@ fails immediately instead of surfacing later as "no such table".
 
 ## Unsupported environment
 
-> litie: this environment cannot run the database.
+> granth: this environment cannot run the database.
 
 No Web Locks / Workers, or not a secure context (needs HTTPS or `localhost`). Also what you get
-during SSR. Guard with `Litie.isSupported()`.
+during SSR. Guard with `Granth.isSupported()`.
 
 ## Constraint violations
 

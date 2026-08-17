@@ -10,7 +10,7 @@
  *
  * Every handler is an RPC method and nothing else. There is deliberately no
  * magic "init" name: a handler that the library calls implicitly AND the caller
- * can invoke by name is a collision waiting to happen (it bit litie, whose
+ * can invoke by name is a collision waiting to happen (it bit granth, whose
  * natural RPC name is `open`). Do setup with a plain `await` before calling this.
  */
 export function serveInWorker(handlers, { scope = self, ready = Promise.resolve() } = {}) {

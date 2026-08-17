@@ -17,8 +17,8 @@ The API is matched against the real `dexie` package by a generated audit
 ```diff
 - import Dexie from 'dexie';
 - const db = new Dexie('myapp');
-+ import Litie from 'litie';
-+ const db = new Litie('myapp', {
++ import Granth from 'granth';
++ const db = new Granth('myapp', {
 +   worker: () => new Worker(new URL('./db.worker.js', import.meta.url), { type: 'module' }),
 + });
 
@@ -29,7 +29,7 @@ Your queries, schema strings, hooks and transactions stay as they are.
 
 ### Things to check
 
-| Dexie | litie | Action |
+| Dexie | granth | Action |
 |---|---|---|
 | `db.transaction('rw', …, async fn)` | ✅ supported | none |
 | `Table.hook(...)` | ✅ client-side | a hook can't veto an already-committed write |
@@ -46,7 +46,7 @@ transaction without awaiting them. Here you must `await`.
 ## 2. Data
 
 ```js
-import { suggestSchema, importFromIndexedDB } from 'litie/migrate-idb';
+import { suggestSchema, importFromIndexedDB } from 'granth/migrate-idb';
 
 // Read the schema straight out of the old database
 const schema = await suggestSchema('my-old-dexie-db');
@@ -67,7 +67,7 @@ const counts = await importFromIndexedDB(db, {
 - It is **idempotent** (uses `bulkPut`), so a re-run overwrites rather than duplicating.
 - It does **not** delete the source. Verify, then delete it yourself.
 
-Stores with out-of-line keys throw a clear error — litie requires an inline `keyPath`.
+Stores with out-of-line keys throw a clear error — granth requires an inline `keyPath`.
 
 ## 3. What you gain
 

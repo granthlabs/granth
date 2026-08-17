@@ -1,4 +1,4 @@
-// Migrate an existing IndexedDB (Dexie-created or plain) database into litie.
+// Migrate an existing IndexedDB (Dexie-created or plain) database into granth.
 //
 // Runs on the MAIN THREAD, because that is where the old IndexedDB lives. It
 // reads with plain IDB APIs, so it works whether or not Dexie is still installed.
@@ -14,7 +14,7 @@ export function inspectIndexedDB(dbName) {
     req.onupgradeneeded = () => {
       // opening with no version created it — it did not exist
       req.transaction.abort();
-      reject(new Error(`litie: no IndexedDB database named "${dbName}"`));
+      reject(new Error(`granth: no IndexedDB database named "${dbName}"`));
     };
     req.onsuccess = async () => {
       const idb = req.result;
@@ -53,14 +53,14 @@ export function inspectIndexedDB(dbName) {
   });
 }
 
-/** Derive a litie `stores({...})` schema string from an existing IndexedDB store. */
+/** Derive a granth `stores({...})` schema string from an existing IndexedDB store. */
 export function schemaFromStore(store) {
   const pk = Array.isArray(store.keyPath)
     ? `[${store.keyPath.join('+')}]`
     : store.keyPath ?? '';
   if (!pk) {
     throw new Error(
-      `litie: store "${store.name}" uses out-of-line keys, which litie does not support. ` +
+      `granth: store "${store.name}" uses out-of-line keys, which granth does not support. ` +
         `Give it an inline keyPath, or import it manually with an added key field.`
     );
   }
@@ -89,12 +89,12 @@ function readAll(dbName, storeName) {
 }
 
 /**
- * Copy every record from an existing IndexedDB database into an open Litie.
+ * Copy every record from an existing IndexedDB database into an open Granth.
  *
  * Idempotent by construction: it uses `bulkPut`, so re-running overwrites rather
  * than duplicating. It does NOT delete the source — verify, then delete yourself.
  *
- * @param {import('./index.js').Litie} db  an OPEN Litie
+ * @param {import('./index.js').Granth} db  an OPEN Granth
  * @param {object} opts
  * @param {string} opts.from        name of the IndexedDB database to read
  * @param {string[]} [opts.stores]  which stores to copy. Default: those that exist in both
@@ -111,7 +111,7 @@ export async function importFromIndexedDB(db, { from, stores, chunkSize = 1000, 
   if (skipped.length) {
     // Loud, because silently importing half a database is worse than failing.
     // eslint-disable-next-line no-console
-    console.warn(`litie: skipping ${skipped.join(', ')} — no matching table declared in stores()`);
+    console.warn(`granth: skipping ${skipped.join(', ')} — no matching table declared in stores()`);
   }
 
   const imported = {};

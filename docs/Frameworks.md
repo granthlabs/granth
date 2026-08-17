@@ -1,6 +1,6 @@
 # Frameworks & bundlers
 
-litie is plain ESM with no framework coupling. The core works anywhere; only React and Vue get
+granth is plain ESM with no framework coupling. The core works anywhere; only React and Vue get
 a (tiny, optional) binding, because they have no store contract.
 
 ## The one universal requirement
@@ -19,14 +19,14 @@ Vite, webpack 5, Rollup, Parcel 2, esbuild and Next.js all understand this form 
 
 ```jsx
 // db.js
-import Litie from 'litie';
-export const db = new Litie('myapp', {
+import Granth from 'granth';
+export const db = new Granth('myapp', {
   worker: () => new Worker(new URL('./db.worker.js', import.meta.url), { type: 'module' }),
 });
 db.version(1).stores({ friends: '++id, name, age, *tags' });
 
 // Friends.jsx
-import { useLiveQuery, useIsSupported } from 'litie/react';
+import { useLiveQuery, useIsSupported } from 'granth/react';
 import { db } from './db';
 
 export function Friends() {
@@ -44,7 +44,7 @@ export const useLive = createLiveQueryHook(db);
 // const friends = useLive(() => db.friends.toArray(), [], []);
 ```
 
-**SSR is safe.** `new Litie(...)` at module scope touches no browser API — it only connects when
+**SSR is safe.** `new Granth(...)` at module scope touches no browser API — it only connects when
 you first query. Server renders return the `initialValue`.
 
 ## Angular
@@ -85,7 +85,7 @@ Under SvelteKit SSR, guard with `browser` from `$app/environment` before queryin
 
 ```vue
 <script setup>
-import { useLiveQuery } from 'litie/vue';
+import { useLiveQuery } from 'granth/vue';
 import { db } from './db';
 
 const { data: friends } = useLiveQuery(db, () => db.friends.orderBy('name').toArray(), {
@@ -111,8 +111,8 @@ const stop = db.liveQuery(() => db.friends.toArray()).subscribe(render);
 
 ```html
 <script type="module">
-  import Litie from 'https://esm.sh/litie';
-  const db = new Litie('myapp', {
+  import Granth from 'https://esm.sh/granth';
+  const db = new Granth('myapp', {
     worker: () => new Worker('/db.worker.js', { type: 'module' }), // a real URL
   });
   db.version(1).stores({ friends: '++id, name' });

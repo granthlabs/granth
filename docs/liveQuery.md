@@ -36,8 +36,8 @@ The returned object is deliberately dual-shaped:
 |---|---|
 | **Svelte** | `$query` directly — `subscribe()` returns an unsubscribe function, which *is* the Svelte store contract |
 | **Angular / RxJS** | `from(db.liveQuery(...))` — exposes `Symbol.observable` |
-| **React** | `import { useLiveQuery } from 'litie/react'` |
-| **Vue** | `import { useLiveQuery } from 'litie/vue'` |
+| **React** | `import { useLiveQuery } from 'granth/react'` |
+| **Vue** | `import { useLiveQuery } from 'granth/vue'` |
 | **Vanilla** | `.subscribe(fn)` |
 
 See [Frameworks](./Frameworks.md) for full examples.

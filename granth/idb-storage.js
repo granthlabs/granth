@@ -24,7 +24,7 @@ function open(dbName) {
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
-    req.onblocked = () => reject(new Error(`litie: IndexedDB "${dbName}" is blocked by another connection`));
+    req.onblocked = () => reject(new Error(`granth: IndexedDB "${dbName}" is blocked by another connection`));
   });
 }
 
@@ -34,7 +34,7 @@ const tx = (idb, mode, fn) =>
     const out = fn(t.objectStore(STORE));
     t.oncomplete = () => resolve(out?.result);
     t.onerror = () => reject(t.error);
-    t.onabort = () => reject(t.error ?? new Error('litie: IndexedDB transaction aborted'));
+    t.onabort = () => reject(t.error ?? new Error('granth: IndexedDB transaction aborted'));
   });
 
 export async function idbLoad(dbName, key) {
@@ -86,7 +86,7 @@ export async function openIdbBackedDb(sqlite3, { dbName, key, debounceMs = 250 }
     );
     if (rc) {
       sqlite3.wasm.dealloc(p);
-      throw new Error(`litie: could not restore the IndexedDB snapshot (sqlite rc=${rc})`);
+      throw new Error(`granth: could not restore the IndexedDB snapshot (sqlite rc=${rc})`);
     }
   }
 

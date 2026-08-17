@@ -6,7 +6,7 @@ import { shallowRef, onScopeDispose, watch, isRef, unref } from 'vue';
 /**
  * A live query as a Vue ref. Unsubscribes automatically with the effect scope.
  *
- * @param {import('./index.js').Litie} db
+ * @param {import('./index.js').Granth} db
  * @param {() => Promise<T>} querier
  * @param {{ initialValue?: T, deps?: import('vue').Ref[] }} [opts]
  * @returns {{ data: import('vue').ShallowRef<T|undefined>, error: import('vue').ShallowRef<unknown> }}

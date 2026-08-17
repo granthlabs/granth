@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@sqlite.org/sqlite-wasm": "3.53.0-build1",
-    "litie": "*",
+    "granth": "*",
     "opfs-leader": "*",
     "dexie": "^4.4.5"
   },

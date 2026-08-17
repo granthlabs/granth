@@ -1,16 +1,16 @@
-# Litie
+# Granth
 
 A **Dexie-shaped API over SQLite/WASM on OPFS**. Runs in one worker, safe across tabs,
 with indexes, transactions and query planning done by SQLite rather than by us.
 
 ```bash
-npm install litie @sqlite.org/sqlite-wasm
+npm install granth @sqlite.org/sqlite-wasm
 ```
 
 ```js
-import { Litie } from 'litie';
+import { Granth } from 'granth';
 
-const db = new Litie('myapp', {
+const db = new Granth('myapp', {
   worker: () => new Worker(new URL('./db.worker.js', import.meta.url), { type: 'module' }),
 });
 
@@ -33,9 +33,9 @@ Your whole worker file:
 ```js
 // db.worker.js
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
-import { startLitieWorker } from 'litie/worker';
+import { startGranthWorker } from 'granth/worker';
 
-startLitieWorker({ sqlite3InitModule, filename: '/myapp.sqlite3' });
+startGranthWorker({ sqlite3InitModule, filename: '/myapp.sqlite3' });
 ```
 
 No COOP/COEP headers required. Nothing to configure beyond your bundler letting
@@ -68,7 +68,7 @@ Two Dexie behaviours are easy to get subtly wrong, so they are asserted, not ass
 Bring your existing data across:
 
 ```js
-import { suggestSchema, importFromIndexedDB } from 'litie/migrate-idb';
+import { suggestSchema, importFromIndexedDB } from 'granth/migrate-idb';
 
 const schema = await suggestSchema('my-old-dexie-db');  // derived from the real database
 db.version(1).stores(schema);
@@ -105,7 +105,7 @@ no OPFS at all, which is a hard failure rather than a slow path. `storage: 'auto
 default) tries OPFS and falls back to IndexedDB.
 
 ```js
-startLitieWorker({ sqlite3InitModule, storage: 'auto' }); // 'opfs' | 'indexeddb' | 'auto'
+startGranthWorker({ sqlite3InitModule, storage: 'auto' }); // 'opfs' | 'indexeddb' | 'auto'
 await db.storageKind(); // -> 'opfs' | 'indexeddb'
 ```
 
@@ -170,11 +170,11 @@ On a compound index, pass the tuple: `where('[name+age]').equals(['ada', 36])`.
 Ships hand-written declarations. Subclass to get typed tables, as with Dexie:
 
 ```ts
-import { Litie, Table } from 'litie';
+import { Granth, Table } from 'granth';
 
 interface Friend { id?: number; name: string; age: number; tags?: string[] }
 
-class MyDB extends Litie {
+class MyDB extends Granth {
   friends!: Table<Friend, number>;
   constructor() {
     super('myapp', { worker: () => new Worker(new URL('./db.worker.js', import.meta.url), { type: 'module' }) });

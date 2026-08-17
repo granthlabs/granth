@@ -3,7 +3,7 @@
 ## 1. Install
 
 ```bash
-npm install litie @sqlite.org/sqlite-wasm
+npm install granth @sqlite.org/sqlite-wasm
 ```
 
 ## 2. Create the worker file
@@ -13,18 +13,18 @@ This is the whole file. It runs only in the tab elected leader.
 ```js
 // src/db.worker.js
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
-import { startLitieWorker } from 'litie/worker';
+import { startGranthWorker } from 'granth/worker';
 
-startLitieWorker({ sqlite3InitModule, filename: '/myapp.sqlite3' });
+startGranthWorker({ sqlite3InitModule, filename: '/myapp.sqlite3' });
 ```
 
 ## 3. Declare the database
 
 ```js
 // src/db.js
-import Litie from 'litie';
+import Granth from 'granth';
 
-export const db = new Litie('myapp', {
+export const db = new Granth('myapp', {
   worker: () => new Worker(new URL('./db.worker.js', import.meta.url), { type: 'module' }),
 });
 
@@ -73,7 +73,7 @@ Versions are cumulative — declare only what changed. Need to transform existin
 the worker, because a function cannot cross into it:
 
 ```js
-startLitieWorker({
+startGranthWorker({
   sqlite3InitModule,
   upgrades: {
     2: (engine) => {

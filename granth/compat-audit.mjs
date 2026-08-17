@@ -7,7 +7,7 @@
 
 import 'fake-indexeddb/auto';
 import DexiePkg from 'dexie';
-import { Litie } from './index.js';
+import { Granth } from './index.js';
 
 const Dexie = DexiePkg.default ?? DexiePkg;
 
@@ -26,7 +26,7 @@ const SCHEMA = { t: '++id, name, age, *tags, [name+age]' };
 const dx = new Dexie('probe');
 dx.version(1).stores(SCHEMA);
 
-const bd = new Litie('probe', {
+const bd = new Granth('probe', {
   worker: () => { throw new Error('not used'); },
   locks: { request() {} }, // shape-only probe: never elects, never calls the worker
 });
@@ -40,7 +40,7 @@ const bdWhere = bdTable.where('name');
  * this list and NOT implemented is a bug, not a decision.
  */
 const WONT_IMPLEMENT = {
-  'Dexie.use': 'middleware/addon pipeline — no equivalent; litie has no DBCore layer',
+  'Dexie.use': 'middleware/addon pipeline — no equivalent; granth has no DBCore layer',
   'Dexie.unuse': 'see use',
   'Dexie.backendDB': 'exposes the raw IDBDatabase; there is no IDBDatabase here',
   'Dexie.dynamicallyOpened': 'Dexie-internal',
@@ -76,7 +76,7 @@ for (const [name, theirs, ours] of groups) {
 
 console.log(`dexie ${Dexie.semVer}\n` + report.join('\n'));
 
-// Both a Litie BroadcastChannel and fake-indexeddb keep the loop alive.
+// Both a Granth BroadcastChannel and fake-indexeddb keep the loop alive.
 bd.close();
 if (process.argv.includes('--assert') && missing) {
   console.error(`\ncompat-audit: ${missing} un-waived Dexie member(s) missing`);
