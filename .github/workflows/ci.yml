@@ -26,3 +26,7 @@ jobs:
       - run: node examples/playground/twotab-test.mjs
       - run: node examples/playground/concurrency-test.mjs
       - run: npm run docs:build
+      # The site is served under /granth/, so a bare /Tutorial href works on a
+      # root-served dev server and 404s in production. That asymmetry lets broken
+      # links reach a deploy looking fine locally.
+      - run: node examples/playground/link-check.mjs

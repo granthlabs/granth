@@ -91,70 +91,141 @@
 
 /* --------------------------------------------------------------- hero ---- */
 
-.VPHero .name {
-  /* Solid, not a gradient: a gradient wordmark is a template default, one
-     confident colour reads as a product. */
-  font-weight: 800;
-  font-size: clamp(2.6rem, 5.5vw, 4rem);
-  letter-spacing: -0.035em;
-  color: var(--g-accent);
-  background: none;
-  -webkit-text-fill-color: currentColor;
+/* Ours replaces it, but the rest of the home layout still comes from VPHome. */
+.VPHero { display: none; }
+
+.ghero {
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid var(--g-line-soft);
 }
 
-.VPHero .text {
-  font-weight: 700;
-  font-size: clamp(1.9rem, 4vw, 2.9rem);
-  letter-spacing: -0.025em;
-  line-height: 1.12;            /* large type wants tight leading */
-  color: var(--g-text);
+/* Full-bleed low-poly field. Clipped gradient wedges rather than an image:
+   crisp at any viewport, no request, and it recolours with the palette. Layered
+   at several angles and sizes so it does not read as a repeating tile. */
+.ghero__bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-color: oklch(13% 0.012 260);
+  background-image:
+    linear-gradient(118deg, oklch(20% 0.022 262) 0 22%, transparent 22.3%),
+    linear-gradient(196deg, oklch(18% 0.018 240) 0 30%, transparent 30.3%),
+    linear-gradient(324deg, oklch(21% 0.026 285) 0 18%, transparent 18.3%),
+    linear-gradient(58deg,  oklch(17% 0.015 250) 0 38%, transparent 38.3%),
+    linear-gradient(248deg, oklch(19% 0.02 272) 0 26%, transparent 26.3%),
+    linear-gradient(152deg, oklch(16% 0.013 258) 0 54%, transparent 54.3%),
+    linear-gradient(12deg,  oklch(18% 0.017 268) 0 44%, transparent 44.3%);
+  background-position: left top, 30% top, right top, left 60%, right bottom, 45% bottom, left bottom;
+  background-size: 46% 62%, 40% 78%, 52% 58%, 38% 54%, 44% 66%, 50% 48%, 34% 50%;
+  background-repeat: no-repeat;
 }
 
-.VPHero .tagline {
-  max-width: 34em;              /* cap the PARAGRAPH, not the container */
-  font-size: var(--g-text-lg);
-  line-height: 1.55;            /* small type wants loose leading */
+.ghero__inner {
+  position: relative;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 84px 0 84px 48px;
+  display: grid;
+  /* The panel column is wider than its content so the code bleeds off the right
+     edge rather than sitting in a neat card — it reads as a window onto a real
+     file instead of a decoration. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.92fr);
+  align-items: center;
+  gap: 48px;
+  min-height: 560px;
+}
+
+.ghero__eyebrow {
+  margin: 0 0 26px;
+  font-size: var(--g-text-sm);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   color: var(--g-text-2);
 }
 
-.VPHero .actions { gap: 12px; margin-top: 28px; }
-
-/* Action pyramid: one solid primary, the rest quiet. */
-.VPButton { border-radius: var(--g-radius); font-weight: 600; }
-.VPButton.brand { box-shadow: var(--g-shadow-sm); }
-.VPButton.alt { background: transparent; border: 1px solid var(--g-line); }
-.VPButton.alt:hover { border-color: var(--g-accent); color: var(--g-accent); background: transparent; }
-
-/* Claim statements: the argument, so full text contrast and real type size. */
-.hero-claims {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 22px;
+.ghero__title {
+  margin: 0 0 30px;
+  font-size: clamp(2.6rem, 5.2vw, 4.6rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.08;           /* large type wants tight leading */
+  color: var(--g-text);
   display: flex;
   flex-direction: column;
-  gap: 8px;
 }
 
-.hero-claims li {
-  position: relative;
-  padding-left: 26px;
-  font-size: var(--g-text-base);
-  font-weight: 550;
-  line-height: 1.45;
+/* The rotating line is the ONE accent in the headline. Reserving its own colour
+   is what makes it read as the variable part rather than as emphasis. */
+.ghero__rot { color: var(--g-accent); }
+
+.ghero__lede {
+  margin: 0 0 40px;
+  max-width: 46em;
+  font-size: clamp(1rem, 1.3vw, 1.22rem);
+  line-height: 1.6;
+  color: var(--g-text-2);
+}
+
+.ghero__actions { display: flex; align-items: center; flex-wrap: wrap; gap: 14px 28px; }
+
+/* Pill outline primary: on a textured background a solid fill would fight the
+   pattern, while an outline sits on it. */
+.ghero__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 15px 30px;
+  border: 1px solid var(--g-accent);
+  border-radius: 999px;
+  color: var(--g-accent);
+  font-size: var(--g-text-sm);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+.ghero__cta svg { width: 18px; height: 18px; }
+.ghero__cta:hover { background: var(--g-accent); color: oklch(16% 0.02 260); }
+
+.ghero__secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-size: var(--g-text-lg);
   color: var(--g-text);
+  text-decoration: none;
 }
 
-/* A tick drawn in CSS: no icon font, no request, inherits the accent. */
-.hero-claims li::before {
-  content: '';
-  position: absolute;
-  left: 2px;
-  top: 0.42em;
-  width: 11px;
-  height: 6px;
-  border-left: 2px solid var(--g-accent);
-  border-bottom: 2px solid var(--g-accent);
-  transform: rotate(-45deg);
+.ghero__secondary:hover { color: var(--g-accent); }
+
+/* Play triangle in CSS: no icon dependency for one shape. */
+.ghero__play {
+  width: 0;
+  height: 0;
+  border-left: 10px solid currentColor;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+}
+
+/* The panel runs past the right edge of the viewport. */
+.ghero__panel {
+  position: relative;
+  min-width: 0;
+  margin-right: -80px;
+}
+
+@media (max-width: 1100px) {
+  .ghero__inner {
+    grid-template-columns: 1fr;
+    padding: 64px 24px 72px;
+    gap: 44px;
+    min-height: 0;
+  }
+  .ghero__panel { margin-right: -24px; }
 }
 
 /* ----------------------------------------------------- hero showcase ----- */
@@ -166,7 +237,8 @@
 .showcase {
   position: relative;
   width: 100%;
-  border-radius: var(--g-radius-lg);
+  border-radius: var(--g-radius-lg) 0 0 var(--g-radius-lg);
+  border-right: none;
   overflow: hidden;
   text-align: left;
   background: oklch(20% 0.016 260);

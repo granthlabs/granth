@@ -1,6 +1,7 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import DefaultTheme from 'vitepress/theme';
+import { withBase } from 'vitepress';
 import Footer from './Footer.vue';
 
 const { Layout } = DefaultTheme;
@@ -139,6 +140,20 @@ const icons = {
   puzzle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3h4a1 1 0 0 1 1 1v2a2 2 0 1 0 4 0V4h1a1 1 0 0 1 1 1v4h-2a2 2 0 1 0 0 4h2v4a1 1 0 0 1-1 1h-4v-2a2 2 0 1 0-4 0v2H5a1 1 0 0 1-1-1v-4h2a2 2 0 1 0 0-4H4V5a1 1 0 0 1 1-1h5z"/></svg>',
 };
 
+/* The final headline line cycles. Each is a real capability with a page behind
+   it — a rotator that names things the library does not do would be a lie that
+   moves. */
+const rotating = ['Offline storage', 'Multi-tab safety', 'Encryption at rest', 'Instant queries'];
+const rotIndex = ref(0);
+let rotTimer = null;
+onMounted(() => {
+  // Respect reduced motion: a headline that changes under you is exactly the
+  // kind of movement that setting exists to stop.
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  rotTimer = setInterval(() => { rotIndex.value = (rotIndex.value + 1) % rotating.length; }, 2600);
+});
+onUnmounted(() => { if (rotTimer) clearInterval(rotTimer); });
+
 const copied = ref(false);
 async function copy() {
   try {
@@ -151,50 +166,88 @@ async function copy() {
 
 <template>
   <Layout>
-    <!-- Short claims above the pitch: what you get, in three beats. -->
-    <template #home-hero-info-before>
-      <ul class="hero-claims">
-        <li>No backend required</li>
-        <li>Works offline, syncs when you say so</li>
-        <li>One API across every framework</li>
-      </ul>
-    </template>
+    <!--
+      Custom hero. VitePress's own VPHero is hidden in CSS rather than removed,
+      because the rest of the home layout — the feature grid, and our slots after
+      it — still comes from that component.
 
-    <template #home-hero-image>
-      <div class="showcase">
-        <div class="showcase__pattern" aria-hidden="true" />
+      Links go through withBase(): the site is served under /granth/, so a bare
+      /Tutorial href 404s in production while working fine on a root-served dev
+      server. That asymmetry is exactly how broken links reach a deploy.
+    -->
+    <template #home-hero-before>
+      <section class="ghero">
+        <div class="ghero__bg" aria-hidden="true" />
 
-        <div class="showcase__tabs" role="tablist" aria-label="granthdb examples">
-          <button
-            v-for="t in tabs"
-            :key="t.id"
-            role="tab"
-            :aria-selected="active === t.id"
-            :class="['showcase__tab', { 'is-active': active === t.id }]"
-            @click="active = t.id"
-          >{{ t.label }}</button>
-        </div>
+        <div class="ghero__inner">
+          <div class="ghero__copy">
+            <p class="ghero__eyebrow">Zero config &amp; no backend required</p>
 
-        <div class="showcase__panel">
-          <div class="showcase__bar">
-            <span class="showcase__file">{{ current.file }}</span>
-            <button class="showcase__copy" type="button" @click="copy">
-              {{ copied ? 'Copied' : 'Copy' }}
-            </button>
+            <h1 class="ghero__title">
+              <span class="ghero__line">Build fast, stay local.</span>
+              <span class="ghero__line">granthdb handles</span>
+              <span class="ghero__rot" aria-live="polite">{{ rotating[rotIndex] }}</span>
+            </h1>
+
+            <p class="ghero__lede">
+              SQLite in the browser with a Dexie-compatible API. Real indexes and a real
+              query planner, running off your main thread and safe across every open tab —
+              with no server to maintain.
+            </p>
+
+            <div class="ghero__actions">
+              <a class="ghero__cta" :href="withBase('/Tutorial')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9" /><path d="M12 8v8M8 12h8" />
+                </svg>
+                Get started
+              </a>
+              <a class="ghero__secondary" :href="withBase('/CacheFirstApps')">
+                <span class="ghero__play" aria-hidden="true" />
+                How it works
+              </a>
+            </div>
           </div>
 
-          <div class="showcase__code">
-            <div
-              v-for="(line, i) in currentLines"
-              :key="i"
-              :class="['showcase__line', { 'is-hl': isHighlighted(i + 1) }]"
-            >
-              <span class="showcase__num" aria-hidden="true">{{ i + 1 }}</span>
-              <code class="showcase__text">{{ line || ' ' }}</code>
+          <div class="ghero__panel">
+            <div class="showcase">
+              <div class="showcase__pattern" aria-hidden="true" />
+
+              <div class="showcase__tabs" role="tablist" aria-label="granthdb examples">
+                <button
+                  v-for="t in tabs"
+                  :key="t.id"
+                  role="tab"
+                  :aria-selected="active === t.id"
+                  :class="['showcase__tab', { 'is-active': active === t.id }]"
+                  @click="active = t.id"
+                >{{ t.label }}</button>
+              </div>
+
+              <div class="showcase__panel">
+                <div class="showcase__bar">
+                  <span class="showcase__file">{{ current.file }}</span>
+                  <button class="showcase__copy" type="button" @click="copy">
+                    {{ copied ? 'Copied' : 'Copy' }}
+                  </button>
+                </div>
+
+                <div class="showcase__code">
+                  <div
+                    v-for="(line, i) in currentLines"
+                    :key="i"
+                    :class="['showcase__line', { 'is-hl': isHighlighted(i + 1) }]"
+                  >
+                    <span class="showcase__num" aria-hidden="true">{{ i + 1 }}</span>
+                    <code class="showcase__text">{{ line || ' ' }}</code>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
     </template>
 
     <!-- Benefits, after the feature grid: why this, over what you have now. -->

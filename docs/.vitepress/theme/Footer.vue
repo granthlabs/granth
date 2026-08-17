@@ -1,4 +1,6 @@
 <script setup>
+import { withBase } from 'vitepress';
+
 /**
  * Large patterned footer.
  *
@@ -79,7 +81,7 @@ const columns = [
             <h3>{{ col.heading }}</h3>
             <ul>
               <li v-for="l in col.links" :key="l.text">
-                <a :href="l.href">{{ l.text }}</a>
+                <a :href="l.href.startsWith('http') ? l.href : withBase(l.href)">{{ l.text }}</a>
               </li>
             </ul>
           </div>
