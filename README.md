@@ -27,9 +27,17 @@ Your entire worker file:
 ```js
 // db.worker.js
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
-import { startGranthWorker } from 'granth/worker';
+import { startGranthWorker } from '@granth/runtime-worker/entry';
+import { opfsStorage } from '@granth/storage-opfs';
+import { indexeddbStorage } from '@granth/storage-indexeddb';
+import { memoryStorage } from '@granth/storage-memory';
 
-startGranthWorker({ sqlite3InitModule, filename: '/myapp.sqlite3' });
+startGranthWorker({
+  sqlite3InitModule,
+  filename: '/myapp.sqlite3',
+  // Ordered: the first available backend wins, so this degrades instead of throwing.
+  storage: [opfsStorage(), indexeddbStorage(), memoryStorage()],
+});
 ```
 
 **No COOP/COEP headers. No build plugins. No server.**
@@ -79,7 +87,7 @@ Every gap is an explicit, documented waiver (middleware, `idbdb`, PSD zones — 
 meaning once the store isn't IndexedDB). Migrating? → **[Migrating from Dexie](./docs/MigratingFromDexie.md)**
 
 ```js
-import { suggestSchema, importFromIndexedDB } from 'granth/migrate-idb';
+import { suggestSchema, importFromIndexedDB } from '@granth/plugin-migrate-idb';
 
 db.version(1).stores(await suggestSchema('my-old-dexie-db'));
 await importFromIndexedDB(db, { from: 'my-old-dexie-db' });
@@ -92,8 +100,8 @@ and is idempotent.
 
 | | |
 |---|---|
-| **React / Next.js** | `import { useLiveQuery } from 'granth/react'` — SSR-safe |
-| **Vue / Nuxt** | `import { useLiveQuery } from 'granth/vue'` |
+| **React / Next.js** | `import { useLiveQuery } from '@granth/react'` — SSR-safe |
+| **Vue / Nuxt** | `import { useLiveQuery } from '@granth/vue'` |
 | **Angular** | `from(db.liveQuery(...))` — implements `Symbol.observable` |
 | **Svelte** | `$query` directly — `subscribe()` *is* the Svelte store contract |
 | **Vanilla / Solid / Qwik / Lit** | `.subscribe(fn)` |
@@ -129,9 +137,10 @@ individual write is its own durable commit.
 
 ## Storage
 
-`storage: 'auto'` uses OPFS and falls back to IndexedDB — because **Safari private browsing has
-no OPFS at all**, which is a hard failure rather than a slow path. The fallback is the *same*
-SQLite engine, checkpointed into IndexedDB, so behaviour is identical.
+Storage is an **ordered list of plugins** — `[opfs, indexeddb, memory]`. The first available one
+wins and an `open()` failure falls through, because **Safari private browsing has no OPFS at
+all**: a hard failure, not a slow path. Every backend is the *same* SQLite engine, so behaviour
+is identical; only durability differs.
 
 Browser storage is evictable (Safari's 7-day ITP rule, cleanup tools, incognito caps).
 **Treat the local database as a cache or replica, never the source of truth.**
@@ -149,11 +158,38 @@ Two tabs writing one OPFS file is what corrupted
 [Notion's first WASM-SQLite rollout](https://www.notion.com/blog/how-we-sped-up-notion-in-the-browser-with-wasm-sqlite).
 This is the fix, not a mitigation.
 
+## Everything is a plugin
+
+```
+StoragePlugin   where the bytes live      opfs | indexeddb | memory
+RuntimePlugin   where the SQL executes    worker | inline (no Worker)
+db.use(addon)   everything else           hooks, returns a disposer
+```
+
+`@granth/protocol` holds the contracts — types only, zero runtime, zero deps — so backends and
+bindings never import each other or the client. Runs **without a Worker** too, for strict CSP,
+SSR, Node and tests. → **[Plugins](./docs/Plugins.md)** · **[Runtimes](./docs/Runtimes.md)**
+
+## Migrating from Dexie
+
+```bash
+npx @granth/codemod ./src
+```
+
+Rewrites imports and constructors, scaffolds the worker file, and reports what it cannot safely
+change rather than guessing. Then bring the data across:
+
+```js
+import { suggestSchema, importFromIndexedDB } from '@granth/plugin-migrate-idb';
+db.version(1).stores(await suggestSchema('my-old-dexie-db'));
+await importFromIndexedDB(db, { from: 'my-old-dexie-db' });
+```
+
 ## Documentation
 
 Mirrors [Dexie's API Reference](https://dexie.org/docs/API-Reference) page for page.
 
-- [Tutorial](./docs/Tutorial.md) · [Migrating from Dexie](./docs/MigratingFromDexie.md) · [Frameworks](./docs/Frameworks.md) · [Storage](./docs/Storage.md)
+- [Tutorial](./docs/Tutorial.md) · [Migrating from Dexie](./docs/MigratingFromDexie.md) · [Frameworks](./docs/Frameworks.md) · [Storage](./docs/Storage.md) · [Runtimes](./docs/Runtimes.md) · [Plugins](./docs/Plugins.md)
 - API: [Granth](./docs/Granth.md) · [Table](./docs/Table.md) · [Collection](./docs/Collection.md) · [WhereClause](./docs/WhereClause.md) · [Transaction](./docs/Transaction.md) · [liveQuery](./docs/liveQuery.md) · [Errors](./docs/Errors.md)
 
 ## How it works
@@ -187,8 +223,15 @@ Chrome 108+ · Safari 16.4+ · Firefox 111+ · secure context (HTTPS or `localho
 
 | Package | Description |
 |---|---|
-| [`granth`](./granth) | The database |
-| [`opfs-leader`](./opfs-leader) | Just the multi-tab single-writer topology, usable on its own |
+| [`granth`](./packages/core/client) | The database — what you import |
+| [`@granth/protocol`](./packages/core/protocol) | Plugin contracts, types only |
+| [`@granth/engine`](./packages/core/engine) | Schema, planner, SQL compiler, value codec |
+| [`@granth/storage-opfs`](./packages/storage/opfs) · [`-indexeddb`](./packages/storage/indexeddb) · [`-memory`](./packages/storage/memory) | Storage backends |
+| [`@granth/runtime-worker`](./packages/runtime/worker) · [`-inline`](./packages/runtime/inline) | Runtimes |
+| [`@granth/react`](./packages/bindings/react) · [`@granth/vue`](./packages/bindings/vue) | Framework bindings |
+| [`@granth/plugin-migrate-idb`](./packages/plugins/migrate-idb) | Import an existing IndexedDB/Dexie database |
+| [`@granth/codemod`](./packages/tools/codemod) | Automated Dexie → granth source migration |
+| [`opfs-leader`](./packages/opfs-leader) | The multi-tab election, usable standalone |
 
 ## License
 

@@ -16,8 +16,24 @@ const db = new Granth('myapp', {
 
 | Option | Type | Description |
 |---|---|---|
-| `worker` | `() => Worker` | **Required.** Factory for the dedicated worker. Called only in the tab elected leader. |
+| `worker` | `() => Worker` | Shorthand for the default worker runtime. Called only in the tab elected leader. |
+| `runtime` | `RuntimePlugin` | Explicit runtime. Overrides `worker`. See [Runtimes](./Runtimes.md). |
 | `timeoutMs` | `number` | How long to wait for a leader before failing. Default `5000`. |
+
+You need **either** `worker` or `runtime`. `worker` is the shorthand almost everyone wants:
+
+```js
+const db = new Granth('myapp', {
+  worker: () => new Worker(new URL('./db.worker.js', import.meta.url), { type: 'module' }),
+});
+```
+
+To run without a Worker at all (strict CSP, SSR, Node, tests):
+
+```js
+import { inlineRuntime } from '@granth/runtime-inline';
+const db = new Granth('myapp', { runtime: inlineRuntime({ createHandlers }) });
+```
 
 The constructor is **side-effect free** — it touches no browser API. `new Granth(...)` at module
 scope is safe under SSR (Next.js, Nuxt, Angular Universal); nothing happens until you use it.
@@ -84,9 +100,39 @@ Empties every table without dropping the schema. Returns the table names cleared
 Bytes the database occupies on disk.
 
 
-### `storageKind()` → `Promise<'opfs' | 'indexeddb'>`
+### `storageKind()` → `Promise<'opfs' | 'indexeddb' | 'memory'>`
 
-Which backend the worker actually got. See [Storage](./Storage.md).
+Which storage backend actually opened. See [Storage](./Storage.md).
+
+### `runtimeKind()` → `'worker' | 'inline'`
+
+Which runtime connected. See [Runtimes](./Runtimes.md).
+
+### `use(plugin)` → `PluginHandle`
+
+Register an addon. Returns a handle so it can be removed again at runtime.
+
+```js
+const handle = db.use({
+  name: 'audit',
+  setup(ctx) {
+    ctx.before(({ op, table, args }) => log(op, table));
+    ctx.after(({ op }, result) => { /* return a value to replace the result */ });
+    ctx.onDispose(() => log('audit removed'));
+  },
+});
+
+db.plugins;          // ['audit']
+await handle.dispose();
+db.plugins;          // []
+```
+
+A `before` hook that returns a value short-circuits the call entirely — that is
+how a cache or an encryption addon intercepts. See [Plugins](./Plugins.md).
+
+### `plugins` → `string[]`
+
+Names of the registered addons.
 
 ### `flush()` → `Promise<void>`
 

@@ -36,6 +36,9 @@
     },
     {
       "path": "./packages/storage/opfs"
+    },
+    {
+      "path": "./packages/tools/codemod"
     }
   ]
 }

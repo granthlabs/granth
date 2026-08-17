@@ -9,11 +9,12 @@
   ],
   "scripts": {
     "build": "tsc -b",
-    "test": "npm run build && npm run test -w opfs-leader && npm run test -w granth",
+    "test": "npm run build && npm run test -w opfs-leader && npm run test -w granth && npm run test -w @granth/codemod",
     "dev": "npm run dev -w playground",
     "clean": "rm -rf packages/*/*/dist packages/opfs-leader/dist"
   },
   "devDependencies": {
+    "@types/node": "^26.2.0",
     "@types/react": "^19.2.18",
     "dexie": "^4.4.5",
     "fake-indexeddb": "^6.2.5",

@@ -24,6 +24,8 @@ listed in [Migrating from Dexie](./MigratingFromDexie.md).
 | [Transaction](./Transaction.md) | Both transaction forms and their isolation guarantees |
 | [liveQuery](./liveQuery.md) | Reactive queries that re-run on change, across tabs |
 | [Errors](./Errors.md) | Error types and which are safe to retry |
+| [Runtimes](./Runtimes.md) | Worker vs inline (no-Worker) execution |
+| [Plugins](./Plugins.md) | The three extension points, and the package map |
 
 ## Quick reference
 
@@ -45,9 +47,16 @@ await db.open();
 ```js
 // db.worker.js — the entire file
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
-import { startGranthWorker } from 'granth/worker';
+import { startGranthWorker } from '@granth/runtime-worker/entry';
+import { opfsStorage } from '@granth/storage-opfs';
+import { indexeddbStorage } from '@granth/storage-indexeddb';
+import { memoryStorage } from '@granth/storage-memory';
 
-startGranthWorker({ sqlite3InitModule, filename: '/myapp.sqlite3' });
+startGranthWorker({
+  sqlite3InitModule,
+  filename: '/myapp.sqlite3',
+  storage: [opfsStorage(), indexeddbStorage(), memoryStorage()],
+});
 ```
 
 ### Schema syntax

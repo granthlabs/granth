@@ -14,6 +14,18 @@ The API is matched against the real `dexie` package by a generated audit
 | Collection | 26 / 28 (`clone`, `raw` — Dexie internals) |
 | Dexie | 20 / 26 (middleware, `idbdb` — meaningless without IndexedDB) |
 
+### Run the codemod
+
+```bash
+npx @granth/codemod ./src
+```
+
+It rewrites the imports, `new Dexie(...)` / `extends Dexie`, and the binding
+imports; scaffolds a `db.worker.js` if one is missing; and **reports** everything
+it cannot safely rewrite instead of guessing. Use `--dry` first.
+
+The manual version is small:
+
 ```diff
 - import Dexie from 'dexie';
 - const db = new Dexie('myapp');
@@ -39,6 +51,7 @@ Your queries, schema strings, hooks and transactions stay as they are.
 | `Dexie.use()` / `unuse()` | ❌ | no middleware layer |
 | `db.backendDB()` / `idbdb` | ❌ | there is no IDBDatabase |
 | `Dexie.Promise` / PSD zones | ❌ | **plain promises — always `await` your writes** |
+| `Date`, `NaN`, `Infinity`, `BigInt` | ✅ preserved | a value codec keeps structured-clone fidelity that plain JSON would lose |
 
 The last one is the only real behavioural trap: Dexie's zones let you fire writes inside a
 transaction without awaiting them. Here you must `await`.
@@ -46,7 +59,7 @@ transaction without awaiting them. Here you must `await`.
 ## 2. Data
 
 ```js
-import { suggestSchema, importFromIndexedDB } from 'granth/migrate-idb';
+import { suggestSchema, importFromIndexedDB } from '@granth/plugin-migrate-idb';
 
 // Read the schema straight out of the old database
 const schema = await suggestSchema('my-old-dexie-db');

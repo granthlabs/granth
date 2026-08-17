@@ -2,10 +2,36 @@
 
 ## OPFS first, IndexedDB as fallback
 
+Storage is an **ordered list of plugins**, not a mode string. The first available
+one wins, and an `open()` failure falls through to the next — availability is a
+prediction, opening is the proof.
+
 ```js
-startGranthWorker({ sqlite3InitModule, storage: 'auto' }); // 'auto' | 'opfs' | 'indexeddb'
-await db.storageKind(); // -> 'opfs' | 'indexeddb'
+// db.worker.js
+import { startGranthWorker } from '@granth/runtime-worker/entry';
+import { opfsStorage } from '@granth/storage-opfs';
+import { indexeddbStorage } from '@granth/storage-indexeddb';
+import { memoryStorage } from '@granth/storage-memory';
+
+startGranthWorker({
+  sqlite3InitModule,
+  filename: '/myapp.sqlite3',
+  storage: [opfsStorage(), indexeddbStorage(), memoryStorage()],
+});
 ```
+
+```js
+await db.storageKind(); // -> 'opfs' | 'indexeddb' | 'memory'
+```
+
+| Plugin | Persists | Works where |
+|---|---|---|
+| `@granth/storage-opfs` | in place, fastest | a dedicated Worker + OPFS |
+| `@granth/storage-indexeddb` | debounced whole-file checkpoint | anywhere IndexedDB exists, incl. Safari private browsing |
+| `@granth/storage-memory` | not at all | absolutely everywhere: Node, SSR, tests, sandboxed frames |
+
+Drop `memoryStorage()` from the list if you would rather fail loudly than run
+against a store that silently forgets on reload.
 
 OPFS is the fast path, but it is **not universally available**:
 
@@ -63,8 +89,8 @@ fix, not a mitigation.
 startGranthWorker({
   sqlite3InitModule,
   filename: '/myapp.sqlite3',
-  storage: 'auto',
-  checkpointMs: 250,                 // IndexedDB fallback debounce
+  storage: [opfsStorage(), indexeddbStorage(), memoryStorage()],
+  checkpointMs: 250,                 // IndexedDB checkpoint debounce
   pragmas: { cache_size: -8000 },    // optional
   upgrades: { 2: (engine) => { /* data migration */ } },
 });

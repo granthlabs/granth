@@ -6,6 +6,9 @@
 npm install granth @sqlite.org/sqlite-wasm
 ```
 
+`granth` pulls in the engine, both runtimes and all three storage backends. Import
+only what you use — every package is separately published and tree-shakeable.
+
 ## 2. Create the worker file
 
 This is the whole file. It runs only in the tab elected leader.
@@ -13,9 +16,18 @@ This is the whole file. It runs only in the tab elected leader.
 ```js
 // src/db.worker.js
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
-import { startGranthWorker } from 'granth/worker';
+import { startGranthWorker } from '@granth/runtime-worker/entry';
+import { opfsStorage } from '@granth/storage-opfs';
+import { indexeddbStorage } from '@granth/storage-indexeddb';
+import { memoryStorage } from '@granth/storage-memory';
 
-startGranthWorker({ sqlite3InitModule, filename: '/myapp.sqlite3' });
+startGranthWorker({
+  sqlite3InitModule,
+  filename: '/myapp.sqlite3',
+  // Ordered: OPFS where it exists, IndexedDB where it doesn't (Safari private
+  // browsing), memory as a last resort so the app degrades instead of throwing.
+  storage: [opfsStorage(), indexeddbStorage(), memoryStorage()],
+});
 ```
 
 ## 3. Declare the database
@@ -75,6 +87,7 @@ the worker, because a function cannot cross into it:
 ```js
 startGranthWorker({
   sqlite3InitModule,
+  storage: [opfsStorage(), indexeddbStorage(), memoryStorage()],
   upgrades: {
     2: (engine) => {
       for (const f of engine.query('friends', { or: [] }, 'docs')) {
