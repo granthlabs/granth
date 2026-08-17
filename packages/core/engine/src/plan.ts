@@ -6,7 +6,7 @@
 
 import { findIndex, indexExpr, quoteIdent as q, shadowTable } from './schema.js';
 import type { IndexDef, StoreDef } from './schema.js';
-import { encodeParam, prefixUpperBound, encode, expandPaths, NON_KEY_SENTINELS } from './codec.js';
+import { encodeParam, prefixUpperBound, encode, expandPaths, NON_KEY_SENTINELS, NULL_SENTINEL } from './codec.js';
 
 /** A value that can be stored in an index. */
 export type IndexableValue = string | number | boolean | null;
@@ -74,6 +74,57 @@ function multiEntryIn(store: StoreDef, ix: IndexDef, sqlCond: (expr: string) => 
   };
 }
 
+
+/**
+ * Range comparison on a COMPOUND index, as a lexicographic tuple compare.
+ *
+ * The old code called indexExpr with the default component and bound vals[0] —
+ * the tuple's tail was simply discarded, so `.above([1, 3])` compiled to
+ * `a > 1` and both under- and over-matched depending on the operator, while
+ * `.between` threw "Unknown named parameter". Silent wrong answers in the same
+ * operator family.
+ *
+ * The correct expansion for (a, b) > (x, y) is
+ *   a > x OR (a = x AND b > y)
+ * generalised to n components, with the final comparison inclusive when the
+ * operator is.
+ *
+ * Returns undefined for non-compound indexes so the caller keeps its simple path.
+ */
+function compoundRange(
+  store: StoreDef,
+  ix: IndexDef,
+  vals: unknown[],
+  op: '>' | '>=' | '<' | '<='
+): Fragment | undefined {
+  if (!ix.compound) return undefined;
+  // Accept both .above([a, b]) and .above(a, b): the client unwraps a single
+  // array argument for equals, and the two shapes reaching here differently is
+  // exactly the kind of asymmetry that produced the original bug.
+  const tuple = vals.length === 1 && Array.isArray(vals[0]) ? (vals[0] as unknown[]) : vals;
+  if (!tuple.length) return undefined;
+
+  const strict = op === '>' || op === '<';
+  const dir = op.startsWith('>') ? '>' : '<';
+  const parts: string[] = [];
+  const params: unknown[] = [];
+
+  for (let i = 0; i < tuple.length; i++) {
+    const eqs: string[] = [];
+    for (let j = 0; j < i; j++) {
+      eqs.push(`${indexExpr(store, ix, j)} = ?`);
+      params.push(encodeParam(tuple[j]));
+    }
+    const last = i === tuple.length - 1;
+    const cmp = last && !strict ? `${dir}=` : dir;
+    eqs.push(`${indexExpr(store, ix, i)} ${cmp} ?`);
+    params.push(encodeParam(tuple[i]));
+    parts.push(`(${eqs.join(' AND ')})`);
+  }
+
+  return { sql: parts.join(' OR '), params };
+}
+
 function compileCond(store: StoreDef, cond: Condition): Fragment {
   const ix = findIndex(store, cond.index);
   const vals = cond.values ?? [];
@@ -100,13 +151,13 @@ function compileCond(store: StoreDef, cond: Condition): Fragment {
     case 'notEqual':
       return build((e) => ({ sql: `(${e} IS NULL OR ${e} <> ?)`, params: P([vals[0]]) }));
     case 'above':
-      return build((e) => range(e, `${e} > ?`, P([vals[0]])));
+      return compoundRange(store, ix, vals, '>') ?? build((e) => range(e, `${e} > ?`, P([vals[0]])));
     case 'aboveOrEqual':
-      return build((e) => range(e, `${e} >= ?`, P([vals[0]])));
+      return compoundRange(store, ix, vals, '>=') ?? build((e) => range(e, `${e} >= ?`, P([vals[0]])));
     case 'below':
-      return build((e) => range(e, `${e} < ?`, P([vals[0]])));
+      return compoundRange(store, ix, vals, '<') ?? build((e) => range(e, `${e} < ?`, P([vals[0]])));
     case 'belowOrEqual':
-      return build((e) => range(e, `${e} <= ?`, P([vals[0]])));
+      return compoundRange(store, ix, vals, '<=') ?? build((e) => range(e, `${e} <= ?`, P([vals[0]])));
     case 'between': {
       const [lo, hi, incLo = true, incHi = false] = vals;
       return build((e) =>
@@ -164,10 +215,13 @@ function compileCond(store: StoreDef, cond: Condition): Fragment {
       const ph = vals.map(() => '?').join(', ');
       return build((e) => ({ sql: `(${e} IS NULL OR ${e} NOT IN (${ph}))`, params: P(vals) }));
     }
+    // A STORED null is the NULL sentinel, not SQL NULL — SQL NULL means the key
+    // is absent from the document. isNull() tested only the latter, so it
+    // reported the opposite of equals(null) on the very same row.
     case 'isNull':
-      return build((e) => ({ sql: `${e} IS NULL`, params: [] }));
+      return build((e) => ({ sql: `(${e} IS NULL OR ${e} = ?)`, params: [NULL_SENTINEL] }));
     case 'notNull':
-      return build((e) => ({ sql: `${e} IS NOT NULL`, params: [] }));
+      return build((e) => ({ sql: `(${e} IS NOT NULL AND ${e} <> ?)`, params: [NULL_SENTINEL] }));
     default:
       throw new Error(`granth: unknown operator "${cond.op}"`);
   }

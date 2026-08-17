@@ -256,4 +256,47 @@ check('bulkPut with explicit keys is idempotent across chunks', () => {
   return one?.name === 'v299-again' ? null : `upsert did not apply: ${JSON.stringify(one)}`;
 });
 
+// 17-20. The four defects that were documented-but-unfixed until now.
+const sortNum = (a) => [...a].sort((x, y) => x - y);
+
+check('bigint indexes sort numerically, not lexicographically', () => {
+  const en = createEngine(A(new DatabaseSync(':memory:')));
+  en.migrate([{ version: 1, stores: { t: 'id, n' } }]);
+  for (const [id, n] of [[1,-10n],[2,-5n],[3,1n],[4,2n],[5,9n],[6,10n],[7,100n]]) en.put('t', { id, n });
+  const above = JSON.stringify(sortNum(en.query('t', {or:[{and:[{index:'n',op:'above',values:[9n]}]}]}, 'keys')));
+  if (above !== '[6,7]') return `above(9n) returned ${above}, expected [6,7]`;
+  const order = JSON.stringify(en.query('t', { or: [], order: { index: 'n' } }, 'docs').map((r) => String(r.n)));
+  const want = JSON.stringify(['-10','-5','1','2','9','10','100']);
+  if (order !== want) return `orderBy gave ${order}`;
+  return String(en.get('t', 1).n) === '-10' ? null : 'bigint did not round-trip';
+});
+
+check('startsWith at the maximum code point does not throw', () => {
+  const en = createEngine(A(new DatabaseSync(':memory:')));
+  en.migrate([{ version: 1, stores: { t: 'id, txt' } }]);
+  en.put('t', { id: 1, txt: 'a\u{10FFFF}x' });
+  const hits = en.query('t', {or:[{and:[{index:'txt',op:'startsWith',values:['a\u{10FFFF}']}]}]}, 'keys');
+  return JSON.stringify(hits) === '[1]' ? null : `returned ${JSON.stringify(hits)}`;
+});
+
+check('isNull matches a STORED null, not just an absent key', () => {
+  const en = createEngine(A(new DatabaseSync(':memory:')));
+  en.migrate([{ version: 1, stores: { t: 'id, x' } }]);
+  en.put('t', { id: 1, x: null }); en.put('t', { id: 2 }); en.put('t', { id: 3, x: 5 });
+  const isN = JSON.stringify(sortNum(en.query('t', {or:[{and:[{index:'x',op:'isNull'}]}]}, 'keys')));
+  const notN = JSON.stringify(sortNum(en.query('t', {or:[{and:[{index:'x',op:'notNull'}]}]}, 'keys')));
+  if (isN !== '[1,2]') return `isNull returned ${isN}, expected [1,2]`;
+  return notN === '[3]' ? null : `notNull returned ${notN}`;
+});
+
+check('compound range operators compare the whole tuple', () => {
+  const en = createEngine(A(new DatabaseSync(':memory:')));
+  en.migrate([{ version: 1, stores: { t: 'id, a, b, [a+b]' } }]);
+  en.put('t',{id:1,a:1,b:1}); en.put('t',{id:2,a:1,b:5}); en.put('t',{id:3,a:2,b:0});
+  const ab = JSON.stringify(sortNum(en.query('t', {or:[{and:[{index:'[a+b]',op:'above',values:[[1,3]]}]}]}, 'keys')));
+  if (ab !== '[2,3]') return `above([1,3]) returned ${ab}, expected [2,3]`;
+  const be = JSON.stringify(sortNum(en.query('t', {or:[{and:[{index:'[a+b]',op:'belowOrEqual',values:[[1,3]]}]}]}, 'keys')));
+  return be === '[1]' ? null : `belowOrEqual([1,3]) returned ${be}`;
+});
+
 console.log(bad.length ? 'FINDINGS:\n- ' + bad.join('\n- ') : 'no findings');

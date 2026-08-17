@@ -184,6 +184,19 @@ await tick(80); assert.equal(netCalls, 0, 'hedge must not fire the network when 
   follower.close();
 }
 
+// NOT VERIFIED: NoLeaderError against a SLOW (not dead) leader.
+//
+// The claim is that a frozen background tab keeps its Web Lock, so no
+// re-election happens, and it can process a queued call AFTER the caller timed
+// out and was told "safe to retry" — double-applying the write.
+//
+// An attempt at a probe here did not reproduce it: both clients share the fake
+// LockManager, so the follower elected ITSELF and never took the follower path
+// the claim is about. It reported WorkerError, not NoLeaderError. Rather than
+// leave a test that looks like verification and is not, the probe is removed and
+// the gap is recorded. Reproducing it needs a harness where one client is pinned
+// as leader while its worker is artificially stalled.
+
 console.log('opfs-leader selfcheck: all assertions passed');
 
 // An open BroadcastChannel keeps Node alive; exit explicitly so CI does not hang.
