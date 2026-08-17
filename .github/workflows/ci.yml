@@ -25,6 +25,10 @@ jobs:
       # — with two, the survivor elects itself — so both run.
       - run: node examples/playground/twotab-test.mjs
       - run: node examples/playground/concurrency-test.mjs
+      # The sandbox is the first thing a visitor tries, so every bundled example
+      # must actually run. This already caught a demo querying an index the
+      # sandbox schema never declared.
+      - run: node examples/playground/sandbox-test.mjs
       - run: npm run docs:build
       # The site is served under /granth/, so a bare /Tutorial href works on a
       # root-served dev server and 404s in production. That asymmetry lets broken
