@@ -13,7 +13,7 @@ db.version(1).stores({ friends: '++id, name, age, *tags' });
 export default db;`;
   const { code, changed, notes } = transform(src, 'db.js');
   assert.ok(changed);
-  assert.match(code, /import Granth from 'granth'/);
+  assert.match(code, /import Granth from 'granthdb'/);
   assert.match(code, /new Granth\('myapp', \{/);
   assert.match(code, /worker: \(\) => new Worker\(new URL\('\.\/db\.worker\.js', import\.meta\.url\), \{ type: 'module' \}\)/);
   assert.match(code, /db\.version\(1\)\.stores/, 'schema strings must be left alone');
@@ -33,7 +33,7 @@ export class MyDB extends Dexie {
 }`;
   const { code, notes } = transform(src, 'db.ts');
   assert.match(code, /export class MyDB extends Granth/);
-  assert.match(code, /from 'granth'/);
+  assert.match(code, /from 'granthdb'/);
   assert.ok(has(notes, /super\('name'\) must now pass a runtime/), 'must flag the super() call it cannot safely rewrite');
 }
 
@@ -41,7 +41,7 @@ export class MyDB extends Dexie {
 {
   const src = `import DB from 'dexie';\nconst x = new DB('a');`;
   const { code } = transform(src, 'a.js');
-  assert.match(code, /import Granth from 'granth'/);
+  assert.match(code, /import Granth from 'granthdb'/);
   assert.match(code, /new Granth\('a', \{/);
   assert.ok(!/\bDB\b/.test(code), `renamed import must be migrated too:\n${code}`);
 }

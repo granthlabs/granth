@@ -1,7 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import { createEngine, rpcHandlers } from 'granth-engine';
 import { serveInWorker } from 'opfs-leader/worker';
-import { Granth } from 'granth';
+import { Granth } from 'granthdb';
 
 const A = (db)=>({all:(s,p=[])=>db.prepare(s).all(...p).map(r=>({...r})),exec:s=>db.exec(s),
   run:(s,p=[])=>{const r=db.prepare(s).run(...p);return{changes:Number(r.changes),lastInsertRowid:Number(r.lastInsertRowid)}}});

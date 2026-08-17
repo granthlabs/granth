@@ -4,7 +4,7 @@
  * This half is bundled SEPARATELY from your app: the worker is its own entry
  * point, so the SQL engine, the storage backends and sqlite-wasm never reach
  * your main-thread bundle. That separation is the whole reason these are a
- * subpath rather than exports of `granth` itself.
+ * subpath rather than exports of `granthdb` itself.
  */
 
 export { startGranthWorker } from 'granth-runtime-worker/entry';

@@ -4,11 +4,11 @@
 OPFS-backed, runs in a Web Worker, safe across tabs, with an IndexedDB fallback.
 
 ```bash
-npm install granth @sqlite.org/sqlite-wasm
+npm install granthdb @sqlite.org/sqlite-wasm
 ```
 
 ```js
-import Granth from 'granth';
+import Granth from 'granthdb';
 
 const db = new Granth('myapp', {
   worker: () => new Worker(new URL('./db.worker.js', import.meta.url), { type: 'module' }),
@@ -242,7 +242,7 @@ Chrome 108+ · Safari 16.4+ · Firefox 111+ · secure context (HTTPS or `localho
 
 | Package | Description |
 |---|---|
-| [`granth`](./packages/core/client) | The database — what you import |
+| [`granthdb`](./packages/core/client) | The database — what you import |
 | [`granth-protocol`](./packages/core/protocol) | Plugin contracts, types only |
 | [`granth-engine`](./packages/core/engine) | Schema, planner, SQL compiler, value codec |
 | [`granth-storage-opfs`](./packages/storage/opfs) · [`-indexeddb`](./packages/storage/indexeddb) · [`-memory`](./packages/storage/memory) | Storage backends |

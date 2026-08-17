@@ -1,4 +1,4 @@
-import { Granth, Table, VersionError, NoLeaderError } from 'granth';
+import { Granth, Table, VersionError, NoLeaderError } from 'granthdb';
 import { staleWhileRevalidate } from 'opfs-leader';
 
 interface Friend { id?: number; name: string; age: number; tags?: string[] }

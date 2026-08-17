@@ -1,6 +1,6 @@
 {
   "name": "granth-vue",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Vue bindings for granth: useLiveQuery composable.",
   "type": "module",
   "license": "MIT",
@@ -38,7 +38,7 @@
   },
   "author": "sundarshahi <shahithakurisundar@gmail.com>",
   "dependencies": {
-    "granth-protocol": "*"
+    "granth-protocol": "^0.1.0"
   },
   "peerDependencies": {
     "vue": ">=3"

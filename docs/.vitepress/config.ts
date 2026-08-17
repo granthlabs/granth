@@ -3,7 +3,7 @@ import { defineConfig } from 'vitepress';
 // The site is built directly from the docs/ folder, so the published site and
 // the docs you read on GitHub cannot drift apart.
 export default defineConfig({
-  title: 'granth',
+  title: 'granthdb',
   description: 'SQLite in the browser with a Dexie-compatible API. OPFS-backed, runs in a Web Worker, safe across tabs.',
   lang: 'en-GB',
   cleanUrls: true,

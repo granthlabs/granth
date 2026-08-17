@@ -3,10 +3,10 @@
 ## 1. Install
 
 ```bash
-npm install granth @sqlite.org/sqlite-wasm
+npm install granthdb @sqlite.org/sqlite-wasm
 ```
 
-`granth` pulls in the engine, both runtimes and all three storage backends. Import
+`granthdb` pulls in the engine, both runtimes and all three storage backends. Import
 only what you use — every package is separately published and tree-shakeable.
 
 ## 2. Create the worker file
@@ -34,7 +34,7 @@ startGranthWorker({
 
 ```js
 // src/db.js
-import Granth from 'granth';
+import Granth from 'granthdb';
 
 export const db = new Granth('myapp', {
   worker: () => new Worker(new URL('./db.worker.js', import.meta.url), { type: 'module' }),

@@ -49,7 +49,7 @@ serialise transactions between inline tabs when available.
 
 ## Choosing deliberately
 
-`granth` does **not** silently fall back from worker to inline. A worker factory
+`granthdb` does **not** silently fall back from worker to inline. A worker factory
 that cannot build a worker surfaces a real error instead of quietly moving SQL
 onto your main thread. If you want inline, ask for it:
 

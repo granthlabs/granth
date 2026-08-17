@@ -42,8 +42,8 @@
   },
   "author": "sundarshahi <shahithakurisundar@gmail.com>",
   "dependencies": {
-    "granth-protocol": "*",
-    "opfs-leader": "*",
-    "granth-engine": "*"
+    "granth-protocol": "^0.1.0",
+    "opfs-leader": "^0.1.0",
+    "granth-engine": "^0.1.0"
   }
 }

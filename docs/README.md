@@ -31,7 +31,7 @@ every behavioural difference.
 ## Quick reference
 
 ```js
-import Granth from 'granth';
+import Granth from 'granthdb';
 
 const db = new Granth('myapp', {
   worker: () => new Worker(new URL('./db.worker.js', import.meta.url), { type: 'module' }),

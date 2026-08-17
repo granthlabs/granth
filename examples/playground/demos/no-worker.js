@@ -1,7 +1,7 @@
 // Proof that granth runs with NO Worker at all: the engine is created right here
 // on the main thread and handed to the inline runtime.
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
-import { Granth } from 'granth';
+import { Granth } from 'granthdb';
 import { inlineRuntime } from 'granth-runtime-inline';
 import { createEngine, rpcHandlers } from 'granth-engine';
 import { indexeddbStorage } from 'granth-storage-indexeddb';

@@ -19,7 +19,7 @@ Vite, webpack 5, Rollup, Parcel 2, esbuild and Next.js all understand this form 
 
 ```jsx
 // db.js
-import Granth from 'granth';
+import Granth from 'granthdb';
 export const db = new Granth('myapp', {
   worker: () => new Worker(new URL('./db.worker.js', import.meta.url), { type: 'module' }),
 });
@@ -111,7 +111,7 @@ const stop = db.liveQuery(() => db.friends.toArray()).subscribe(render);
 
 ```html
 <script type="module">
-  import Granth from 'https://esm.sh/granth';
+  import Granth from 'https://esm.sh/granthdb';
   const db = new Granth('myapp', {
     worker: () => new Worker('/db.worker.js', { type: 'module' }), // a real URL
   });
@@ -155,7 +155,7 @@ Strict CSP without `worker-src`, some extension and embedded contexts, SSR and
 Node can all run granth — on the inline runtime, paired with a non-OPFS backend.
 
 ```js
-import { Granth } from 'granth';
+import { Granth } from 'granthdb';
 import { inlineRuntime } from 'granth-runtime-inline';
 
 const db = new Granth('myapp', { runtime: inlineRuntime({ createHandlers }) });

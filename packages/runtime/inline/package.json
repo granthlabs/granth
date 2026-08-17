@@ -38,6 +38,6 @@
   },
   "author": "sundarshahi <shahithakurisundar@gmail.com>",
   "dependencies": {
-    "granth-protocol": "*"
+    "granth-protocol": "^0.1.0"
   }
 }

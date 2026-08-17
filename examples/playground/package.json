@@ -11,7 +11,7 @@
   "dependencies": {
     "@sqlite.org/sqlite-wasm": "3.53.0-build1",
     "dexie": "^4.4.5",
-    "granth": "*",
+    "granthdb": "*",
     "granth-engine": "*",
     "granth-migrate-idb": "*",
     "granth-react": "*",

@@ -4,11 +4,11 @@ A **Dexie-shaped API over SQLite/WASM on OPFS**. Runs in one worker, safe across
 with indexes, transactions and query planning done by SQLite rather than by us.
 
 ```bash
-npm install granth @sqlite.org/sqlite-wasm
+npm install granthdb @sqlite.org/sqlite-wasm
 ```
 
 ```js
-import { Granth } from 'granth';
+import { Granth } from 'granthdb';
 
 const db = new Granth('myapp', {
   worker: () => new Worker(new URL('./db.worker.js', import.meta.url), { type: 'module' }),
@@ -33,7 +33,7 @@ Your whole worker file:
 ```js
 // db.worker.js
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
-import { startGranthWorker } from 'granth/worker';
+import { startGranthWorker } from 'granthdb/worker';
 
 startGranthWorker({ sqlite3InitModule, filename: '/myapp.sqlite3' });
 ```
@@ -170,7 +170,7 @@ On a compound index, pass the tuple: `where('[name+age]').equals(['ada', 36])`.
 Ships hand-written declarations. Subclass to get typed tables, as with Dexie:
 
 ```ts
-import { Granth, Table } from 'granth';
+import { Granth, Table } from 'granthdb';
 
 interface Friend { id?: number; name: string; age: number; tags?: string[] }
 

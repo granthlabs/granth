@@ -1,6 +1,6 @@
 // One shared database for every framework demo, so the only thing that differs
 // between them is the binding — which is the point of the comparison.
-import { Granth } from 'granth';
+import { Granth } from 'granthdb';
 
 export const db = new Granth('demo-todos', {
   worker: () => new Worker(new URL('./todo.worker.js', import.meta.url), { type: 'module' }),

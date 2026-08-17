@@ -1,7 +1,7 @@
 // Verifies the two things Node cannot: the IndexedDB fallback backend, and
 // migrating a real Dexie database into granth.
 
-import { Granth } from 'granth';
+import { Granth } from 'granthdb';
 import { importFromIndexedDB, inspectIndexedDB, suggestSchema } from 'granth-migrate-idb';
 import Dexie from 'dexie';
 

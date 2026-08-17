@@ -1,7 +1,7 @@
 # Errors
 
 ```js
-import { VersionError, NoLeaderError, LeaderLostError } from 'granth';
+import { VersionError, NoLeaderError, LeaderLostError } from 'granthdb';
 ```
 
 ## `VersionError`

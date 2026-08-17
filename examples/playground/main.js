@@ -3,7 +3,7 @@
 // opfs-sahpool without COOP/COEP, the dedicated worker, Web Locks election,
 // and — the thing only a browser can show — durability across a reload.
 
-import { Granth } from 'granth';
+import { Granth } from 'granthdb';
 
 const results = [];
 const log = (name, ok, detail = '') => {

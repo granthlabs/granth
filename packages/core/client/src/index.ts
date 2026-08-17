@@ -1003,7 +1003,7 @@ export { Table, Collection, WhereClause };
 export { LeaderLostError, NoLeaderError } from 'opfs-leader';
 export default Granth;
 
-/** Back-compat alias from the pre-1.0 `granth` name. */
+/** Back-compat alias from the pre-1.0 `granthdb` name. */
 
 /** Neutral alias, for code that prefers a generic name. */
 export { Granth as Database };

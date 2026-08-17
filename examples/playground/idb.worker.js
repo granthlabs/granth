@@ -2,7 +2,7 @@
 // actually exercised rather than assumed.
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
 // One package, one import — the worker half is a separate bundle.
-import { startGranthWorker, opfsStorage, indexeddbStorage, memoryStorage } from 'granth/worker';
+import { startGranthWorker, opfsStorage, indexeddbStorage, memoryStorage } from 'granthdb/worker';
 
 startGranthWorker({
   storage: [opfsStorage(), indexeddbStorage(), memoryStorage()],

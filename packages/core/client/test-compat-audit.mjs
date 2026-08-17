@@ -7,7 +7,7 @@
 
 import 'fake-indexeddb/auto';
 import DexiePkg from 'dexie';
-import { Granth } from 'granth';
+import { Granth } from 'granthdb';
 
 const Dexie = DexiePkg.default ?? DexiePkg;
 

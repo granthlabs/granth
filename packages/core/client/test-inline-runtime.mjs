@@ -3,7 +3,7 @@
 // render takes.
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
-import { Granth } from 'granth';
+import { Granth } from 'granthdb';
 import { inlineRuntime } from 'granth-runtime-inline';
 import { createEngine, rpcHandlers } from 'granth-engine';
 

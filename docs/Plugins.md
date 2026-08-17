@@ -88,7 +88,7 @@ inside your open transaction. A single-context runtime may no-op it.
 
 | Package | Role |
 |---|---|
-| `granth` | the client — what you import |
+| `granthdb` | the client — what you import |
 | `granth-protocol` | contracts, types only |
 | `granth-engine` | schema, planner, SQL compiler, value codec |
 | `granth-storage-opfs` · `-indexeddb` · `-memory` | storage backends |

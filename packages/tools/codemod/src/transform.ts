@@ -74,11 +74,11 @@ export function transform(
       if (clause?.name) dexieLocal = clause.name.text; // default import
       // Rewrite the specifier; keep the local name so the rest of the file still
       // reads naturally until we rename the identifier below.
-      edits.push([stmt.moduleSpecifier.getStart(sf), stmt.moduleSpecifier.getEnd(), `'granth'`]);
+      edits.push([stmt.moduleSpecifier.getStart(sf), stmt.moduleSpecifier.getEnd(), `'granthdb'`]);
       if (clause?.namedBindings && ts.isNamedImports(clause.namedBindings)) {
         for (const el of clause.namedBindings.elements) {
           if (el.name.text === 'liveQuery') {
-            noteAt(el.getStart(sf), 'Dexie exports liveQuery standalone; in granth use db.liveQuery(...) or import { liveQuery } from "granth".');
+            noteAt(el.getStart(sf), 'Dexie exports liveQuery standalone; in granth use db.liveQuery(...) or import { liveQuery } from "granthdb".');
           }
         }
       }

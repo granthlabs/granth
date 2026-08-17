@@ -1,4 +1,4 @@
-import { Granth } from 'granth';
+import { Granth } from 'granthdb';
 
 const rows = [];
 const out = (name, ms, n, unit = 'ops') => {

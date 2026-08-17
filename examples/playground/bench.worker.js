@@ -2,7 +2,7 @@
 // the two suites fight over schema versions.
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
 // One package, one import — the worker half is a separate bundle.
-import { startGranthWorker, opfsStorage, indexeddbStorage, memoryStorage } from 'granth/worker';
+import { startGranthWorker, opfsStorage, indexeddbStorage, memoryStorage } from 'granthdb/worker';
 
 // ?sync=normal lets the bench measure the durability/speed trade-off.
 const params = new URL(self.location.href).searchParams;

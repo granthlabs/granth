@@ -5,7 +5,7 @@
 //   - Vue      see ./vue.js.
 // React has no store contract, so it needs useSyncExternalStore.
 //
-// `react` is an OPTIONAL peer dependency: importing 'granth' never pulls this in.
+// `react` is an OPTIONAL peer dependency: importing 'granthdb' never pulls this in.
 
 import { useSyncExternalStore, useMemo, useRef, useCallback } from 'react';
 
