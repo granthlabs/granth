@@ -1,0 +1,49 @@
+{
+  "name": "@granth/runtime-worker",
+  "version": "0.1.0",
+  "description": "Dedicated-worker runtime for granth. One elected tab owns the database; every tab can query it.",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./entry": {
+      "types": "./dist/entry.d.ts",
+      "default": "./dist/entry.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --noEmit false --emitDeclarationOnly false"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sundarshahi/granth.git",
+    "directory": "packages/runtime/worker"
+  },
+  "homepage": "https://github.com/sundarshahi/granth/tree/main/packages/runtime/worker#readme",
+  "bugs": {
+    "url": "https://github.com/sundarshahi/granth/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "author": "sundarshahi <shahithakurisundar@gmail.com>",
+  "dependencies": {
+    "@granth/protocol": "*",
+    "opfs-leader": "*",
+    "@granth/engine": "*"
+  }
+}

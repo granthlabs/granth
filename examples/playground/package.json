@@ -1,0 +1,27 @@
+{
+  "name": "playground",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Browser verification for opfs-sqlite against real sqlite-wasm + OPFS. Not published.",
+  "scripts": {
+    "dev": "vite --port 5178",
+    "test": "vite --port 5178"
+  },
+  "dependencies": {
+    "@sqlite.org/sqlite-wasm": "3.53.0-build1",
+    "granth": "*",
+    "opfs-leader": "*",
+    "dexie": "^4.4.5",
+    "@granth/runtime-worker": "*",
+    "@granth/runtime-inline": "*",
+    "@granth/storage-opfs": "*",
+    "@granth/storage-indexeddb": "*",
+    "@granth/storage-memory": "*",
+    "@granth/engine": "*",
+    "@granth/plugin-migrate-idb": "*"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  }
+}

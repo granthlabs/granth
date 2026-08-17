@@ -1,17 +1,41 @@
 {
-  "compilerOptions": {
-    "strict": true,
-    "target": "es2022",
-    "module": "preserve",
-    "moduleResolution": "bundler",
-    "lib": [
-      "es2022",
-      "dom"
-    ],
-    "noEmit": true,
-    "types": []
-  },
-  "include": [
-    "playground/typecheck.ts"
+  "files": [],
+  "references": [
+    {
+      "path": "./packages/opfs-leader"
+    },
+    {
+      "path": "./packages/bindings/react"
+    },
+    {
+      "path": "./packages/bindings/vue"
+    },
+    {
+      "path": "./packages/core/client"
+    },
+    {
+      "path": "./packages/core/engine"
+    },
+    {
+      "path": "./packages/core/protocol"
+    },
+    {
+      "path": "./packages/plugins/migrate-idb"
+    },
+    {
+      "path": "./packages/runtime/inline"
+    },
+    {
+      "path": "./packages/runtime/worker"
+    },
+    {
+      "path": "./packages/storage/indexeddb"
+    },
+    {
+      "path": "./packages/storage/memory"
+    },
+    {
+      "path": "./packages/storage/opfs"
+    }
   ]
 }

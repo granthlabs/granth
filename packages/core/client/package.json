@@ -1,0 +1,72 @@
+{
+  "name": "granth",
+  "version": "0.1.0",
+  "description": "SQLite in the browser with a Dexie-compatible API. OPFS-backed, runs in a Web Worker, safe across tabs, with an IndexedDB fallback.",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "test": "node test-selfcheck.mjs && node test-inline-runtime.mjs && node test-adversarial-engine.mjs && node test-adversarial-client.mjs && node test-compat-audit.mjs --assert"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@granth/protocol": "*",
+    "@granth/engine": "*",
+    "@granth/runtime-worker": "*",
+    "@granth/runtime-inline": "*",
+    "@granth/storage-opfs": "*",
+    "@granth/storage-indexeddb": "*",
+    "@granth/storage-memory": "*",
+    "opfs-leader": "*"
+  },
+  "keywords": [
+    "granth",
+    "sqlite",
+    "opfs",
+    "sqlite-wasm",
+    "wasm",
+    "dexie",
+    "dexie-alternative",
+    "indexeddb",
+    "browser-database",
+    "local-first",
+    "offline",
+    "web-worker",
+    "origin-private-file-system",
+    "database",
+    "orm",
+    "client-side-database"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sundarshahi/granth.git",
+    "directory": "packages/core/client"
+  },
+  "bugs": {
+    "url": "https://github.com/sundarshahi/granth/issues"
+  },
+  "homepage": "https://github.com/sundarshahi/granth#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "author": "sundarshahi <shahithakurisundar@gmail.com>",
+  "devDependencies": {
+    "dexie": "^4.4.5",
+    "fake-indexeddb": "^6.2.2"
+  }
+}

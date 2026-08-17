@@ -1,0 +1,59 @@
+{
+  "name": "opfs-leader",
+  "version": "0.1.0",
+  "description": "One tab owns the worker, every tab can call it. Web Locks leader election and single-writer query routing for OPFS-backed browser databases. Zero dependencies.",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./worker": {
+      "types": "./dist/worker.d.ts",
+      "default": "./dist/worker.js"
+    },
+    "./race": {
+      "types": "./dist/race.d.ts",
+      "default": "./dist/race.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "test": "node test-selfcheck.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "opfs",
+    "sqlite",
+    "wasm",
+    "web-locks",
+    "leader-election",
+    "multi-tab",
+    "broadcastchannel",
+    "worker",
+    "local-first"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sundarshahi/granth.git",
+    "directory": "opfs-leader"
+  },
+  "bugs": {
+    "url": "https://github.com/sundarshahi/granth/issues"
+  },
+  "homepage": "https://github.com/sundarshahi/granth/tree/main/opfs-leader#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "author": "sundarshahi <shahithakurisundar@gmail.com>"
+}

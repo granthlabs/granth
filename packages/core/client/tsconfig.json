@@ -1,0 +1,38 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "composite": true,
+    "noImplicitAny": false
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../protocol"
+    },
+    {
+      "path": "../engine"
+    },
+    {
+      "path": "../../runtime/worker"
+    },
+    {
+      "path": "../../runtime/inline"
+    },
+    {
+      "path": "../../storage/opfs"
+    },
+    {
+      "path": "../../storage/indexeddb"
+    },
+    {
+      "path": "../../storage/memory"
+    },
+    {
+      "path": "../../opfs-leader"
+    }
+  ]
+}

@@ -1,21 +1,24 @@
 {
-  "name": "granth-workspace",
+  "name": "granth-monorepo",
   "private": true,
   "type": "module",
   "workspaces": [
-    "opfs-leader",
-    "granth",
-    "playground"
+    "packages/opfs-leader",
+    "packages/*/*",
+    "examples/playground"
   ],
   "scripts": {
-    "test": "npm run test -w opfs-leader && npm run test -w granth && npm run typecheck",
-    "test:browser": "npm run test -w playground",
+    "build": "tsc -b",
+    "test": "npm run build && npm run test -w opfs-leader && npm run test -w granth",
     "dev": "npm run dev -w playground",
-    "typecheck": "tsc -p tsconfig.json"
+    "clean": "rm -rf packages/*/*/dist packages/opfs-leader/dist"
   },
   "devDependencies": {
+    "@types/react": "^19.2.18",
     "dexie": "^4.4.5",
     "fake-indexeddb": "^6.2.5",
-    "typescript": "^7.0.2"
+    "react": "^19.2.8",
+    "typescript": "^7.0.2",
+    "vue": "^3.5.41"
   }
 }
