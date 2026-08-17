@@ -822,6 +822,51 @@ export class Granth {
   /** Bytes the database occupies on disk. Dexie has no equivalent (dexie#689). */
   async size() { this._ensure(); if (!this._opened) await this.open(); return this._conn.call('size'); }
 
+  /**
+   * A complete, JSON-safe snapshot. Rows come back in their stored (codec-encoded)
+   * form, so `JSON.stringify(await db.export())` round-trips Dates, NaN, Infinity
+   * and BigInt losslessly — which decoded documents would not.
+   *
+   * This is what makes the "always keep a rebuild path" advice actionable.
+   */
+  async export({ tables }: { tables?: string[] } = {}) {
+    if (!this._opened) await this.open();
+    const names = tables ?? [...this._tables.keys()];
+    const out: Record<string, unknown> = {};
+    for (const name of names) out[name] = await this._dispatch('exportTable', [name]);
+    return {
+      format: 'granth/1',
+      database: this.name,
+      version: this.verno,
+      exportedAt: new Date().toISOString(),
+      tables: out,
+    };
+  }
+
+  /**
+   * Restore a snapshot produced by `export()`. Idempotent: rows are written with
+   * INSERT OR REPLACE, so re-importing overwrites rather than duplicating.
+   */
+  async import(dump: any, { clear = false }: { clear?: boolean } = {}) {
+    if (!dump || dump.format !== 'granth/1') {
+      throw new Error('granth: not a granth export (expected { format: "granth/1" })');
+    }
+    if (!this._opened) await this.open();
+    const counts: Record<string, number> = {};
+    for (const [name, payload] of Object.entries(dump.tables ?? {})) {
+      if (!this._tables.has(name)) continue;   // table no longer declared; skip loudly below
+      if (clear) await this.table(name).clear();
+      counts[name] = await this._dispatch('importTable', [name, (payload as { rows?: unknown[] })?.rows ?? []]);
+    }
+    const skipped = Object.keys(dump.tables ?? {}).filter((n) => !this._tables.has(n));
+    if (skipped.length) {
+      // eslint-disable-next-line no-console
+      console.warn(`granth: import skipped ${skipped.join(', ')} — no matching table in stores()`);
+    }
+    this._emit(Object.keys(counts), true);
+    return counts;
+  }
+
   /** Empty every table without dropping the schema (dexie#1571). */
   async clearAll() {
     if (!this._opened) await this.open();

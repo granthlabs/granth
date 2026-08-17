@@ -76,6 +76,35 @@ const after = calls.length;
 await db.friends.count();
 assert.equal(calls.length, after, 'a disposed hook must stop firing');
 
+// export/import round trip — the backup path the docs tell people to keep.
+{
+  await db.friends.add({ name: 'zed', age: 99, tags: ['x'], when: new Date('2019-03-04'), n: NaN });
+  const dump = await db.export();
+  assert.equal(dump.format, 'granth/1');
+  assert.ok(dump.tables.friends.rows.length > 0);
+
+  // it must survive a real JSON round trip — that is the whole point
+  const wire = JSON.parse(JSON.stringify(dump));
+  const before = await db.friends.count();
+  await db.friends.clear();
+  assert.equal(await db.friends.count(), 0);
+
+  const counts = await db.import(wire);
+  assert.equal(counts.friends, before, 'every row must come back');
+  assert.equal(await db.friends.count(), before);
+  const zed = await db.friends.where('name').equals('zed').first();
+  assert.ok(zed.when instanceof Date, 'Date must survive export -> JSON -> import');
+  assert.ok(Number.isNaN(zed.n), 'NaN must survive export -> JSON -> import');
+  assert.deepEqual(zed.tags, ['x']);
+  // indexes must be rebuilt, not just the rows restored
+  assert.equal(await db.friends.where('tags').equals('x').count(), 1, 'multiEntry index must be rebuilt on import');
+
+  // idempotent
+  await db.import(wire);
+  assert.equal(await db.friends.count(), before, 're-import must overwrite, not duplicate');
+  await assert.rejects(() => db.import({ nope: true }), /not a granth export/);
+}
+
 await db.close();
 console.log('inline runtime (no Worker): all assertions passed');
 process.exit(0);

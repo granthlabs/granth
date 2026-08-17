@@ -114,3 +114,5 @@ const bytes = await db.size();                  // what we actually occupy
   third-party cleanup software.
 - Ship `deleteDatabase()` behind a "reset local data" affordance so a corrupted
   store is recoverable by the user rather than a support ticket.
+- Take periodic `db.export()` snapshots if the data is user-authored and not
+  reconstructible from your server — that is the only local backup you get.

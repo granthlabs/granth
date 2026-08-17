@@ -248,6 +248,47 @@ export function createEngine(adapter: Adapter) {
       return keys.map((k) => found.get(encodeValue(k)));
     },
 
+    /**
+     * Rows exactly as stored — the codec-encoded form, which is JSON-safe by
+     * construction. Exporting decoded documents would push Dates and NaN back
+     * through JSON.stringify and lose exactly what the codec exists to preserve.
+     */
+    exportTable(table: string): { primKey: string; auto: boolean; rows: Array<{ k: unknown; d: unknown }> } {
+      const st = store(table);
+      const pk = st.primKey.name;
+      const rows = adapter
+        .all(`SELECT ${q(pk)}, "_doc" FROM ${q(table)} ORDER BY ${q(pk)}`)
+        .map((r) => ({ k: r[pk], d: JSON.parse(String(r['_doc'])) as unknown }));
+      return { primKey: pk, auto: st.primKey.auto, rows };
+    },
+
+    /** Counterpart to exportTable. Re-inserts the encoded form untouched. */
+    importTable(table: string, rows: Array<{ k: unknown; d: unknown }>): number {
+      const st = store(table);
+      const t = q(table);
+      const pk = q(st.primKey.name);
+      return api.batchRaw(() => {
+        for (const { k, d } of rows) {
+          adapter.run(`INSERT OR REPLACE INTO ${t}(${pk}, "_doc") VALUES (?, ?)`, [k, JSON.stringify(d)]);
+        }
+        return rows.length;
+      });
+    },
+
+    /** Run `fn` inside a transaction, joining an outer one if present. */
+    batchRaw<T>(fn: () => T): T {
+      const nested = inTx;
+      if (!nested) adapter.exec('BEGIN');
+      try {
+        const out = fn();
+        if (!nested) adapter.exec('COMMIT');
+        return out;
+      } catch (err) {
+        if (!nested) adapter.exec('ROLLBACK');
+        throw err;
+      }
+    },
+
     /** Dexie's upsert(key, changes): insert if absent, merge-patch if present. */
     upsert(table: string, key: unknown, changes: Doc): unknown {
       const s = store(table);
@@ -405,6 +446,8 @@ export function rpcHandlers(
     },
     get: (t: string, k: unknown) => E().get(t, k),
     bulkGet: (t: string, keys: unknown[]) => E().bulkGet(t, keys),
+    exportTable: (t: string) => E().exportTable(t),
+    importTable: (t: string, rows: Array<{ k: unknown; d: unknown }>) => E().importTable(t, rows),
     upsert: (t: string, k: unknown, c: Doc) => E().upsert(t, k, c),
     bulkUpdate: (t: string, ops: Array<{ key: unknown; changes: Doc }>) => E().bulkUpdate(t, ops),
     txBegin: (_t: unknown, mode: 'r' | 'rw') => E().txBegin(mode),

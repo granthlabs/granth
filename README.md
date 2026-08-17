@@ -120,7 +120,7 @@ Re-runs on changes from **any tab**, and only emits when the result actually dif
 
 ## Performance
 
-5,000 documents, Chrome, M-series Mac ([`playground/bench.html`](./playground/bench.html)):
+5,000 documents, Chrome, M-series Mac ([`playground/bench.html`](./examples/playground/bench.html)):
 
 | Operation | Time |
 |---|---:|
@@ -149,7 +149,7 @@ Browser storage is evictable (Safari's 7-day ITP rule, cleanup tools, incognito 
 ## Multi-tab
 
 `opfs-sahpool` is the fastest OPFS VFS and needs no cross-origin isolation, at the cost of
-allowing exactly one connection. [`opfs-leader`](./opfs-leader) (also published standalone)
+allowing exactly one connection. [`opfs-leader`](./packages/opfs-leader) (also published standalone)
 elects one tab via Web Locks; its worker is the only thing that opens the file, and every other
 tab routes queries to it. When that tab dies the browser releases the lock and another takes
 over — that release *is* the failover.

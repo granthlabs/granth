@@ -90,6 +90,25 @@ See [liveQuery](./liveQuery.md).
 
 `close()` flushes pending writes first. `delete()` destroys the database file; not recoverable.
 
+### `export(opts?)` → `Promise<Dump>` · `import(dump, opts?)` → `Promise<Record<string, number>>`
+
+A complete, JSON-safe snapshot, and its counterpart.
+
+```js
+const dump = await db.export();               // { format:'granth/1', version, tables }
+localStorage.setItem('backup', JSON.stringify(dump));
+
+await db.import(dump, { clear: true });        // idempotent (INSERT OR REPLACE)
+```
+
+Rows are exported in their **stored** form, so a `JSON.stringify` round trip
+preserves `Date`, `NaN`, `Infinity` and `BigInt` — exporting decoded documents
+would push them back through JSON and lose exactly what the codec exists to
+protect. Indexes are rebuilt on import.
+
+This is what makes "always keep a rebuild path" ([Storage](./Storage.md))
+actionable rather than advice.
+
 ### `clearAll()` → `Promise<string[]>`
 
 Empties every table without dropping the schema. Returns the table names cleared.
