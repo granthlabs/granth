@@ -1,12 +1,9 @@
 /**
- * granthdb docs theme.
+ * granthdb docs theme — dark only.
  *
- * Built to a design spec extracted from dexie.org — light-first, wide container,
- * soft-shadowed panels instead of outlined boxes, 8px control radii, 60-80px
- * section rhythm, dark code blocks in both modes. The layout language is
- * deliberately the same: it is a good one for a database library's docs, and
- * familiarity is a feature for people arriving from Dexie. The palette is our
- * own.
+ * One surface, tuned once. A half-considered light mode is worse than none, and
+ * dropping it means the palette, the code panels and the section patterns are
+ * all designed against a single background instead of compromised across two.
  *
  * Every value is a TOKEN override. VitePress already has a variable system, so
  * the job is to redefine the scale once and let the theme apply it — nothing
@@ -14,35 +11,28 @@
  *
  * Ramps are authored in OKLCH: HSL lightness is not perceived lightness, which
  * is why hand-tuned HSL ramps drift. OKLCH L is perceptual, so a ramp stepped
- * evenly in L actually looks evenly stepped.
+ * evenly in L looks evenly stepped.
  */
 
 :root {
-  /* Blue, because that is the convention for a developer database tool and
-     fighting a convention buys nothing. Hue 255 sits between generic framework
-     blue and indigo; chroma high enough to look deliberate, low enough to stay
-     legible in long-form text. 600 clears 4.5:1 on white. */
-  --g-blue-50:  oklch(97.5% 0.014 255);
-  --g-blue-100: oklch(94% 0.032 255);
-  --g-blue-200: oklch(88% 0.062 255);
-  --g-blue-400: oklch(70% 0.145 255);
-  --g-blue-500: oklch(62% 0.175 255);
-  --g-blue-600: oklch(54% 0.185 255);
-  --g-blue-700: oklch(46% 0.160 255);
+  /* Surfaces: near-black with a blue cast, so the accent sits IN the palette
+     rather than on top of a neutral grey. Four steps, each a clear jump. */
+  --g-bg:        oklch(16.5% 0.014 260);
+  --g-bg-soft:   oklch(20% 0.017 260);
+  --g-bg-panel:  oklch(23% 0.019 260);
+  --g-line:      oklch(30% 0.02 260);
+  --g-line-soft: oklch(26% 0.018 260);
 
-  /* VitePress brand slots: 1 = text/links, 2 = hover, 3 = solid fills. */
-  --vp-c-brand-1: var(--g-blue-600);
-  --vp-c-brand-2: var(--g-blue-500);
-  --vp-c-brand-3: var(--g-blue-600);
-  --vp-c-brand-soft: oklch(62% 0.175 255 / 0.10);
+  /* Accent, lifted for a dark surface: a mid-chroma blue that reads correctly on
+     white goes muddy here, so lightness rises and chroma eases back. */
+  --g-accent:      oklch(76% 0.135 255);
+  --g-accent-dim:  oklch(62% 0.15 255);
+  --g-accent-deep: oklch(52% 0.17 255);
+  --g-accent-soft: oklch(76% 0.135 255 / 0.13);
 
-  --vp-layout-max-width: 1440px;
-  --vp-nav-height: 64px;
-
-  --vp-font-family-base: 'Inter var', 'Inter', ui-sans-serif, system-ui, -apple-system,
-    'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  --vp-font-family-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, 'SF Mono',
-    Menlo, Consolas, monospace;
+  --g-text:   oklch(95% 0.008 260);
+  --g-text-2: oklch(78% 0.012 260);
+  --g-text-3: oklch(62% 0.014 260);
 
   /* Type scale, hand-picked and non-linear — no two adjacent steps within 25%. */
   --g-text-xs: 12px;
@@ -51,51 +41,63 @@
   --g-text-lg: 19px;
   --g-text-xl: 24px;
   --g-text-2xl: 32px;
+  --g-text-3xl: 42px;
 
-  /* One elevation scale. Every shadow has a tight contact part and a soft cast
-     part, both offset DOWNWARD — light comes from above, so a blur with no
-     offset is a glow, not a shadow. */
-  --g-shadow-sm: 0 1px 2px rgb(16 24 40 / 0.05);
-  --g-shadow-md: 0 1px 2px rgb(16 24 40 / 0.06), 0 4px 10px rgb(16 24 40 / 0.05);
-  --g-shadow-lg: 0 2px 4px rgb(16 24 40 / 0.06), 0 12px 28px rgb(16 24 40 / 0.10);
+  /* On a dark surface a cast shadow barely reads, so elevation is carried by a
+     lighter surface plus a hairline — with the shadow only for contact. */
+  --g-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --g-shadow-md: 0 2px 4px rgb(0 0 0 / 0.4), 0 8px 20px rgb(0 0 0 / 0.28);
+  --g-shadow-lg: 0 4px 8px rgb(0 0 0 / 0.45), 0 20px 44px rgb(0 0 0 / 0.4);
 
   --g-radius: 8px;
   --g-radius-lg: 12px;
+  --g-radius-xl: 16px;
+
+  --vp-layout-max-width: 1440px;
+  --vp-nav-height: 64px;
+
+  --vp-font-family-base: 'Inter var', 'Inter', ui-sans-serif, system-ui, -apple-system,
+    'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --vp-font-family-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, 'SF Mono',
+    Menlo, Consolas, monospace;
 }
 
+/* force-dark keeps the .dark class on <html>, and VitePress defines its dark
+   values there — so our overrides have to live at the same specificity to win. */
 .dark {
-  /* Not the light ramp dimmed: on a dark surface a mid-chroma accent reads
-     muddy, so the accent lifts in lightness and eases off chroma. */
-  --vp-c-brand-1: oklch(78% 0.13 255);
-  --vp-c-brand-2: oklch(84% 0.11 255);
-  --vp-c-brand-3: oklch(56% 0.18 255);
-  --vp-c-brand-soft: oklch(78% 0.13 255 / 0.14);
+  --vp-c-bg: var(--g-bg);
+  --vp-c-bg-alt: oklch(14.5% 0.013 260);
+  --vp-c-bg-soft: var(--g-bg-soft);
+  --vp-c-bg-elv: var(--g-bg-panel);
 
-  --g-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.30);
-  --g-shadow-md: 0 1px 2px rgb(0 0 0 / 0.30), 0 4px 10px rgb(0 0 0 / 0.25);
-  --g-shadow-lg: 0 2px 4px rgb(0 0 0 / 0.35), 0 12px 28px rgb(0 0 0 / 0.40);
+  --vp-c-divider: var(--g-line);
+  --vp-c-border: var(--g-line);
+  --vp-c-gutter: var(--g-line-soft);
+
+  --vp-c-text-1: var(--g-text);
+  --vp-c-text-2: var(--g-text-2);
+  --vp-c-text-3: var(--g-text-3);
+
+  --vp-c-brand-1: var(--g-accent);
+  --vp-c-brand-2: oklch(84% 0.11 255);
+  --vp-c-brand-3: var(--g-accent-deep);
+  --vp-c-brand-soft: var(--g-accent-soft);
 }
 
 /* ------------------------------------------------------------- chrome ---- */
 
-.VPNavBar .title {
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-.VPNavBar .logo {
-  color: var(--vp-c-brand-1);   /* the mark is drawn with currentColor */
-}
+.VPNavBar .title { font-weight: 700; letter-spacing: -0.02em; }
+.VPNavBar .logo { color: var(--g-accent); }
 
 /* --------------------------------------------------------------- hero ---- */
 
 .VPHero .name {
-  /* Solid, not a gradient. A gradient wordmark is a template default; one
+  /* Solid, not a gradient: a gradient wordmark is a template default, one
      confident colour reads as a product. */
   font-weight: 800;
   font-size: clamp(2.6rem, 5.5vw, 4rem);
   letter-spacing: -0.035em;
-  color: var(--vp-c-brand-1);
+  color: var(--g-accent);
   background: none;
   -webkit-text-fill-color: currentColor;
 }
@@ -105,57 +107,25 @@
   font-size: clamp(1.9rem, 4vw, 2.9rem);
   letter-spacing: -0.025em;
   line-height: 1.12;            /* large type wants tight leading */
-  color: var(--vp-c-text-1);
+  color: var(--g-text);
 }
 
 .VPHero .tagline {
   max-width: 34em;              /* cap the PARAGRAPH, not the container */
   font-size: var(--g-text-lg);
   line-height: 1.55;            /* small type wants loose leading */
-  color: var(--vp-c-text-2);
+  color: var(--g-text-2);
 }
 
-.VPHero .actions {
-  gap: 12px;
-  margin-top: 28px;
-}
+.VPHero .actions { gap: 12px; margin-top: 28px; }
 
-/* Action pyramid: one solid primary, the rest quieter. Three solid buttons on
-   one screen means no hierarchy at all. */
-.VPButton {
-  border-radius: var(--g-radius);
-  font-weight: 600;
-  letter-spacing: -0.005em;
-}
-
+/* Action pyramid: one solid primary, the rest quiet. */
+.VPButton { border-radius: var(--g-radius); font-weight: 600; }
 .VPButton.brand { box-shadow: var(--g-shadow-sm); }
+.VPButton.alt { background: transparent; border: 1px solid var(--g-line); }
+.VPButton.alt:hover { border-color: var(--g-accent); color: var(--g-accent); background: transparent; }
 
-.VPButton.alt {
-  background: transparent;
-  border: 1px solid var(--vp-c-divider);
-}
-
-.VPButton.alt:hover {
-  border-color: var(--vp-c-brand-1);
-  color: var(--vp-c-brand-1);
-  background: transparent;
-}
-
-/* ------------------------------------------------------ hero showcase ---- */
-
-.VPHero .image { order: 2; }
-
-.VPHero .image-container {
-  transform: none;              /* the default tilts a decorative blob */
-  width: 100%;
-  max-width: 600px;
-}
-
-.VPHero .image-bg { display: none; }
-
-/* Short claims above the pitch — stacked statements, each with a tick, rather
-   than the small pills this started as. Pills read as metadata; these are the
-   argument, so they get real type size and sit at full text contrast. */
+/* Claim statements: the argument, so full text contrast and real type size. */
 .hero-claims {
   list-style: none;
   padding: 0;
@@ -171,11 +141,10 @@
   font-size: var(--g-text-base);
   font-weight: 550;
   line-height: 1.45;
-  color: var(--vp-c-text-1);
+  color: var(--g-text);
 }
 
-/* A tick in the accent, drawn in CSS: no icon font, no SVG request, and it
-   inherits colour with the theme. */
+/* A tick drawn in CSS: no icon font, no request, inherits the accent. */
 .hero-claims li::before {
   content: '';
   position: absolute;
@@ -183,15 +152,16 @@
   top: 0.42em;
   width: 11px;
   height: 6px;
-  border-left: 2px solid var(--vp-c-brand-1);
-  border-bottom: 2px solid var(--vp-c-brand-1);
+  border-left: 2px solid var(--g-accent);
+  border-bottom: 2px solid var(--g-accent);
   transform: rotate(-45deg);
 }
 
-@media (max-width: 960px) {
-  .hero-claims { align-items: center; }
-  .hero-claims li { text-align: left; }
-}
+/* ----------------------------------------------------- hero showcase ----- */
+
+.VPHero .image { order: 2; }
+.VPHero .image-container { transform: none; width: 100%; max-width: 600px; }
+.VPHero .image-bg { display: none; }
 
 .showcase {
   position: relative;
@@ -200,16 +170,13 @@
   overflow: hidden;
   text-align: left;
   background: oklch(20% 0.016 260);
-  border: 1px solid oklch(29% 0.02 260);
+  border: 1px solid var(--g-line);
   box-shadow: var(--g-shadow-lg);
 }
 
-/* Low-poly geometric field. The previous version was a three-gradient wash so
-   faint it did not read as a pattern at all — visible in the CSS, invisible on
-   screen. These are actual polygons: conic gradients clipped into triangles,
-   which stay crisp at any size and cost no image request. Contrast is low but
-   deliberately ABOVE the perceptible threshold, so it reads as a designed
-   surface without competing with the code sitting on it. */
+/* Low-poly field: clipped gradient wedges, crisp at any size, no image request.
+   Low contrast but deliberately ABOVE the perceptible threshold — an earlier
+   version was invisible on screen while looking fine in the CSS. */
 .showcase__pattern {
   position: absolute;
   inset: 0;
@@ -226,21 +193,15 @@
   background-repeat: no-repeat;
 }
 
-.showcase__tabs {
-  position: relative;
-  display: flex;
-  gap: 4px;
-  padding: 12px 12px 0;
-}
+.showcase__tabs { position: relative; display: flex; gap: 4px; padding: 12px 12px 0; }
 
-/* Pill tabs: the active one is a filled capsule, the rest are quiet text. That
-   is the action pyramid applied to navigation — one thing is selected, and the
-   others must not compete with it. */
+/* The action pyramid applied to navigation: the selected tab is a filled
+   capsule, the rest are quiet text and must not compete with it. */
 .showcase__tab {
   appearance: none;
   border: 1px solid transparent;
   background: transparent;
-  color: oklch(70% 0.02 260);
+  color: var(--g-text-3);
   font-family: var(--vp-font-family-base);
   font-size: var(--g-text-xs);
   font-weight: 600;
@@ -252,18 +213,16 @@
   transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
 }
 
-.showcase__tab:hover { color: oklch(92% 0.01 260); }
+.showcase__tab:hover { color: var(--g-text); }
 
 .showcase__tab.is-active {
-  color: oklch(96% 0.01 260);
+  color: var(--g-text);
   border-color: oklch(45% 0.03 260);
   background: oklch(26% 0.02 260);
 }
 
-.showcase__tab:focus-visible {
-  outline: 2px solid var(--vp-c-brand-1);
-  outline-offset: 2px;
-}
+.showcase__tab:focus-visible,
+.showcase__copy:focus-visible { outline: 2px solid var(--g-accent); outline-offset: 2px; }
 
 .showcase__panel { position: relative; }
 
@@ -277,14 +236,14 @@
 .showcase__file {
   font-family: var(--vp-font-family-mono);
   font-size: var(--g-text-xs);
-  color: oklch(62% 0.02 260);
+  color: var(--g-text-3);
 }
 
 .showcase__copy {
   appearance: none;
   border: 1px solid oklch(35% 0.02 260);
   background: oklch(25% 0.017 260);
-  color: oklch(80% 0.015 260);
+  color: var(--g-text-2);
   font-family: var(--vp-font-family-base);
   font-size: var(--g-text-xs);
   font-weight: 600;
@@ -293,12 +252,7 @@
   cursor: pointer;
 }
 
-.showcase__copy:hover { color: oklch(96% 0.01 260); border-color: oklch(48% 0.03 260); }
-
-.showcase__copy:focus-visible {
-  outline: 2px solid var(--vp-c-brand-1);
-  outline-offset: 2px;
-}
+.showcase__copy:hover { color: var(--g-text); border-color: oklch(48% 0.03 260); }
 
 .showcase__code {
   padding: 4px 0 18px;
@@ -308,18 +262,13 @@
   overflow-x: auto;
 }
 
-.showcase__line {
-  display: flex;
-  align-items: baseline;
-  padding: 0 14px;
-  white-space: pre;
-}
+.showcase__line { display: flex; align-items: baseline; padding: 0 14px; white-space: pre; }
 
-/* Highlighted range: a lighter band plus an accent edge, so the eye lands on the
-   two lines that carry the point instead of scanning all twenty. */
+/* Highlight the lines that carry the point, so the eye lands there instead of
+   scanning twenty. */
 .showcase__line.is-hl {
   background: oklch(28% 0.03 262);
-  box-shadow: inset 2px 0 0 var(--vp-c-brand-1);
+  box-shadow: inset 2px 0 0 var(--g-accent);
 }
 
 .showcase__num {
@@ -332,147 +281,279 @@
   font-size: 12px;
 }
 
-.showcase__text {
-  color: oklch(88% 0.015 260);
-  background: none;
-  padding: 0;
-  font-size: 13px;
-}
+.showcase__text { color: oklch(88% 0.015 260); background: none; padding: 0; font-size: 13px; }
 
-/* -------------------------------------------------------- benefits ------- */
+/* ----------------------------------------------------------- features ---- */
 
-.benefits {
-  border-top: 1px solid var(--vp-c-divider);
-  margin-top: 64px;
-  padding: 72px 24px 16px;
-}
-
-.benefits__inner {
-  max-width: 1152px;
-  margin: 0 auto;
-}
-
-.benefits__eyebrow {
-  margin: 0 0 6px;
-  font-size: var(--g-text-xs);
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--vp-c-brand-1);
-}
-
-.benefits__title {
-  margin: 0 0 12px;
-  font-size: var(--g-text-2xl);
-  font-weight: 750;
-  letter-spacing: -0.03em;
-  color: var(--vp-c-text-1);
-}
-
-.benefits__lede {
-  margin: 0 0 40px;
-  max-width: 62ch;
-  font-size: var(--g-text-lg);
-  line-height: 1.6;
-  color: var(--vp-c-text-2);
-}
-
-.benefits__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 24px;
-}
-
-.benefit {
-  background: var(--vp-c-bg-soft);
-  border: 1px solid transparent;
-  border-radius: var(--g-radius-lg);
-  padding: 26px 24px;
-  box-shadow: var(--g-shadow-sm);
-  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
-}
-
-.benefit:hover {
-  border-color: var(--vp-c-brand-1);
-  box-shadow: var(--g-shadow-md);
-  transform: translateY(-2px);
-}
-
-.benefit h3 {
-  margin: 0 0 8px;
-  font-size: var(--g-text-lg);
-  font-weight: 650;
-  letter-spacing: -0.015em;
-  color: var(--vp-c-text-1);
-}
-
-.benefit p {
-  margin: 0;
-  font-size: var(--g-text-sm);
-  line-height: 1.65;
-  color: var(--vp-c-text-2);
-}
-
-.benefit code {
-  font-size: 0.92em;
-  background: var(--vp-c-brand-soft);
-  color: var(--vp-c-brand-1);
-  padding: 2px 5px;
-  border-radius: 4px;
-}
-
-/* ------------------------------------------------------------ features ---- */
-
-/* Soft-shadowed panels rather than outlined boxes: when two elements already
-   differ in background, a border on top of that is noise. */
 .VPFeatures { padding-top: 24px; }
 
-/* VitePress spaces these with .item padding + a negative margin on .items, NOT
-   with gap. Setting gap here broke the width calculation and collapsed a
-   6-feature grid from 3-across to 2-across with dead space on the right. Widen
-   the gutter through the padding it actually uses. */
+/* VitePress spaces these with .item padding and a negative margin on .items,
+   NOT with gap — setting gap collapses the grid. */
 .VPFeatures .items { margin: -12px; }
 .VPFeatures .item { padding: 12px; }
-
-/* The features container is capped separately from the layout width, so raising
-   --vp-layout-max-width alone left this narrower than the hero above it. */
 .VPFeatures .container { max-width: 1280px; }
 
 .VPFeature {
-  background: var(--vp-c-bg-soft);
-  border: 1px solid transparent;
+  position: relative;
+  background: var(--g-bg-soft);
+  border: 1px solid var(--g-line-soft);
   border-radius: var(--g-radius-lg);
   padding: 26px 24px;
-  box-shadow: var(--g-shadow-sm);
-  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+  overflow: hidden;
+  transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
 }
 
-.VPFeature:hover {
-  border-color: var(--vp-c-brand-1);
-  box-shadow: var(--g-shadow-md);
-  transform: translateY(-2px);
+/* An accent rule along the top edge, revealed on hover. On a dark surface a
+   lift in the border and background reads far better than a drop shadow. */
+.VPFeature::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--g-accent), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
+
+.VPFeature:hover { border-color: var(--g-accent-dim); background: var(--g-bg-panel); transform: translateY(-2px); }
+.VPFeature:hover::before { opacity: 1; }
 
 .VPFeature .title {
   font-size: var(--g-text-lg);
   font-weight: 650;
   letter-spacing: -0.015em;
-  margin-bottom: 8px;           /* tight to its own body */
+  margin-bottom: 8px;
+  color: var(--g-text);
 }
 
-.VPFeature .details {
+.VPFeature .details { font-size: var(--g-text-sm); color: var(--g-text-2); line-height: 1.65; }
+
+/* ----------------------------------------------------------- benefits ---- */
+
+.benefits {
+  position: relative;
+  margin-top: 72px;
+  padding: 88px 24px 96px;
+  border-top: 1px solid var(--g-line-soft);
+  overflow: hidden;
+}
+
+/* The section gets its own surface so it reads as a distinct band rather than
+   more of the same page. Radial washes, not wedges — softer than the code panel
+   because there is body copy sitting on it. */
+.benefits__pattern {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 55% at 12% 0%, oklch(26% 0.05 258 / 0.55), transparent 70%),
+    radial-gradient(50% 50% at 92% 18%, oklch(24% 0.045 285 / 0.5), transparent 72%),
+    radial-gradient(70% 60% at 50% 110%, oklch(22% 0.035 235 / 0.55), transparent 70%);
+}
+
+.benefits__inner { position: relative; max-width: 1280px; margin: 0 auto; }
+
+.benefits__eyebrow {
+  margin: 0 0 8px;
+  font-size: var(--g-text-xs);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--g-accent);
+}
+
+.benefits__title {
+  margin: 0 0 14px;
+  font-size: clamp(1.9rem, 3.4vw, var(--g-text-3xl));
+  font-weight: 780;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+  color: var(--g-text);
+}
+
+.benefits__lede {
+  margin: 0 0 48px;
+  max-width: 60ch;
+  font-size: var(--g-text-lg);
+  line-height: 1.6;
+  color: var(--g-text-2);
+}
+
+.benefits__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.benefit {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: oklch(19% 0.016 260 / 0.8);
+  border: 1px solid var(--g-line-soft);
+  border-radius: var(--g-radius-xl);
+  padding: 28px 26px 24px;
+  backdrop-filter: blur(6px);   /* so the pattern reads THROUGH the card */
+  transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
+}
+
+.benefit:hover {
+  border-color: var(--g-accent-dim);
+  background: oklch(22% 0.018 260 / 0.92);
+  transform: translateY(-3px);
+}
+
+/* A number instead of an icon: it sequences the list and cannot be mistaken for
+   decoration the way a generic glyph can. */
+.benefit__num {
+  font-family: var(--vp-font-family-mono);
+  font-size: var(--g-text-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--g-accent);
+  opacity: 0.75;
+  margin-bottom: 14px;
+}
+
+.benefit__title {
+  margin: 0 0 10px;
+  font-size: var(--g-text-lg);
+  font-weight: 650;
+  letter-spacing: -0.018em;
+  line-height: 1.3;
+  color: var(--g-text);
+}
+
+.benefit__body {
+  margin: 0 0 16px;
   font-size: var(--g-text-sm);
-  color: var(--vp-c-text-2);
-  line-height: 1.65;
+  line-height: 1.68;
+  color: var(--g-text-2);
 }
 
-/* ------------------------------------------------------------- content ---- */
+.benefit__link {
+  margin-top: auto;             /* pins links to a common baseline across cards */
+  font-size: var(--g-text-sm);
+  font-weight: 600;
+  color: var(--g-accent);
+  text-decoration: none;
+}
 
-.vp-doc h1 {
-  font-size: var(--g-text-2xl);
+.benefit__link:hover { text-decoration: underline; }
+
+/* ------------------------------------------------------------- footer ---- */
+
+.gfoot {
+  position: relative;
+  margin-top: 0;
+  border-top: 1px solid var(--g-line-soft);
+  background: oklch(14% 0.013 260);
+  overflow: hidden;
+}
+
+.gfoot__pattern {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(58% 70% at 8% 0%, oklch(24% 0.05 258 / 0.6), transparent 68%),
+    radial-gradient(46% 60% at 88% 6%, oklch(22% 0.045 288 / 0.5), transparent 70%),
+    linear-gradient(112deg, oklch(20% 0.03 250 / 0.45) 0 30%, transparent 30.4%),
+    linear-gradient(255deg, oklch(19% 0.025 275 / 0.4) 0 24%, transparent 24.4%);
+  background-repeat: no-repeat;
+}
+
+.gfoot__inner {
+  position: relative;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 72px 24px 32px;
+}
+
+.gfoot__top {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.1fr) 2.4fr;
+  gap: 56px;
+  padding-bottom: 48px;
+}
+
+.gfoot__mark {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--g-accent);
+  font-size: var(--g-text-xl);
   font-weight: 750;
   letter-spacing: -0.03em;
+  margin-bottom: 14px;
 }
+
+.gfoot__mark span { color: var(--g-text); }
+
+.gfoot__blurb {
+  margin: 0 0 18px;
+  max-width: 42ch;
+  font-size: var(--g-text-sm);
+  line-height: 1.65;
+  color: var(--g-text-2);
+}
+
+.gfoot__install {
+  display: inline-block;
+  font-family: var(--vp-font-family-mono);
+  font-size: var(--g-text-xs);
+  color: var(--g-accent);
+  background: var(--g-accent-soft);
+  border: 1px solid oklch(76% 0.135 255 / 0.22);
+  border-radius: 6px;
+  padding: 7px 11px;
+}
+
+.gfoot__cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 32px 24px;
+}
+
+.gfoot__col h3 {
+  margin: 0 0 14px;
+  font-size: var(--g-text-xs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--g-text-3);
+}
+
+.gfoot__col ul { list-style: none; margin: 0; padding: 0; }
+.gfoot__col li { margin-bottom: 10px; }
+
+.gfoot__col a {
+  font-size: var(--g-text-sm);
+  color: var(--g-text-2);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.gfoot__col a:hover { color: var(--g-accent); }
+
+.gfoot__bottom {
+  border-top: 1px solid var(--g-line-soft);
+  padding-top: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 24px;
+}
+
+.gfoot__bottom p { margin: 0; font-size: var(--g-text-xs); color: var(--g-text-3); }
+.gfoot__note { max-width: 58ch; }
+
+/* VitePress renders its own footer on doc pages; ours replaces it everywhere. */
+.VPFooter { display: none; }
+
+/* ------------------------------------------------------------ content ---- */
+
+.vp-doc h1 { font-size: var(--g-text-2xl); font-weight: 750; letter-spacing: -0.03em; }
 
 .vp-doc h2 {
   /* Space above a heading belongs to the heading, so it groups with what
@@ -484,129 +565,64 @@
   letter-spacing: -0.02em;
 }
 
-.vp-doc h3 {
-  margin-top: 34px;
-  font-size: var(--g-text-lg);
-  font-weight: 650;
-  letter-spacing: -0.01em;
-}
+.vp-doc h3 { margin-top: 34px; font-size: var(--g-text-lg); font-weight: 650; letter-spacing: -0.01em; }
+.vp-doc h3 code { font-size: 0.92em; font-weight: 650; }
 
-/* API pages are dense with `code` headings; monospace reads as a signature. */
-.vp-doc h3 code {
-  font-size: 0.92em;
-  font-weight: 650;
-}
-
-.vp-doc p,
-.vp-doc li { line-height: 1.72; }
-
-/* Cap prose measure; tables and code keep the full width, which they need. */
-.vp-doc p { max-width: 74ch; }
+.vp-doc p, .vp-doc li { line-height: 1.72; }
+.vp-doc p { max-width: 74ch; }   /* cap prose; tables and code need full width */
 
 /* Row rules alone carry the structure — an outer box on top is redundant. */
-.vp-doc table {
-  display: table;
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--g-text-sm);
-}
+.vp-doc table { display: table; width: 100%; border-collapse: collapse; font-size: var(--g-text-sm); }
+.vp-doc th { font-weight: 650; color: var(--g-text); text-align: left; }
+.vp-doc tr { border-top: 1px solid var(--g-line-soft); background: transparent; }
+.vp-doc td, .vp-doc th { padding: 11px 14px; border: none; }
 
-.vp-doc th {
-  font-weight: 650;
-  color: var(--vp-c-text-1);
-  text-align: left;
-}
-
-.vp-doc tr {
-  border-top: 1px solid var(--vp-c-divider);
-  background: transparent;
-}
-
-.vp-doc td,
-.vp-doc th {
-  padding: 11px 14px;
-  border: none;
-}
-
-.vp-doc div[class*='language-'] {
-  border-radius: var(--g-radius-lg);
-  box-shadow: var(--g-shadow-md);
-}
+.vp-doc div[class*='language-'] { border-radius: var(--g-radius-lg); box-shadow: var(--g-shadow-md); }
 
 .vp-doc blockquote {
-  border-left: 3px solid var(--vp-c-brand-1);
-  background: var(--vp-c-brand-soft);
+  border-left: 3px solid var(--g-accent);
+  background: var(--g-accent-soft);
   border-radius: 0 var(--g-radius) var(--g-radius) 0;
   padding: 12px 16px;
 }
 
-.vp-doc blockquote > p {
-  margin: 0;
-  max-width: none;
-  color: var(--vp-c-text-1);
-}
-
+.vp-doc blockquote > p { margin: 0; max-width: none; color: var(--g-text); }
 .vp-doc .custom-block { border-radius: var(--g-radius); }
 
-/* ------------------------------------------------- homepage body prose ---- */
+/* ------------------------------------------- homepage body prose --------- */
 
-/* The home layout has no content container, so prose under the hero would
-   otherwise run the full 1440px — far past a readable measure. */
-.home-body {
-  max-width: 780px;
-  margin: 0 auto;
-  padding: 8px 24px 80px;
-}
+.home-body { max-width: 780px; margin: 0 auto; padding: 8px 24px 8px; }
 
 .home-body h2 {
   font-size: var(--g-text-xl);
   font-weight: 680;
   letter-spacing: -0.02em;
-  margin-top: 72px;             /* the 60-80px section rhythm */
+  margin-top: 72px;
   margin-bottom: 14px;
+  color: var(--g-text);
 }
 
 .home-body h2:first-child { margin-top: 24px; }
-
-.home-body p {
-  color: var(--vp-c-text-2);
-  line-height: 1.72;
-  max-width: 70ch;
-}
-
-.home-body table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--g-text-sm);
-  margin: 18px 0;
-}
-
-.home-body th,
-.home-body td {
-  padding: 11px 14px;
-  text-align: left;
-}
-
-.home-body tr { border-top: 1px solid var(--vp-c-divider); }
-
-.home-body th {
-  font-weight: 650;
-  color: var(--vp-c-text-1);
-}
-
-.home-body div[class*='language-'] {
-  border-radius: var(--g-radius-lg);
-  box-shadow: var(--g-shadow-md);
-}
+.home-body p { color: var(--g-text-2); line-height: 1.72; max-width: 70ch; }
+.home-body table { width: 100%; border-collapse: collapse; font-size: var(--g-text-sm); margin: 18px 0; }
+.home-body th, .home-body td { padding: 11px 14px; text-align: left; }
+.home-body tr { border-top: 1px solid var(--g-line-soft); }
+.home-body th { font-weight: 650; color: var(--g-text); }
+.home-body div[class*='language-'] { border-radius: var(--g-radius-lg); box-shadow: var(--g-shadow-md); }
 
 @media (max-width: 960px) {
   .VPHero .image-container { max-width: 100%; }
-  .hero-code__body { font-size: 12px; }
+  .showcase__body, .showcase__code { font-size: 12px; }
+  .hero-claims { align-items: flex-start; }
+  .gfoot__top { grid-template-columns: 1fr; gap: 40px; }
 }
 
 @media (max-width: 640px) {
   /* Big things shrink faster than small things. */
   .VPFeature { padding: 20px; }
-  .home-body { padding: 8px 20px 56px; }
+  .benefits { padding: 64px 20px 72px; }
+  .benefit { padding: 24px 20px 20px; }
+  .home-body { padding: 8px 20px; }
   .home-body h2 { margin-top: 48px; }
+  .gfoot__inner { padding: 56px 20px 28px; }
 }

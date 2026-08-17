@@ -7,6 +7,10 @@ export default defineConfig({
   description: 'SQLite in the browser with a Dexie-compatible API. OPFS-backed, runs in a Web Worker, safe across tabs.',
   lang: 'en-GB',
   cleanUrls: true,
+  // Dark only. A single surface to design against means the palette, the code
+  // panels and the section patterns are all tuned once instead of twice — and a
+  // half-tuned light mode is worse than none.
+  appearance: 'force-dark',
   lastUpdated: true,
   base: '/granth/',
   head: [
@@ -64,11 +68,6 @@ export default defineConfig({
       },
     ],
     socialLinks: [{ icon: 'github', link: 'https://github.com/sundarshahi/granth' }],
-    footer: {
-      message:
-        'MIT licensed. Not affiliated with Dexie.js — granthdb is an independent project with a compatible API.',
-      copyright: 'Built by Sundar Shahi Thakuri',
-    },
     search: { provider: 'local' },
     editLink: {
       pattern: 'https://github.com/sundarshahi/granth/edit/main/docs/:path',

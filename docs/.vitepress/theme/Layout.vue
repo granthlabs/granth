@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import DefaultTheme from 'vitepress/theme';
+import Footer from './Footer.vue';
 
 const { Layout } = DefaultTheme;
 
@@ -88,6 +89,39 @@ const currentLines = computed(() => current.value.code.split('\n'));
 
 const isHighlighted = (n) => current.value.hl?.some(([a, b]) => n >= a && n <= b) ?? false;
 
+const benefits = [
+  {
+    title: 'Queries that stay fast as data grows',
+    body: "SQLite's planner picks the index. Filter on one field and sort by another in a single statement, instead of pulling the table into JavaScript and sorting it there.",
+    href: '/Collection', linkText: 'Query API',
+  },
+  {
+    title: 'Never blocks your interface',
+    body: 'SQL runs in a dedicated Worker. localStorage is synchronous and janks the main thread on every read; a slow scan here cannot drop a frame, because it is not on your thread.',
+    href: '/Runtimes', linkText: 'Runtimes',
+  },
+  {
+    title: 'Correct with many tabs open',
+    body: 'One tab is elected writer through Web Locks and the rest route to it. Two tabs writing one file is how browser databases corrupt — so the test suite kills the writer mid-write.',
+    href: '/Runtimes', linkText: 'How election works',
+  },
+  {
+    title: 'Your data survives the round trip',
+    body: 'Date, NaN, Infinity, BigInt and null come back as themselves. Plain JSON destroys all five silently, which is a data-loss bug wearing a serialisation costume.',
+    href: '/Granth', linkText: 'Value handling',
+  },
+  {
+    title: 'Encrypt what matters, at rest',
+    body: 'Browser storage is plaintext on disk — OPFS included. A field-level AES-GCM addon seals sensitive values before they reach SQLite, with a test that greps the raw file to prove it.',
+    href: '/Encryption', linkText: 'Encryption',
+  },
+  {
+    title: 'Migrate without a rewrite',
+    body: 'A codemod rewrites what is safe and reports what is not. Then import your existing IndexedDB data, schema inference included, and delete the old blob.',
+    href: '/MigratingFromDexie', linkText: 'Migration guide',
+  },
+];
+
 const copied = ref(false);
 async function copy() {
   try {
@@ -149,71 +183,31 @@ async function copy() {
     <!-- Benefits, after the feature grid: why this, over what you have now. -->
     <template #home-features-after>
       <section class="benefits">
+        <div class="benefits__pattern" aria-hidden="true" />
         <div class="benefits__inner">
           <p class="benefits__eyebrow">Primary benefits</p>
           <h2 class="benefits__title">Why granthdb?</h2>
           <p class="benefits__lede">
-            IndexedDB with a real query engine underneath, off your main thread, and
-            safe when the user has three tabs open. The API is the one you already know.
+            IndexedDB's model with a real query engine underneath — off your main thread,
+            correct when the user has three tabs open, and reachable through the API you
+            already know.
           </p>
 
           <div class="benefits__grid">
-            <article class="benefit">
-              <h3>Queries that stay fast as data grows</h3>
-              <p>
-                SQLite's planner picks the index. Filter on one field and sort by another
-                in a single statement instead of pulling the table into JavaScript and
-                sorting it there.
-              </p>
-            </article>
-
-            <article class="benefit">
-              <h3>Never blocks your interface</h3>
-              <p>
-                SQL runs in a dedicated Worker. localStorage is synchronous and janks the
-                main thread on every read; a slow scan here cannot drop a frame, because
-                it is not on your thread.
-              </p>
-            </article>
-
-            <article class="benefit">
-              <h3>Correct with many tabs open</h3>
-              <p>
-                One tab is elected writer through Web Locks and the rest route to it. Two
-                tabs writing one file is how browser databases corrupt, and it is tested
-                here by killing the writer mid-write.
-              </p>
-            </article>
-
-            <article class="benefit">
-              <h3>Your data survives the round trip</h3>
-              <p>
-                Date, NaN, Infinity, BigInt and null come back as themselves. Plain JSON
-                silently destroys all five, which is a data-loss bug wearing a
-                serialisation costume.
-              </p>
-            </article>
-
-            <article class="benefit">
-              <h3>Degrades instead of throwing</h3>
-              <p>
-                Storage is an ordered list — OPFS, then IndexedDB, then memory. Safari
-                private browsing has no OPFS at all, so this is the difference between
-                working and crashing.
-              </p>
-            </article>
-
-            <article class="benefit">
-              <h3>Migrate without a rewrite</h3>
-              <p>
-                <code>npx granth-codemod ./src</code> rewrites what is safe and reports
-                what is not. Then import your existing IndexedDB data, schema inference
-                included.
-              </p>
+            <article v-for="(b, i) in benefits" :key="b.title" class="benefit">
+              <span class="benefit__num" aria-hidden="true">{{ String(i + 1).padStart(2, '0') }}</span>
+              <h3 class="benefit__title">{{ b.title }}</h3>
+              <p class="benefit__body">{{ b.body }}</p>
+              <a v-if="b.href" class="benefit__link" :href="b.href">{{ b.linkText }} &rarr;</a>
             </article>
           </div>
         </div>
       </section>
     </template>
+
+    <template #layout-bottom>
+      <Footer />
+    </template>
+
   </Layout>
 </template>

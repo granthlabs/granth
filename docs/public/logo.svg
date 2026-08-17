@@ -1,13 +1,15 @@
 <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
   <!--
-    granth = a book or treatise. The mark is three stacked leaves that also read
-    as database layers: the same shape means both things, which is the point of
-    the name. Geometric and flat, so it survives being rendered at 16px in a nav
-    bar and as a favicon.
+    granth = a book or treatise. Three stacked leaves that also read as database
+    layers: one shape, both meanings, which is the whole point of the name.
+    Tuned for a DARK surface — the top leaf is solid and the two beneath step
+    down in opacity, so the mark reads as depth rather than as a flat glyph, and
+    it still holds at 16px in a nav bar or as a favicon.
+    Drawn with currentColor so it inherits the accent and never needs a variant.
   -->
-  <path d="M4 8.5 L16 3 L28 8.5 L16 14 Z" fill="currentColor"/>
-  <path d="M4 15.25 L16 20.75 L28 15.25" stroke="currentColor" stroke-width="2.5"
-        stroke-linecap="round" stroke-linejoin="round" opacity="0.62"/>
-  <path d="M4 22 L16 27.5 L28 22" stroke="currentColor" stroke-width="2.5"
-        stroke-linecap="round" stroke-linejoin="round" opacity="0.32"/>
+  <path d="M16 3 L29 9.4 L16 15.8 L3 9.4 Z" fill="currentColor"/>
+  <path d="M3 15.6 L16 22 L29 15.6" stroke="currentColor" stroke-width="2.6"
+        stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/>
+  <path d="M3 22.2 L16 28.6 L29 22.2" stroke="currentColor" stroke-width="2.6"
+        stroke-linecap="round" stroke-linejoin="round" opacity="0.28"/>
 </svg>
