@@ -141,6 +141,49 @@ let netCalls = 0;
 assert.equal(await hedge(slow('cached', 1), () => { netCalls++; return slow('fresh', 1)(); }, 50), 'cached');
 await tick(80); assert.equal(netCalls, 0, 'hedge must not fire the network when the cache answers in time');
 
+// --- self-election must settle the calls the DEAD leader had already ACKed ---
+//
+// This is the two-tab failover case, and it deadlocked in CI while passing on a
+// developer laptop, because it is pure timing. A BroadcastChannel never delivers
+// to its own sender, so a tab that WINS the election never receives the
+// `elected` message it just posted — and that listener was the only place that
+// failed ACKed calls. With 3+ tabs a different tab usually wins and broadcasts,
+// which hid it. With exactly two, the survivor always elects itself.
+//
+// Driven through the fake lock rather than real timing, so it is deterministic.
+{
+  const fLocks = makeLocks();
+  /** ACKs (by accepting the call) but never replies — a leader dying mid-call. */
+  const mute = () => ({
+    terminated: () => false,
+    addEventListener: () => {},
+    terminate: () => {},
+    postMessage() { /* deliberately silent: the reply never comes */ },
+  });
+
+  const leader = createLeaderClient({ name: 'selfelect', worker: mute, locks: fLocks, timeoutMs: 5000 });
+  const follower = createLeaderClient({ name: 'selfelect', worker: mute, locks: fLocks, timeoutMs: 5000 });
+  await tick(30);   // let the election settle: `leader` holds the lock
+
+  // Attach the handler IMMEDIATELY. The whole point is that this settles during
+  // the failover below, and an unhandled rejection in that window crashes the
+  // process before the assertion runs.
+  const inFlight = follower.call('set', 'k', 'v')      // leader ACKs, never replies
+    .then(() => 'resolved', (e) => e?.name ?? 'rejected');
+  await tick(30);
+
+  leader.close();    // releases the lock -> `follower` elects ITSELF
+  await tick(60);
+
+  // Must settle. Before the fix this promise never resolved at all, and because
+  // the client awaits it inside withLock('shared'), that lock was held forever
+  // and every tab's transactions deadlocked behind it.
+  const outcome = await Promise.race([inFlight, tick(400).then(() => 'HUNG')]);
+  assert.notEqual(outcome, 'HUNG', 'a self-elected tab must settle its own ACKed calls, not hang forever');
+  assert.equal(outcome, 'LeaderLostError', `expected LeaderLostError, got ${outcome}`);
+  follower.close();
+}
+
 console.log('opfs-leader selfcheck: all assertions passed');
 
 // An open BroadcastChannel keeps Node alive; exit explicitly so CI does not hang.

@@ -204,6 +204,24 @@ export function createLeaderClient({
         }
       });
       channel.postMessage({ kind: 'elected', from: tabId } satisfies ChannelMessage);
+
+      // Settle OUR OWN calls that the dead leader had already ACKed.
+      //
+      // A BroadcastChannel never delivers to its own sender, so winning the
+      // election means we can never receive the `elected` message we just
+      // posted — and the `elected` listener was the ONLY place that failed
+      // ACKed calls. With three or more tabs a DIFFERENT tab usually wins and
+      // broadcasts, which hid this; with exactly two tabs the survivor always
+      // elects itself, so it fired every time.
+      //
+      // The damage was not just a hung promise: the client awaits these inside
+      // withLock('shared'), so one unsettled call holds that lock forever and
+      // every tab's transactions deadlock behind it. ACK also clears the
+      // timeout, so nothing else would ever settle them.
+      for (const [callId, call] of pending) {
+        if (call.acked) settle(callId, { error: new LeaderLostError(call.method) });
+      }
+
       leaderSettled();
       onLeadership(true);
     },
@@ -240,6 +258,11 @@ export function createLeaderClient({
       // ACK first: tells the caller "I own this now, do not retry it elsewhere".
       channel.postMessage({ kind: 'ack', callId: msg.callId, to: msg.from } satisfies ChannelMessage);
       const result = await runOnWorker(msg.callId, msg.method, msg.args);
+      // Re-check: `closed` was true-tested BEFORE the await, and a tab can be
+      // closed while its worker is still working. Posting then throws
+      // "BroadcastChannel is closed" out of an async listener, where nothing
+      // catches it — it surfaces as an unhandled rejection, not as a failed call.
+      if (closed) return;
       channel.postMessage({
         kind: 'result',
         callId: msg.callId,
