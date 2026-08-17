@@ -11,7 +11,7 @@ Run it yourself — these are one machine's numbers and query times vary ±3× w
 
 | Operation | Time | Rate |
 |---|---:|---:|
-| `bulkAdd` 5,000 docs (one transaction) | 295 ms | ~17,000 rows/s |
+| `bulkAdd` 5,000 docs (chunked multi-row) | 28 ms | ~180,000 rows/s |
 | `add` one at a time (durable commit each) | ~13 ms each | ~75 rows/s |
 | `count()` whole table | 0.5 ms | |
 | indexed `where().equals()` | 2.5 ms | |
@@ -21,6 +21,12 @@ Run it yourself — these are one machine's numbers and query times vary ±3× w
 | full scan, 5,200 docs | 26 ms | ~199,000 rows/s |
 | `bulkGet` 500 keys | 5 ms | ~96,000 keys/s |
 | `get()` 500 keys individually | 174 ms | ~2,900 keys/s |
+
+`bulkAdd` was ~131 ms when it issued one `INSERT` per document. It now batches
+rows into chunked multi-row statements: 5,000 documents cost **27 adapter calls
+instead of 5,002**. On the worker path each of those calls is also a crossing
+into sqlite-wasm, so the saving is larger there than these in-process numbers
+show.
 
 ### The one rule that matters
 

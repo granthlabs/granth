@@ -211,4 +211,49 @@ check('a full disk mid-batch rolls back and leaves the engine usable', () => {
   return null;
 });
 
+// 16. BULK INSERT ID MAPPING. bulkAdd uses chunked multi-row INSERTs and derives
+// auto-increment ids by counting back from lastInsertRowid. That relies on
+// SQLite assigning CONSECUTIVE rowids within one INSERT..VALUES — true, and true
+// because we hold the only connection, but an assumption about behaviour rather
+// than a documented API. If it ever stops holding, every caller silently gets
+// wrong ids back, which is worse than an error.
+check('bulkAdd returns exactly the ids it stored', () => {
+  const raw = new DatabaseSync(':memory:');
+  const en = createEngine(A(raw));
+  en.migrate([{ version: 1, stores: { t: '++id, name, *tags' } }]);
+
+  // Deliberately spanning several chunks (CHUNK is 200), plus a prior row and a
+  // delete so the rowid sequence is not a clean 1..n.
+  en.add('t', { name: 'first', tags: ['a'] });
+  en.delete('t', 1);
+  const docs = Array.from({ length: 450 }, (_, i) => ({ name: `n${i}`, tags: [`t${i % 5}`] }));
+  const ids = en.bulkAdd('t', docs);
+
+  const stored = raw.prepare('SELECT id FROM "t" ORDER BY id').all().map((r) => Number(r.id));
+  if (ids.length !== docs.length) return `returned ${ids.length} ids for ${docs.length} docs`;
+  if (stored.length !== docs.length) return `stored ${stored.length} rows for ${docs.length} docs`;
+  for (let i = 0; i < ids.length; i++) {
+    if (Number(ids[i]) !== stored[i]) return `id mismatch at ${i}: returned ${ids[i]}, stored ${stored[i]}`;
+  }
+  // Every returned id must actually fetch its own document.
+  const mid = en.get('t', ids[300]);
+  if (!mid || mid.name !== 'n300') return `id ${ids[300]} fetched ${JSON.stringify(mid)}, expected n300`;
+  // And the trigger-maintained shadow must be populated by a MULTI-ROW insert.
+  const hits = en.query('t', { or: [{ and: [{ index: 'tags', op: 'equals', values: ['t3'] }] }] }, 'count');
+  if (hits !== 90) return `multiEntry shadow wrong after bulk insert: ${hits} hits, expected 90`;
+  return null;
+});
+
+check('bulkPut with explicit keys is idempotent across chunks', () => {
+  const en = createEngine(A(new DatabaseSync(':memory:')));
+  en.migrate([{ version: 1, stores: { t: 'id, name' } }]);
+  const rows = Array.from({ length: 450 }, (_, i) => ({ id: i + 1, name: `v${i}` }));
+  en.bulkPut('t', rows);
+  en.bulkPut('t', rows.map((r) => ({ ...r, name: `${r.name}-again` })));
+  const count = en.query('t', { or: [] }, 'count');
+  if (count !== 450) return `re-put duplicated rows: ${count}`;
+  const one = en.get('t', 300);
+  return one?.name === 'v299-again' ? null : `upsert did not apply: ${JSON.stringify(one)}`;
+});
+
 console.log(bad.length ? 'FINDINGS:\n- ' + bad.join('\n- ') : 'no findings');
