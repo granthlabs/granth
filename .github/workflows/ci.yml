@@ -29,6 +29,9 @@ jobs:
       # must actually run. This already caught a demo querying an index the
       # sandbox schema never declared.
       - run: node examples/playground/sandbox-test.mjs
+      # Six frameworks, one check each: mount, type a todo, assert it appears. A
+      # demo that renders an empty shell photographs fine and is useless.
+      - run: node examples/playground/demos-test.mjs
       - run: npm run docs:build
       # The site is served under /granth/, so a bare /Tutorial href works on a
       # root-served dev server and 404s in production. That asymmetry lets broken
