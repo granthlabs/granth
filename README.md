@@ -185,11 +185,32 @@ db.version(1).stores(await suggestSchema('my-old-dexie-db'));
 await importFromIndexedDB(db, { from: 'my-old-dexie-db' });
 ```
 
+## Examples
+
+Live in [`examples/playground/demos`](./examples/playground/demos) — the same database and the
+same queries in each, so only the binding differs.
+
+| | |
+|---|---|
+| [Vanilla JS](./examples/playground/demos/vanilla.js) | `subscribe()` straight into the DOM |
+| [React](./examples/playground/demos/react.jsx) | `@granth/react`, SSR-safe |
+| [Vue](./examples/playground/demos/vue.js) | `@granth/vue` composable |
+| [No Worker](./examples/playground/demos/no-worker.js) | inline runtime on IndexedDB |
+
+Angular and Svelte need no adapter — see the [Frameworks guide](./docs/Frameworks.md).
+
+```bash
+npm install && npm run dev     # then open /demos/
+```
+
 ## Documentation
 
 Mirrors [Dexie's API Reference](https://dexie.org/docs/API-Reference) page for page.
 
-- [Tutorial](./docs/Tutorial.md) · [Migrating from Dexie](./docs/MigratingFromDexie.md) · [Frameworks](./docs/Frameworks.md) · [Storage](./docs/Storage.md) · [Runtimes](./docs/Runtimes.md) · [Plugins](./docs/Plugins.md)
+**Site: https://sundarshahi.github.io/granth**
+
+- [Tutorial](./docs/Tutorial.md) · [Migrating from Dexie](./docs/MigratingFromDexie.md) · [Frameworks](./docs/Frameworks.md)
+- [Storage](./docs/Storage.md) · [Runtimes](./docs/Runtimes.md) · [Plugins](./docs/Plugins.md) · [Security & performance](./docs/SecurityAndPerformance.md)
 - API: [Granth](./docs/Granth.md) · [Table](./docs/Table.md) · [Collection](./docs/Collection.md) · [WhereClause](./docs/WhereClause.md) · [Transaction](./docs/Transaction.md) · [liveQuery](./docs/liveQuery.md) · [Errors](./docs/Errors.md)
 
 ## How it works

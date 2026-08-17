@@ -19,9 +19,16 @@
     "@granth/storage-indexeddb": "*",
     "@granth/storage-memory": "*",
     "@granth/engine": "*",
-    "@granth/plugin-migrate-idb": "*"
+    "@granth/plugin-migrate-idb": "*",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "vue": "^3.5.13",
+    "@granth/react": "*",
+    "@granth/vue": "*"
   },
   "devDependencies": {
-    "vite": "^5.4.0"
+    "vite": "^5.4.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "@vitejs/plugin-vue": "^5.2.1"
   }
 }
