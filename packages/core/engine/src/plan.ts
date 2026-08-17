@@ -6,7 +6,7 @@
 
 import { findIndex, indexExpr, quoteIdent as q, shadowTable } from './schema.js';
 import type { IndexDef, StoreDef } from './schema.js';
-import { encodeParam, prefixUpperBound } from './codec.js';
+import { encodeParam, prefixUpperBound, encode, expandPaths, NON_KEY_SENTINELS } from './codec.js';
 
 /** A value that can be stored in an index. */
 export type IndexableValue = string | number | boolean | null;
@@ -41,6 +41,20 @@ type Fragment = { sql: string; params: unknown[] };
  * stored in the document.
  */
 const P = (values: unknown[]): unknown[] => values.map(encodeParam);
+
+/**
+ * A range predicate, with null/undefined excluded.
+ *
+ * SQLite orders INTEGER before TEXT, and null/undefined are stored as TEXT
+ * sentinels — so `age > 18` matched every row whose age was null or absent.
+ * IndexedDB keeps such records out of the index entirely; this is the
+ * equivalent. Only RANGE operators need it: `equals` compares against an
+ * encoded value, so it can never accidentally match a sentinel.
+ */
+const range = (expr: string, sql: string, params: unknown[]): Fragment => ({
+  sql: `(${sql}) AND ${expr} NOT IN (${NON_KEY_SENTINELS.map(() => '?').join(', ')})`,
+  params: [...params, ...NON_KEY_SENTINELS],
+});
 
 /**
  * Match rows having ANY element satisfying the condition.
@@ -86,24 +100,23 @@ function compileCond(store: StoreDef, cond: Condition): Fragment {
     case 'notEqual':
       return build((e) => ({ sql: `(${e} IS NULL OR ${e} <> ?)`, params: P([vals[0]]) }));
     case 'above':
-      return build((e) => ({ sql: `${e} > ?`, params: P([vals[0]]) }));
+      return build((e) => range(e, `${e} > ?`, P([vals[0]])));
     case 'aboveOrEqual':
-      return build((e) => ({ sql: `${e} >= ?`, params: P([vals[0]]) }));
+      return build((e) => range(e, `${e} >= ?`, P([vals[0]])));
     case 'below':
-      return build((e) => ({ sql: `${e} < ?`, params: P([vals[0]]) }));
+      return build((e) => range(e, `${e} < ?`, P([vals[0]])));
     case 'belowOrEqual':
-      return build((e) => ({ sql: `${e} <= ?`, params: P([vals[0]]) }));
+      return build((e) => range(e, `${e} <= ?`, P([vals[0]])));
     case 'between': {
       const [lo, hi, incLo = true, incHi = false] = vals;
-      return build((e) => ({
-        sql: `${e} >${incLo ? '=' : ''} ? AND ${e} <${incHi ? '=' : ''} ?`,
-        params: P([lo, hi]),
-      }));
+      return build((e) =>
+        range(e, `${e} >${incLo ? '=' : ''} ? AND ${e} <${incHi ? '=' : ''} ?`, P([lo, hi]))
+      );
     }
     case 'startsWith': {
       const hi = prefixUpperBound(vals[0]);
       if (hi === undefined) return build((e) => ({ sql: `${e} IS NOT NULL`, params: [] }));
-      return build((e) => ({ sql: `${e} >= ? AND ${e} < ?`, params: P([vals[0], hi]) }));
+      return build((e) => range(e, `${e} >= ? AND ${e} < ?`, P([vals[0], hi])));
     }
     case 'startsWithIgnoreCase':
       // ponytail: lower() defeats the index. Fine for small stores; add a lowercase
@@ -137,15 +150,19 @@ function compileCond(store: StoreDef, cond: Condition): Fragment {
         return { sql: parts.map(() => `(${col} >= ? AND ${col} < ?)`).join(' OR '), params };
       });
     }
+    // P() here for the same reason as everywhere else: a raw Date is not
+    // bindable and a raw boolean cannot be bound at all. Without it,
+    // anyOf([date]) returned nothing and anyOf([true]) threw, while the
+    // equivalent equals() worked — the asymmetry made it look like bad data.
     case 'anyOf': {
       if (!vals.length) return { sql: '0', params: [] }; // match nothing, not everything
       const ph = vals.map(() => '?').join(', ');
-      return build((e) => ({ sql: `${e} IN (${ph})`, params: vals }));
+      return build((e) => ({ sql: `${e} IN (${ph})`, params: P(vals) }));
     }
     case 'noneOf': {
       if (!vals.length) return { sql: '1', params: [] };
       const ph = vals.map(() => '?').join(', ');
-      return build((e) => ({ sql: `(${e} IS NULL OR ${e} NOT IN (${ph}))`, params: vals }));
+      return build((e) => ({ sql: `(${e} IS NULL OR ${e} NOT IN (${ph}))`, params: P(vals) }));
     }
     case 'isNull':
       return build((e) => ({ sql: `${e} IS NULL`, params: [] }));
@@ -262,6 +279,10 @@ export function compileModify(store: StoreDef, plan: QueryPlan, changes: object)
   const inner = compile(store, plan, 'keys');
   return {
     sql: `UPDATE ${t} SET "_doc" = json_patch("_doc", ?) WHERE ${pk} IN (${inner.sql})`,
-    params: [JSON.stringify(changes), ...inner.params],
+    // encode + expandPaths, exactly as engine.update() does. Without encode a
+    // modify({x: null}) DELETED the key instead of setting null, a Date came
+    // back as a string, and NaN vanished — while the same change through
+    // table.update() behaved correctly. Two paths, two semantics, no warning.
+    params: [JSON.stringify(encode(expandPaths(changes as Record<string, unknown>))), ...inner.params],
   };
 }

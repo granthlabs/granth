@@ -10,7 +10,7 @@
  */
 
 import { createServer } from 'vite';
-import { chromium } from 'playwright';
+import { chromium, firefox, webkit } from 'playwright';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 
@@ -29,7 +29,15 @@ await server.listen();
 const { port } = server.httpServer.address();
 const base = `http://localhost:${port}`;
 
-const browser = await chromium.launch();
+// BROWSER=webkit|firefox|chromium. WebKit is the one that matters most: Safari
+// is where OPFS is weakest, and it is the reason the IndexedDB fallback exists.
+const engines = { chromium, firefox, webkit };
+const engineName = process.env.BROWSER ?? 'chromium';
+const engine = engines[engineName];
+if (!engine) throw new Error(`unknown BROWSER "${engineName}" (chromium|firefox|webkit)`);
+console.log(`— ${engineName} —`);
+
+const browser = await engine.launch();
 const context = await browser.newContext();
 let failed = 0;
 

@@ -70,7 +70,11 @@ const V1 = [{ version: 1, stores: { friends: '++id, name, age, *tags, [name+age]
   assert.match(q.sql, /"ix\$age" > \?/);
   assert.match(q.sql, /ORDER BY "ix\$name" ASC, "id" ASC/, 'paging must be stable — tiebreak on the key');
   assert.match(q.sql, /LIMIT 5/);
-  assert.deepEqual(q.params, [25]);
+  // A range must ALSO exclude the null/undefined sentinels. SQLite orders
+  // INTEGER before TEXT, so without this `age > 25` matched every row whose age
+  // was null or absent; IndexedDB keeps such records out of the index entirely.
+  assert.deepEqual(q.params, [25, '\u0000U', '\u0000Z']);
+  assert.match(q.sql, /"ix\$age" NOT IN \(\?, \?\)/, 'range queries must exclude non-key sentinels');
 
   // multiEntry becomes "some element matches", not a column compare.
   const m = compile(store, { or: [{ and: [{ index: 'tags', op: 'equals', values: ['x'] }] }], or_: 0 });

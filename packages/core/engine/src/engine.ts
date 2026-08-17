@@ -16,7 +16,7 @@ import {
 import { compile, compileDelete, compileModify, boundIndex } from './plan.js';
 import type { QueryPlan, QueryMode } from './plan.js';
 import type { StoreDef, StoresSpec, IndexDef } from './schema.js';
-import { encode, decode, encodeValue } from './codec.js';
+import { encode, decode, encodeValue, expandPaths } from './codec.js';
 
 export interface Adapter {
   all(sql: string, params?: unknown[]): Array<Record<string, unknown>>;
@@ -103,12 +103,27 @@ export function createEngine(adapter: Adapter) {
   function insert(table: string, doc: unknown, mode: 'add' | 'put'): unknown {
     const s = store(table);
     const { key, body } = split(s, doc);
-    const verb = mode === 'put' ? 'INSERT OR REPLACE' : 'INSERT';
     const t = q(table);
+    const pk = q(s.primKey.name);
+
+    // put() must upsert on the PRIMARY KEY only. `INSERT OR REPLACE` resolved ANY
+    // uniqueness conflict by DELETING the conflicting row, so putting a doc whose
+    // unique index collided with a different row silently destroyed that row —
+    // no error, no way to notice. Dexie raises ConstraintError instead.
+    //
+    // The explicit upsert also fixes multiEntry drift: REPLACE's internal delete
+    // does not fire AFTER DELETE triggers unless recursive_triggers is on, so the
+    // old shadow rows survived and queries returned documents that no longer had
+    // the tag. DO UPDATE fires AFTER UPDATE, which maintains the shadow correctly.
+    const onConflict = ` ON CONFLICT(${pk}) DO UPDATE SET "_doc" = excluded."_doc"`;
     const info =
       key === undefined
-        ? adapter.run(`${verb} INTO ${t}("_doc") VALUES (?)`, [body])
-        : adapter.run(`${verb} INTO ${t}(${q(s.primKey.name)}, "_doc") VALUES (?, ?)`, [key, body]);
+        // No key supplied: auto-increment, so there is nothing to conflict on.
+        ? adapter.run(`INSERT INTO ${t}("_doc") VALUES (?)`, [body])
+        : adapter.run(
+            `INSERT INTO ${t}(${pk}, "_doc") VALUES (?, ?)${mode === 'put' ? onConflict : ''}`,
+            [key, body]
+          );
     return key === undefined ? Number(info.lastInsertRowid) : key;
   }
 
@@ -173,7 +188,13 @@ export function createEngine(adapter: Adapter) {
           if (ix.multi) sql.push(...dropMultiSql(old, ix));
           else sql.push(`DROP INDEX IF EXISTS ${q(`${table}$${ix.name}`)}`);
         }
-        const existing = new Set(adapter.all(`PRAGMA table_info(${q(table)})`).map((r) => String(r['name'])));
+        // table_xinfo, NOT table_info: table_info OMITS virtual generated columns,
+        // and every index column here is virtual. With table_info this set was
+        // always empty, so ALTER TABLE ADD COLUMN was re-emitted for a keyPath an
+        // earlier version had already indexed — "duplicate column name" — which
+        // rolled the whole migration back. Fresh installs took the CREATE TABLE
+        // path and never hit it; every EXISTING database was bricked.
+        const existing = new Set(adapter.all(`PRAGMA table_xinfo(${q(table)})`).map((r) => String(r['name'])));
         for (const ix of s.indexes) {
           if (oldKeys.has(indexKey(ix))) continue;
           if (!ix.multi) {
@@ -297,7 +318,7 @@ export function createEngine(adapter: Adapter) {
     upsert(table: string, key: unknown, changes: Doc): unknown {
       const s = store(table);
       const { [s.primKey.name]: _drop, ...rest } = changes;
-      const body = JSON.stringify(encode(rest));
+      const body = JSON.stringify(encode(expandPaths(rest)));
       adapter.run(
         `INSERT INTO ${q(table)}(${q(s.primKey.name)}, "_doc") VALUES (?, ?) ` +
           `ON CONFLICT(${q(s.primKey.name)}) DO UPDATE SET "_doc" = json_patch("_doc", ?)`,
@@ -314,7 +335,7 @@ export function createEngine(adapter: Adapter) {
       const { [s.primKey.name]: _ignored, ...rest } = changes;
       const info = adapter.run(
         `UPDATE ${q(table)} SET "_doc" = json_patch("_doc", ?) WHERE ${q(s.primKey.name)} = ?`,
-        [JSON.stringify(encode(rest)), encodeValue(key)]
+        [JSON.stringify(encode(expandPaths(rest))), encodeValue(key)]
       );
       return info.changes;
     },
