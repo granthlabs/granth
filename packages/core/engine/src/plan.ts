@@ -6,7 +6,7 @@
 
 import { findIndex, indexExpr, quoteIdent as q, shadowTable } from './schema.js';
 import type { IndexDef, StoreDef } from './schema.js';
-import { encodeParam, prefixUpperBound, encode, expandPaths, NON_KEY_SENTINELS, NULL_SENTINEL } from './codec.js';
+import { encodeParam, prefixUpperBound, encodePatch, expandPaths, NON_KEY_SENTINELS, NULL_SENTINEL } from './codec.js';
 
 /** A value that can be stored in an index. */
 export type IndexableValue = string | number | boolean | null;
@@ -42,6 +42,17 @@ type Fragment = { sql: string; params: unknown[] };
  */
 const P = (values: unknown[]): unknown[] => values.map(encodeParam);
 
+const SENT_PH = NON_KEY_SENTINELS.map(() => '?').join(', ');
+
+/**
+ * The Unicode-aware case-folding function the engine registers.
+ *
+ * Emitted unconditionally. An adapter without createFunction fails LOUDLY here
+ * ("no such function"), and only on an ignore-case query — which is far better
+ * than SQLite's ASCII-only lower() quietly returning too few rows.
+ */
+export const LOWER = 'granth_lower';
+
 /**
  * A range predicate, with null/undefined excluded.
  *
@@ -52,9 +63,36 @@ const P = (values: unknown[]): unknown[] => values.map(encodeParam);
  * encoded value, so it can never accidentally match a sentinel.
  */
 const range = (expr: string, sql: string, params: unknown[]): Fragment => ({
-  sql: `(${sql}) AND ${expr} NOT IN (${NON_KEY_SENTINELS.map(() => '?').join(', ')})`,
+  sql: `(${sql}) AND ${expr} NOT IN (${SENT_PH})`,
   params: [...params, ...NON_KEY_SENTINELS],
 });
+
+/**
+ * "This row HAS a key in this index" — index membership, over the store columns.
+ *
+ * The same rule `range()` enforces, but stated positively and usable where there
+ * is no comparison to hang it off: notEqual, noneOf, startsWith(''), and ORDER
+ * BY. Those four emitted no membership predicate at all, so a soft-delete query
+ * (`where('deletedAt').notEqual(x)`) returned every row that had never been
+ * deleted, and orderBy('name') listed rows with no name.
+ *
+ * All components for a compound index: IndexedDB omits a record from a compound
+ * index when ANY component is absent, not just the first.
+ */
+function presence(store: StoreDef, ix: IndexDef): Fragment {
+  // multiEntry membership is the shadow table's job — a row is in the index iff
+  // it has a shadow entry, which the IN (SELECT ...) already decides.
+  if (ix.multi) return { sql: '1', params: [] };
+  return {
+    sql: ix.keyPaths
+      .map((_, i) => {
+        const e = indexExpr(store, ix, i);
+        return `(${e} IS NOT NULL AND ${e} NOT IN (${SENT_PH}))`;
+      })
+      .join(' AND '),
+    params: ix.keyPaths.flatMap(() => [...NON_KEY_SENTINELS]),
+  };
+}
 
 /**
  * Match rows having ANY element satisfying the condition.
@@ -147,19 +185,21 @@ function compoundRange(
   };
 }
 
-function compileCond(store: StoreDef, cond: Condition): Fragment {
-  const ix = findIndex(store, cond.index);
+/**
+ * One condition as SQL over `e`, the expression naming the key.
+ *
+ * `e` is the generated column for an ordinary index and `sx."v"` for a
+ * multiEntry element. Splitting this out of compileCond is what lets the
+ * key ACCESSORS (keys/uniqueKeys/eachKey) reuse the element predicate: they used
+ * to select every element of every matching row, so
+ * `where('tags').equals('a').uniqueKeys()` answered ['a','b'].
+ *
+ * Compound indexes are never multiEntry, so the compound branches address their
+ * own columns and ignore `e`.
+ */
+function condSql(store: StoreDef, ix: IndexDef, cond: Condition, e: string): Fragment {
   const vals = cond.values ?? [];
-
-  // A multiEntry index is a set per row, so every operator becomes "some element matches".
-  const build = (make: (expr: string) => Fragment): Fragment => {
-    if (!ix.multi) {
-      const { sql, params } = make(indexExpr(store, ix));
-      return { sql, params };
-    }
-    const inner = make('sx."v"');
-    return multiEntryIn(store, ix, () => inner.sql, inner.params);
-  };
+  const build = (make: (expr: string) => Fragment): Fragment => make(e);
 
   switch (cond.op) {
     case 'equals':
@@ -170,8 +210,17 @@ function compileCond(store: StoreDef, cond: Condition): Fragment {
         };
       }
       return build((e) => ({ sql: `${e} = ?`, params: P([vals[0]]) }));
-    case 'notEqual':
-      return build((e) => ({ sql: `(${e} IS NULL OR ${e} <> ?)`, params: P([vals[0]]) }));
+    case 'notEqual': {
+      // "Not equal" still means "has a key in this index". `IS NULL OR` did the
+      // exact opposite: it PULLED IN every row whose key was absent.
+      if (ix.compound) {
+        const tuple = vals.length === 1 && Array.isArray(vals[0]) ? (vals[0] as unknown[]) : vals;
+        const eq = ix.keyPaths.map((_, i) => `${indexExpr(store, ix, i)} = ?`).join(' AND ');
+        const pres = presence(store, ix);
+        return { sql: `NOT (${eq}) AND ${pres.sql}`, params: [...P(tuple), ...pres.params] };
+      }
+      return build((e2) => range(e2, `${e2} <> ?`, P([vals[0]])));
+    }
     case 'above':
       return compoundRange(store, ix, vals, '>') ?? build((e) => range(e, `${e} > ?`, P([vals[0]])));
     case 'aboveOrEqual':
@@ -199,8 +248,10 @@ function compileCond(store: StoreDef, cond: Condition): Fragment {
     }
     case 'startsWith': {
       const hi = prefixUpperBound(vals[0]);
-      if (hi === undefined) return build((e) => ({ sql: `${e} IS NOT NULL`, params: [] }));
-      return build((e) => range(e, `${e} >= ? AND ${e} < ?`, P([vals[0], hi])));
+      // startsWith('') is "every key in the index", NOT "every row" — a row with
+      // no key is not in the index at all.
+      if (hi === undefined) return build((e2) => range(e2, `${e2} IS NOT NULL`, []));
+      return build((e2) => range(e2, `${e2} >= ? AND ${e2} < ?`, P([vals[0], hi])));
     }
     case 'startsWithIgnoreCase':
       // ponytail: lower() defeats the index. Fine for small stores; add a lowercase
@@ -209,15 +260,15 @@ function compileCond(store: StoreDef, cond: Condition): Fragment {
         const lo = String(vals[0]).toLowerCase();
         const hi = prefixUpperBound(lo);
         if (hi === undefined) return build((e) => ({ sql: `${e} IS NOT NULL`, params: [] }));
-        return build((e) => ({ sql: `lower(${e}) >= ? AND lower(${e}) < ?`, params: [lo, hi] }));
+        return build((e) => ({ sql: `${LOWER}(${e}) >= ? AND ${LOWER}(${e}) < ?`, params: [lo, hi] }));
       }
     case 'equalsIgnoreCase':
-      return build((e) => ({ sql: `lower(${e}) = ?`, params: [String(vals[0]).toLowerCase()] }));
+      return build((e) => ({ sql: `${LOWER}(${e}) = ?`, params: [String(vals[0]).toLowerCase()] }));
     case 'anyOfIgnoreCase': {
       if (!vals.length) return { sql: '0', params: [] };
       const lowered = vals.map((v) => String(v).toLowerCase());
       const ph = lowered.map(() => '?').join(', ');
-      return build((e) => ({ sql: `lower(${e}) IN (${ph})`, params: lowered }));
+      return build((e) => ({ sql: `${LOWER}(${e}) IN (${ph})`, params: lowered }));
     }
     case 'startsWithAnyOf':
     case 'startsWithAnyOfIgnoreCase': {
@@ -230,7 +281,7 @@ function compileCond(store: StoreDef, cond: Condition): Fragment {
         return null;
       });
       return build((e) => {
-        const col = ci ? `lower(${e})` : e;
+        const col = ci ? `${LOWER}(${e})` : e;
         return { sql: parts.map(() => `(${col} >= ? AND ${col} < ?)`).join(' OR '), params };
       });
     }
@@ -244,9 +295,11 @@ function compileCond(store: StoreDef, cond: Condition): Fragment {
       return build((e) => ({ sql: `${e} IN (${ph})`, params: P(vals) }));
     }
     case 'noneOf': {
-      if (!vals.length) return { sql: '1', params: [] };
+      // noneOf([]) excludes nothing, but it is still an index scan: rows with no
+      // key are not in the index. It returned literally every row.
+      if (!vals.length) return build((e2) => range(e2, `${e2} IS NOT NULL`, []));
       const ph = vals.map(() => '?').join(', ');
-      return build((e) => ({ sql: `(${e} IS NULL OR ${e} NOT IN (${ph}))`, params: P(vals) }));
+      return build((e2) => range(e2, `${e2} NOT IN (${ph})`, P(vals)));
     }
     // A STORED null is the NULL sentinel, not SQL NULL — SQL NULL means the key
     // is absent from the document. isNull() tested only the latter, so it
@@ -266,37 +319,101 @@ function compileCond(store: StoreDef, cond: Condition): Fragment {
   }
 }
 
-/** OR of ANDs -> a WHERE fragment. No conditions means every row. */
-export function compileWhere(store: StoreDef, or: QueryPlan['or'] | undefined): Fragment {
-  if (!or?.length) return { sql: '', params: [] };
-  const params: unknown[] = [];
-  const groups = or.map((group) => {
-    const parts = group.and.map((c) => {
-      const { sql, params: p } = compileCond(store, c);
-      params.push(...p);
-      return `(${sql})`;
-    });
-    return `(${parts.join(' AND ')})`;
-  });
-  return { sql: ` WHERE ${groups.join(' OR ')}`, params };
+/** A multiEntry index is a set per row, so every operator becomes "some element matches". */
+function compileCond(store: StoreDef, cond: Condition): Fragment {
+  const ix = findIndex(store, cond.index);
+  if (!ix.multi) return condSql(store, ix, cond, indexExpr(store, ix));
+  const inner = condSql(store, ix, cond, 'sx."v"');
+  return multiEntryIn(store, ix, () => inner.sql, inner.params);
 }
 
-function compileOrderLimit(store: StoreDef, plan: QueryPlan): string {
-  let sql = '';
-  const pk = q(store.primKey.name);
-  if (plan.order) {
-    const ix = findIndex(store, plan.order.index);
-    if (ix.multi) throw new Error(`granth: cannot order by multiEntry index "${ix.name}"`);
-    const dir = plan.order.desc ? 'DESC' : 'ASC';
-    const cols = ix.keyPaths.map((_, i) => `${indexExpr(store, ix, i)} ${dir}`);
-    // Tiebreak on the primary key so paging is stable across calls.
-    sql += ` ORDER BY ${cols.join(', ')}, ${pk} ${dir}`;
-  } else if (plan.reverse) {
-    sql += ` ORDER BY ${pk} DESC`;
+/**
+ * The element-level predicate for a multiEntry index, over `sx."v"`.
+ *
+ * Used only by the key accessors. Without it they read every element of every
+ * matching row rather than the elements that matched, so a tag facet count
+ * listed tags the filter had excluded. count() and primaryKeys() on the same
+ * collection were right, which is what made it look like bad data.
+ */
+function elementCond(store: StoreDef, ix: IndexDef, plan: QueryPlan): Fragment {
+  const groups = (plan.or ?? []).map((g) => g.and.filter((c) => c.index === ix.name));
+  // No group, or any group placing no constraint on this index, means every
+  // element of a matching row is genuinely visited.
+  if (!groups.length || groups.some((g) => !g.length)) return { sql: '1', params: [] };
+  const params: unknown[] = [];
+  const sql = groups
+    .map((g) => g.map((c) => {
+      const f = condSql(store, ix, c, 'sx."v"');
+      params.push(...f.params);
+      return `(${f.sql})`;
+    }).join(' AND '))
+    .map((s) => `(${s})`)
+    .join(' OR ');
+  return { sql, params };
+}
+
+/**
+ * OR of ANDs -> a WHERE fragment. No conditions means every row.
+ *
+ * `extra` is ANDed after the groups — it carries the index-membership predicate
+ * for an explicit ORDER BY, which has nowhere else to live.
+ */
+export function compileWhere(store: StoreDef, or: QueryPlan['or'] | undefined, extra?: Fragment): Fragment {
+  const parts: string[] = [];
+  const params: unknown[] = [];
+  if (or?.length) {
+    const groups = or.map((group) => {
+      const inner = group.and.map((c) => {
+        const { sql, params: p } = compileCond(store, c);
+        params.push(...p);
+        return `(${sql})`;
+      });
+      return `(${inner.join(' AND ')})`;
+    });
+    parts.push(groups.join(' OR '));
   }
+  if (extra && extra.sql !== '1') {
+    parts.push(`(${extra.sql})`);
+    params.push(...extra.params);
+  }
+  if (!parts.length) return { sql: '', params: [] };
+  // Only bracket when there is something to bracket AGAINST — a lone group is
+  // already parenthesised, and the extra layer is pure noise in every assertion.
+  return { sql: ` WHERE ${parts.length === 1 ? parts[0] : parts.map((p) => `(${p})`).join(' AND ')}`, params };
+}
+
+/**
+ * ORDER BY the BOUND index, always — and make reverse() flip that, not the
+ * primary key.
+ *
+ * Emitting no ORDER BY left the order up to whichever index SQLite decided was
+ * cheapest, so `where('age').above(15)` came back in age order by accident and
+ * adding an unrelated index could silently reorder a user's list. Dexie always
+ * iterates the bound index, and `.offset().limit()` over a wrong order returns
+ * DIFFERENT ROWS, not merely a different arrangement — paging was the sharp edge.
+ */
+function compileOrderLimit(store: StoreDef, plan: QueryPlan): string {
+  const pk = q(store.primKey.name);
+  if (plan.order && findIndex(store, plan.order.index).multi) {
+    throw new Error(`granth: cannot order by multiEntry index "${plan.order.index}"`);
+  }
+  const ix = findIndex(store, plan.order?.index ?? boundIndex(store, plan));
+  // reverse() folds into order.desc on the client when an order is set, so only
+  // one of the two is ever meaningful.
+  const dir = (plan.order ? plan.order.desc : plan.reverse) ? 'DESC' : 'ASC';
+  // A multiEntry key lives in the shadow table, not in a column here; its rows
+  // all share the matched element anyway, so the primary key is the real order.
+  const cols = ix.multi || ix.isPrimary ? [] : ix.keyPaths.map((_, i) => `${indexExpr(store, ix, i)} ${dir}`);
+  // Tiebreak on the primary key so paging is stable across calls.
+  let sql = ` ORDER BY ${[...cols, `${pk} ${dir}`].join(', ')}`;
+
   if (plan.limit != null || plan.offset) {
-    sql += ` LIMIT ${plan.limit == null ? -1 : Number(plan.limit)}`;
-    if (plan.offset) sql += ` OFFSET ${Number(plan.offset)}`;
+    // Number() straight into the SQL text meant limit(-1) returned EVERY row
+    // (SQLite reads a negative limit as unlimited) where Dexie returns none — so
+    // a `limit(pageSize - taken)` that underflowed dumped the whole table — and
+    // limit(1.7)/limit(NaN) were SQL errors. Clamp to a non-negative integer.
+    sql += ` LIMIT ${plan.limit == null ? -1 : Math.max(0, Math.floor(Number(plan.limit) || 0))}`;
+    if (plan.offset) sql += ` OFFSET ${Math.max(0, Math.floor(Number(plan.offset) || 0))}`;
   }
   return sql;
 }
@@ -317,7 +434,14 @@ export function boundIndex(store: StoreDef, plan: QueryPlan): string {
 export function compile(store: StoreDef, plan: QueryPlan, mode: QueryMode = 'docs'): CompiledSql {
   const t = q(store.table);
   const pk = q(store.primKey.name);
-  const where = compileWhere(store, plan.or);
+  // orderBy('name') iterates the NAME index, so a row with no name is not in the
+  // result at all. Only an EXPLICIT order needs this: an implicit bound index
+  // comes from a filter, which already constrains the key, or is the primary key.
+  const where = compileWhere(
+    store,
+    plan.or,
+    plan.order ? presence(store, findIndex(store, plan.order.index)) : undefined
+  );
 
   if (mode === 'count') {
     // COUNT ignores limit/offset in Dexie unless explicitly limited; honour limit if set.
@@ -336,9 +460,14 @@ export function compile(store: StoreDef, plan: QueryPlan, mode: QueryMode = 'doc
       // than from a column that does not exist on the base row.
       const inner = compile(store, plan, 'keys');
       const s = q(shadowTable(store, ix));
+      // ...and only the elements the condition MATCHED. Filtering by primary key
+      // alone returned every tag of every matching row.
+      const el = elementCond(store, ix, plan);
       return {
-        sql: `SELECT ${distinct}sx."v" AS "k" FROM ${s} sx WHERE sx."k" IN (${inner.sql}) ORDER BY sx."v"`,
-        params: inner.params,
+        sql:
+          `SELECT ${distinct}sx."v" AS "k" FROM ${s} sx ` +
+          `WHERE sx."k" IN (${inner.sql}) AND (${el.sql}) ORDER BY sx."v"`,
+        params: [...inner.params, ...el.params],
       };
     }
     const expr = ix.compound
@@ -376,6 +505,6 @@ export function compileModify(store: StoreDef, plan: QueryPlan, changes: object)
     // modify({x: null}) DELETED the key instead of setting null, a Date came
     // back as a string, and NaN vanished — while the same change through
     // table.update() behaved correctly. Two paths, two semantics, no warning.
-    params: [JSON.stringify(encode(expandPaths(changes as Record<string, unknown>))), ...inner.params],
+    params: [JSON.stringify(encodePatch(expandPaths(changes as Record<string, unknown>))), ...inner.params],
   };
 }

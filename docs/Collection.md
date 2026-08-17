@@ -21,10 +21,29 @@ Both are asserted in the test suite, because getting either wrong fails
 | `filter(fn)` / `and(fn)` | `Collection` | JS predicate, client-side |
 | `until(fn, includeStop = false)` | `Collection` | Stop at the first match |
 | `limit(n)` / `offset(n)` | `Collection` | |
-| `reverse()` | `Collection` | Flip current direction |
+| `reverse()` | `Collection` | Flip current direction — of the **bound index**, see below |
 | `desc()` | `Collection` | Force descending |
 | `orderBy(index)` | `Collection` | Chainable ordering |
 | `distinct()` | `Collection` | **No-op** — see below |
+
+### Iteration order
+
+A collection iterates its **bound index**: the `orderBy` index if you set one, otherwise the
+first index you filtered on, otherwise the primary key. `reverse()` flips *that*. This matters
+most for paging — `offset`/`limit` over a different order returns **different rows**, not merely
+a different arrangement.
+
+```js
+// ordered by age descending, not by id
+await db.friends.where('age').above(18).reverse().offset(20).limit(10).toArray();
+```
+
+Rows whose key is absent or `null` are **not in the index**, so `orderBy('nickname')` omits
+anyone without a nickname — matching IndexedDB, where such records are never added to that
+index. The same rule applies to `notEqual`, `noneOf` and `startsWith('')`.
+
+`sortBy(keyPath)` is different: it sorts client-side over whatever the collection returned, so
+it keeps rows with no key (they sort last) and works on any keyPath, indexed or not.
 
 ### Filter on one index, sort by another
 

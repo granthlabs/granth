@@ -185,6 +185,7 @@ check('a full disk mid-batch rolls back and leaves the engine usable', () => {
       const r = raw.prepare(s).run(...p);
       return { changes: Number(r.changes), lastInsertRowid: Number(r.lastInsertRowid) };
     },
+    createFunction: (n, f) => raw.function(n, f),
   });
   en.migrate([{ version: 1, stores: { t: '++id, name' } }]);
   en.add('t', { name: 'before' });

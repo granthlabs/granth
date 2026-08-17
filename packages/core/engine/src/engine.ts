@@ -13,15 +13,57 @@ import {
   quoteIdent as q,
   shadowTable,
 } from './schema.js';
-import { compile, compileDelete, compileModify, boundIndex } from './plan.js';
+import { compile, compileDelete, compileModify, boundIndex, LOWER } from './plan.js';
 import type { QueryPlan, QueryMode } from './plan.js';
 import type { StoreDef, StoresSpec, IndexDef } from './schema.js';
-import { encode, decode, encodeValue, expandPaths } from './codec.js';
+import { encode, decode, encodeValue, encodePatch, expandPaths } from './codec.js';
+
+/**
+ * A key that cannot belong to this store's primary key at all.
+ *
+ * SQLite gives an `INTEGER PRIMARY KEY` column integer affinity, so binding the
+ * STRING '2' silently became the NUMBER 2 — `get('2')` returned row 2 and
+ * `delete('2')` DESTROYED it. IndexedDB keys are typed: '2' and 2 are different
+ * keys and a lookup by '2' simply misses. A route param or a localStorage value
+ * that stayed a string is the everyday way in.
+ *
+ * Reads and deletes treat this as a miss, exactly as Dexie does. Writes throw,
+ * because silently storing under a different key is the worse answer.
+ */
+const KEY_MISS = Symbol('granth:key-miss');
+
+const isValidKey = (k: unknown): boolean =>
+  typeof k === 'string' || typeof k === 'bigint' || k instanceof Date ||
+  (typeof k === 'number' && !Number.isNaN(k));
+
+/**
+ * Encode a primary key for binding, or KEY_MISS if this store cannot hold it.
+ *
+ * An auto-increment key is a rowid alias and can only ever be an integer, so
+ * anything else is not a key of this table rather than a key that is absent.
+ */
+function keyParam(s: StoreDef, key: unknown): unknown {
+  if (!isValidKey(key)) {
+    throw new Error(
+      `granth: ${key === null ? 'null' : typeof key} is not a valid key. ` +
+        `Keys must be a string, number, Date or bigint.`
+    );
+  }
+  if (s.primKey.auto && !(typeof key === 'number' && Number.isInteger(key))) return KEY_MISS;
+  return encodeValue(key);
+}
 
 export interface Adapter {
   all(sql: string, params?: unknown[]): Array<Record<string, unknown>>;
   exec(sql: string): void;
   run(sql: string, params?: unknown[]): { changes: number; lastInsertRowid: number | bigint };
+  /**
+   * Register a scalar SQL function. Optional, but WITHOUT it the ignore-case
+   * operators fall back to SQLite's built-in lower(), which folds A-Z only —
+   * equalsIgnoreCase('ÉCOLE') then misses 'école', and every non-English search
+   * box under-matches in silence. Every adapter shipped here provides it.
+   */
+  createFunction?(name: string, fn: (...args: unknown[]) => unknown): void;
 }
 
 export interface VersionSpec {
@@ -82,6 +124,51 @@ export function createEngine(adapter: Adapter) {
    */
   const txMaxMs = 30_000;
 
+  /**
+   * Unicode case folding for the ignore-case operators.
+   *
+   * SQLite's built-in lower() folds A-Z and nothing else, while the NEEDLE was
+   * lowered in JS with full Unicode — so equalsIgnoreCase('ÉCOLE') compared
+   * 'école' against an unchanged 'ÉCOLE' and matched only values that were
+   * already lowercase. Every non-English search box under-matched in silence.
+   *
+   * Registered here rather than in each storage plugin so there is one
+   * definition, and NOT used in any generated column or index: an expression
+   * index over an application function breaks the moment the file is opened by
+   * something that has not registered it.
+   */
+  adapter.createFunction?.(LOWER, (v: unknown) => (typeof v === 'string' ? v.toLowerCase() : v));
+
+  /**
+   * Run `fn` with a transaction open, joining an outer one if there is one.
+   *
+   * `inTx` is the ONE record of whether this connection has a transaction open,
+   * so every path that opens one must set it. batch() and batchRaw() issued a
+   * bare BEGIN without setting it, so a nested helper believed it was at the top
+   * level and issued a second BEGIN — "cannot start a transaction within a
+   * transaction", zero rows written. That is why bulkAdd inside the batch form
+   * of transaction() always failed while tx.friends.add() in the same form
+   * worked: only the bulk helpers open a transaction of their own.
+   */
+  function inTransaction<T>(fn: () => T): T {
+    if (inTx) return fn(); // SQLite has no nested transactions; join this one
+    adapter.exec('BEGIN');
+    inTx = true;
+    txStartedAt = now();
+    try {
+      const out = fn();
+      inTx = false;
+      adapter.exec('COMMIT');
+      return out;
+    } catch (err) {
+      // Cleanup must never mask the original failure: SQLite auto-rolls back on
+      // some errors, so ROLLBACK can itself throw "no transaction is active".
+      inTx = false;
+      try { adapter.exec('ROLLBACK'); } catch { /* already rolled back */ }
+      throw err;
+    }
+  }
+
   const store = (table: string): StoreDef => {
     const s = stores[table];
     if (!s) throw new Error(`granth: no table "${table}". Declared: ${Object.keys(stores).join(', ') || '(none)'}`);
@@ -103,10 +190,18 @@ export function createEngine(adapter: Adapter) {
       throw new Error(`granth: "${s.table}" requires a "${s.primKey.name}" (schema has no ++)`);
     // Encode only a PRESENT key: `undefined` must stay undefined so the caller
     // can pick the auto-increment INSERT, not bind a sentinel into an INTEGER PK.
-    return {
-      key: key === undefined ? undefined : encodeValue(key),
-      body: JSON.stringify(encode(rest)),
-    };
+    if (key === undefined) return { key: undefined, body: JSON.stringify(encode(rest)) };
+    const k = keyParam(s, key);
+    if (k === KEY_MISS) {
+      // Reached the adapter as a bare `datatype mismatch`, which names neither
+      // the table nor the reason.
+      throw new Error(
+        `granth: "${s.table}" has an auto-increment primary key, so "${s.primKey.name}" ` +
+          `must be an integer — got ${typeof key === 'string' ? JSON.stringify(key) : String(key)}. ` +
+          `Declare the key without ++ to use string keys.`
+      );
+    }
+    return { key: k, body: JSON.stringify(encode(rest)) };
   };
 
   function insert(table: string, doc: unknown, mode: 'add' | 'put'): unknown {
@@ -178,17 +273,9 @@ export function createEngine(adapter: Adapter) {
       }
     };
 
-    // One transaction for the whole call, as before: a partial bulk insert is
-    // worse than a failed one.
-    const nested = inTx;
-    if (!nested) adapter.exec('BEGIN');
-    try {
-      runChunks();
-      if (!nested) adapter.exec('COMMIT');
-    } catch (err) {
-      if (!nested) { try { adapter.exec('ROLLBACK'); } catch { /* already rolled back */ } }
-      throw err;
-    }
+    // One transaction for the whole call: a partial bulk insert is worse than a
+    // failed one.
+    inTransaction(runChunks);
     return out;
   }
 
@@ -326,9 +413,11 @@ export function createEngine(adapter: Adapter) {
 
     get(table: string, key: unknown): Doc | undefined {
       const s = store(table);
+      const k = keyParam(s, key);
+      if (k === KEY_MISS) return undefined;
       const rows = adapter.all(
         `SELECT ${q(s.primKey.name)}, "_doc" FROM ${q(table)} WHERE ${q(s.primKey.name)} = ?`,
-        [encodeValue(key)]
+        [k]
       );
       return rows.length ? hydrate(s, rows[0] as Record<string, unknown>) : undefined;
     },
@@ -341,8 +430,10 @@ export function createEngine(adapter: Adapter) {
       const found = new Map<unknown, Doc>();
       // SQLite caps bound parameters (999 on older builds), so chunk rather than
       // building one giant IN list that fails only on large inputs.
-      for (let i = 0; i < keys.length; i += 500) {
-        const chunk = keys.slice(i, i + 500).map(encodeValue);
+      const encoded = keys.map((k) => keyParam(s, k));
+      for (let i = 0; i < encoded.length; i += 500) {
+        const chunk = encoded.slice(i, i + 500).filter((k) => k !== KEY_MISS);
+        if (!chunk.length) continue;
         const ph = chunk.map(() => '?').join(', ');
         for (const row of adapter.all(
           `SELECT ${pk}, "_doc" FROM ${q(table)} WHERE ${pk} IN (${ph})`,
@@ -351,7 +442,7 @@ export function createEngine(adapter: Adapter) {
           found.set(row[s.primKey.name], hydrate(s, row));
         }
       }
-      return keys.map((k) => found.get(encodeValue(k)));
+      return encoded.map((k) => (k === KEY_MISS ? undefined : found.get(k)));
     },
 
     /**
@@ -382,29 +473,22 @@ export function createEngine(adapter: Adapter) {
     },
 
     /** Run `fn` inside a transaction, joining an outer one if present. */
-    batchRaw<T>(fn: () => T): T {
-      const nested = inTx;
-      if (!nested) adapter.exec('BEGIN');
-      try {
-        const out = fn();
-        if (!nested) adapter.exec('COMMIT');
-        return out;
-      } catch (err) {
-        // See migrate(): cleanup must never mask the original failure.
-        if (!nested) { try { adapter.exec('ROLLBACK'); } catch { /* already rolled back */ } }
-        throw err;
-      }
-    },
+    batchRaw: <T>(fn: () => T): T => inTransaction(fn),
 
     /** Dexie's upsert(key, changes): insert if absent, merge-patch if present. */
     upsert(table: string, key: unknown, changes: Doc): unknown {
       const s = store(table);
+      const k = keyParam(s, key);
+      if (k === KEY_MISS) throw new Error(`granth: "${String(key)}" is not a valid key for "${table}"`);
       const { [s.primKey.name]: _drop, ...rest } = changes;
-      const body = JSON.stringify(encode(expandPaths(rest)));
+      const expanded = expandPaths(rest);
+      // Two bodies, deliberately: on INSERT the changes ARE the document, so
+      // `undefined` keeps its sentinel; on UPDATE they are a patch, where
+      // undefined means "remove this property".
       adapter.run(
         `INSERT INTO ${q(table)}(${q(s.primKey.name)}, "_doc") VALUES (?, ?) ` +
           `ON CONFLICT(${q(s.primKey.name)}) DO UPDATE SET "_doc" = json_patch("_doc", ?)`,
-        [encodeValue(key), body, body]
+        [k, JSON.stringify(encode(expanded)), JSON.stringify(encodePatch(expanded))]
       );
       return key;
     },
@@ -414,17 +498,21 @@ export function createEngine(adapter: Adapter) {
 
     update(table: string, key: unknown, changes: Doc): number {
       const s = store(table);
+      const k = keyParam(s, key);
+      if (k === KEY_MISS) return 0;
       const { [s.primKey.name]: _ignored, ...rest } = changes;
       const info = adapter.run(
         `UPDATE ${q(table)} SET "_doc" = json_patch("_doc", ?) WHERE ${q(s.primKey.name)} = ?`,
-        [JSON.stringify(encode(expandPaths(rest))), encodeValue(key)]
+        [JSON.stringify(encodePatch(expandPaths(rest))), k]
       );
       return info.changes;
     },
 
     delete(table: string, key: unknown): number {
       const s = store(table);
-      return adapter.run(`DELETE FROM ${q(table)} WHERE ${q(s.primKey.name)} = ?`, [encodeValue(key)]).changes;
+      const k = keyParam(s, key);
+      if (k === KEY_MISS) return 0;
+      return adapter.run(`DELETE FROM ${q(table)} WHERE ${q(s.primKey.name)} = ?`, [k]).changes;
     },
 
     bulkDelete: (table: string, keys: unknown[]) => api.batch(keys.map((k) => ({ op: 'delete', table, args: [k] }))),
@@ -532,23 +620,14 @@ export function createEngine(adapter: Adapter) {
      * caller cannot know if it committed" hazard — see LeaderLostError in opfs-leader.
      */
     batch(ops: BatchOp[]): unknown[] {
-      // SQLite has no nested transactions; if one is already open, just run inside it.
-      const nested = inTx;
-      if (!nested) adapter.exec('BEGIN');
-      try {
-        const out = ops.map(({ op, table, args }) => {
+      return inTransaction(() =>
+        ops.map(({ op, table, args }) => {
           const fn = (api as unknown as Record<string, unknown>)[op];
           if (typeof fn !== 'function' || op === 'batch' || op === 'migrate')
             throw new Error(`granth: "${op}" is not allowed in a transaction`);
           return (fn as (...a: unknown[]) => unknown)(table, ...args);
-        });
-        if (!nested) adapter.exec('COMMIT');
-        return out;
-      } catch (err) {
-        // See migrate(): cleanup must never mask the original failure.
-        if (!nested) { try { adapter.exec('ROLLBACK'); } catch { /* already rolled back */ } }
-        throw err;
-      }
+        })
+      );
     },
   };
 

@@ -25,6 +25,7 @@ const adapter = (db) => ({
     const r = db.prepare(s).run(...p);
     return { changes: Number(r.changes), lastInsertRowid: Number(r.lastInsertRowid) };
   },
+  createFunction: (n, f) => db.function(n, f),
 });
 
 const engine = createEngine(adapter(new DatabaseSync(':memory:')));

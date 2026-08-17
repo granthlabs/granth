@@ -20,6 +20,13 @@ export interface Adapter {
   all(sql: string, params?: unknown[]): Array<Record<string, unknown>>;
   exec(sql: string): void;
   run(sql: string, params?: unknown[]): { changes: number; lastInsertRowid: number | bigint };
+  /**
+   * Register a scalar SQL function. Optional, but WITHOUT it the ignore-case
+   * operators fall back to SQLite's built-in lower(), which folds A-Z only —
+   * equalsIgnoreCase('ÉCOLE') then misses 'école', and every non-English search
+   * box under-matches in silence. Every adapter shipped here provides it.
+   */
+  createFunction?(name: string, fn: (...args: unknown[]) => unknown): void;
 }
 
 // ---------------------------------------------------------------- storage

@@ -51,7 +51,7 @@ interface StoragePlugin {
 
 interface StorageHandle {
   readonly kind: string;
-  readonly adapter: Adapter;   // { all, exec, run }
+  readonly adapter: Adapter;   // { all, exec, run, createFunction? }
   markDirty(): void;           // after every write; no-op for in-place backends
   flush(): Promise<void>;      // persist now
   destroy(): Promise<void>;    // not recoverable
@@ -61,6 +61,12 @@ interface StorageHandle {
 Backends are passed to the worker entry as an **ordered list**. The first
 available one wins and an `open()` failure falls through, because availability is
 a prediction and opening is the proof.
+
+`createFunction(name, fn)` is optional but worth implementing: it is how granth
+registers Unicode case folding for `equalsIgnoreCase` and friends. An adapter
+without it fails loudly on those three operators (`no such function:
+granth_lower`) rather than falling back to SQLite's ASCII-only `lower()` and
+quietly returning too few rows.
 
 ## RuntimePlugin
 

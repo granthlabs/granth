@@ -48,6 +48,27 @@ export function getByKeyPath(obj, keyPath) {
   return keyPath.split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj);
 }
 
+/**
+ * A liveQuery dedupe key that distinguishes Maps and Sets.
+ *
+ * `JSON.stringify(new Map(...))` is '{}' for EVERY map — including the one
+ * toMap() returns — so the second emission always compared equal to the first
+ * and the subscriber never heard again. No error, just a UI that quietly stopped
+ * updating. Two documented features, combined, produced silence.
+ */
+const dedupeKey = (v) =>
+  JSON.stringify(v, (_k, x) =>
+    x instanceof Map ? { '@m': [...x] } : x instanceof Set ? { '@s': [...x] } : x
+  );
+
+/** Dexie's bulk return contract: the last key, or all of them with {allKeys: true}. */
+const pickKeys = (keys, options) =>
+  options?.allKeys ? keys : keys[keys.length - 1];
+
+/** The keyPaths an index name covers: 'age' -> ['age'], '[name+age]' -> ['name','age']. */
+const indexPaths = (name) =>
+  name.startsWith('[') ? name.slice(1, -1).split('+') : [name];
+
 function defaultCompare(a, b) {
   if (a === b) return 0;
   if (a === undefined) return 1; // undefined sorts last, as in Dexie
@@ -113,21 +134,22 @@ class Collection {
     return this._next((_, c) => (c._until = { fn, includeStopEntry }));
   }
 
-  /** Order by an index (or any keyPath — falls back to a client-side sort). */
-  _ordered(keyPath: string): { coll: any; sortKeyPath: string | null } {
-    if (this._ctx.hasIndex(this._table, keyPath)) {
-      return { coll: this._next((p) => (p.order = { index: keyPath, desc: false })), sortKeyPath: null };
-    }
-    // Dexie's sortBy accepts any keyPath, not only an index.
-    return { coll: this, sortKeyPath: keyPath };
-  }
+  /** Descending when the collection is reversed — plan.reverse, or order.desc once an order exists. */
+  get _desc() { return Boolean(this._plan.order ? this._plan.order.desc : this._plan.reverse); }
 
-  /** Dexie returns a sorted ARRAY here, not a Collection. */
+  /**
+   * Dexie returns a sorted ARRAY here, not a Collection — and sorts it entirely
+   * client-side, whether or not the keyPath is indexed.
+   *
+   * Routing an indexed keyPath through ORDER BY instead looked like a free
+   * optimisation and gave the same method two behaviours: it ignored reverse()
+   * (so `t.reverse().sortBy('age')` came back exactly inverted, silently), and it
+   * put rows with no key FIRST on an indexed path and LAST on a non-indexed one.
+   */
   async sortBy(keyPath) {
-    const { coll, sortKeyPath } = this._ordered(keyPath);
-    const rows = await coll.toArray();
-    if (!sortKeyPath) return rows;
-    return rows.sort((a, b) => defaultCompare(getByKeyPath(a, sortKeyPath), getByKeyPath(b, sortKeyPath)));
+    const dir = this._desc ? -1 : 1;
+    const rows = await this.toArray();
+    return rows.sort((a, b) => dir * defaultCompare(getByKeyPath(a, keyPath), getByKeyPath(b, keyPath)));
   }
 
   /** Not a Dexie member; kept as the chainable form of sortBy. */
@@ -172,8 +194,13 @@ class Collection {
   /** Dexie's keys() are the INDEX keys, not the primary keys. */
   async keys() {
     if (this._clientSide) {
-      const ix = this._ctx.boundIndex(this._table, this._plan);
-      return (await this.toArray()).map((d) => getByKeyPath(d, ix));
+      // A compound index name is not a keyPath: reading '[name+age]' as a
+      // property gave [undefined, ...], so attaching a .filter() silently
+      // changed the answer the server-side branch returned.
+      const paths = indexPaths(this._ctx.boundIndex(this._table, this._plan));
+      const rows = await this.toArray();
+      if (paths.length === 1) return rows.map((d) => getByKeyPath(d, paths[0]));
+      return rows.map((d) => paths.map((p) => getByKeyPath(d, p)));
     }
     return this._ctx.call('query', this._table, this._plan, 'indexKeys');
   }
@@ -316,8 +343,10 @@ for (const op of OPS) {
     // anyOf-style operators take a list; equals on a compound index takes the
     // tuple as an array. Both arrive as one array argument that must be spread
     // into params — binding the array itself throws in sqlite-wasm.
-    const unwrap = op !== 'notEqual';
-    const flat = unwrap && values.length === 1 && Array.isArray(values[0]) ? values[0] : values;
+    // notEqual was excluded from the unwrap, so `notEqual(['a', 30])` on a
+    // compound index bound the ARRAY as one parameter — "Unknown named
+    // parameter" — while `equals(['a', 30])` on the same index worked.
+    const flat = values.length === 1 && Array.isArray(values[0]) ? values[0] : values;
     return this._add(op, flat);
   };
 }
@@ -424,8 +453,17 @@ class Table {
 
   add(doc) { return this._ctx.write('add', this.name, this._creating(doc)); }
   put(doc) { return this._ctx.write('put', this.name, this._creating(doc)); }
-  bulkAdd(docs) { return this._ctx.write('bulkAdd', this.name, docs.map((d) => this._creating(d))); }
-  bulkPut(docs) { return this._ctx.write('bulkPut', this.name, docs.map((d) => this._creating(d))); }
+  /**
+   * Dexie returns the LAST key here, and every key only with {allKeys: true}.
+   * Returning the array unconditionally meant `const id = await t.bulkAdd(xs)`
+   * silently handed back an array where migrated code expected a number.
+   */
+  async bulkAdd(docs, options?) {
+    return pickKeys(await this._ctx.write('bulkAdd', this.name, docs.map((d) => this._creating(d))), options);
+  }
+  async bulkPut(docs, options?) {
+    return pickKeys(await this._ctx.write('bulkPut', this.name, docs.map((d) => this._creating(d))), options);
+  }
 
   async update(key, changes) {
     let mods = changes;
@@ -999,7 +1037,7 @@ export class Granth {
           db._tracking = seen;
           try {
             const value = await querier();
-            const key = JSON.stringify(value);
+            const key = dedupeKey(value);
             if (key !== last) { last = key; if (!closed) on.next?.(value); }
           } catch (err) {
             if (!closed) on.error?.(err);

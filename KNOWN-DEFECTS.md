@@ -1,166 +1,147 @@
-# Known defects — do not publish 0.2.1 until these are resolved
+# Defects found by adversarial review — status
 
-Found by two adversarial reviews. Every item below was **executed**, not reasoned
-about. The compat audit walks method *names* only, so it catches none of them.
+Two adversarial reviews found 19 confirmed defects that a fully green test suite
+had never seen. Every one was **executed**, not reasoned about.
 
-Ranked. The first three are the ones that lose or corrupt user data.
+They were invisible for a structural reason: `test-compat-audit.mjs` walks method
+*names*, so a method that exists and returns the wrong answer passes it. Nothing
+compared granth's **answers** to Dexie's.
 
-## 1. A string key hits an INTEGER primary key — including delete (DATA LOSS)
+That gap is now closed by **`packages/core/client/test-dexie-parity.mjs`**, which
+runs the same script against the real `dexie` package and against granth and
+diffs the results. It reproduced 27 disagreements before these fixes and reports
+0 after, with 5 divergences marked `allow:` and justified below. It runs in `npm
+test` and in CI, and a stale `allow:` — one that no longer differs — fails the
+run, so the exemptions cannot rot into cover for the next regression.
 
-`engine.ts` get/delete/insert/update. `encodeValue` passes a string through and
-SQLite's INTEGER-PRIMARY-KEY affinity coerces `'2'` to `2`.
+## Fixed
 
-```
-seed a,b,c on '++id, name'
-get('2')      -> row b        (dexie: undefined)
-delete('2')   -> row b GONE   (dexie: no-op)
-put({id:'2'}) -> overwrites   (dexie: adds a 4th row)
-```
+Ranked as they were found. The first three lost or corrupted data.
 
-A route param or localStorage value that stayed a string is the everyday path in.
-`bulkGet(['2'])` returns `[undefined]` while `get('2')` returns the row — granth
-disagreeing with itself is the tell.
+**1. A string key hit an INTEGER primary key, including delete — DATA LOSS.**
+SQLite's INTEGER-PRIMARY-KEY affinity coerced `'2'` to `2`, so `get('2')`
+returned row 2 and `delete('2')` destroyed it. IndexedDB keys are typed and a
+lookup by `'2'` simply misses. Keys now bind with their JS type: a key that
+cannot belong to the store is a miss on reads and deletes (as in Dexie) and a
+named error on writes. `bulkGet` and `get` agreed on nothing before; that
+disagreement was the tell.
 
-**Fix:** bind the key with its JS type, or reject a type mismatch, in
-get/delete/insert/update.
+**2. `notEqual` / `noneOf` / `orderBy` / `startsWith('')` returned rows with no
+key.** None emitted an index-membership predicate, so the soft-delete query
+`where('deletedAt').notEqual(x)` returned rows that had never been deleted.
+`range()` already did this correctly; those four paths were never given the same
+treatment. Now a shared `presence()` covers all of them, and all components of a
+compound index rather than just the first.
 
-## 2. notEqual / noneOf / orderBy / startsWith('') include rows with an ABSENT or null key
+**3. No implicit index ordering; `reverse()` reversed the primary key.** Forward
+order was not merely different from Dexie, it was *unspecified* — SQLite picked
+whichever index was cheapest, so adding an unrelated index could silently reorder
+a user's list. Paging was the sharp edge: `.offset(1).limit(2)` returned
+**different rows**, not a different arrangement. Now always `ORDER BY <bound
+index>, pk`, with `reverse()` flipping that.
 
-`plan.ts` — `notEqual`, `noneOf`, `noneOf([])`, `ORDER BY`, and the empty-prefix
-branch emit no index-membership predicate. IndexedDB omits such records from the
-index entirely.
+**4. `equalsIgnoreCase` and friends were ASCII-only.** SQLite's `lower()` folds
+`A-Z`; the needle was folded in JS with full Unicode. `equalsIgnoreCase('ÉCOLE')`
+missed `ÉCOLE`, and every non-English search box under-matched in silence. A
+Unicode `granth_lower` is now registered through a new optional `Adapter.
+createFunction`; the operators emit it unconditionally, so an adapter without it
+fails loudly instead of quietly returning too few rows.
 
-```
-rows: zoe, adam, {} (absent), {name:null}, carl
-notEqual('zoe')   -> [adam, absent, null, carl]   (dexie: [adam, carl])
-noneOf([])        -> all 5                        (dexie: [adam, carl, zoe])
-orderBy('name')   -> all 5                        (dexie: [adam, carl, zoe])
-```
+**5. `liveQuery` over a Map emitted once, then was dead forever.** The dedupe key
+was `JSON.stringify`, and every Map stringifies to `'{}'` — including the one
+`toMap()` returns. Two documented features combining into a UI that stops
+updating, with no error.
 
-This is the soft-delete query — `where('deletedAt').notEqual(x)` — returning rows
-it must not. `range()` already does this correctly for range operators; these
-paths were never given the same treatment.
+**6. multiEntry `keys()`/`uniqueKeys()`/`eachKey()` returned the row's OTHER
+elements.** The shadow read filtered by matching primary keys instead of by the
+condition, so `where('tags').equals('a').uniqueKeys()` answered `['a','b']`.
+`count()` and `primaryKeys()` on the same collection were right, which is what
+made it look like bad data.
 
-**Fix:** apply the `range()` sentinel/NULL exclusion to all four.
+**7. `sortBy()` ignored `reverse()`.** It also placed missing keys first on an
+indexed keyPath and last on a non-indexed one — one method, two behaviours, from
+routing the indexed case through `ORDER BY`. `sortBy` is now client-side
+throughout, as in Dexie.
 
-## 3. No implicit index ordering; reverse() reverses the primary key, not the bound index
+**8. Compound `keys()` broke once a `.filter()` was attached.** The client-side
+branch read `'[name+age]'` as a literal property. Attaching a filter silently
+changed the answer.
 
-`plan.ts` emits no `ORDER BY` unless one was asked for, and `reverse()` alone
-orders by the primary key. Dexie always iterates the bound index.
+**9. `notEqual` on a compound index threw.** The client excluded `notEqual` from
+the array unwrap, so the tuple bound as one parameter — while `equals` on the
+same index worked.
 
-```
-where('age').above(15).reverse()  -> wrong order entirely
-.offset(1).limit(2)               -> DIFFERENT ROWS, not just a different order
-toCollection().keys()             -> came back in AGE-index order
-```
-
-Forward order is not merely different from Dexie, it is **unspecified** — SQLite
-picks whichever index is cheapest, so adding an index silently reorders a user's
-list. Paging is the sharp edge: different rows, no error.
-
-**Fix:** always emit `ORDER BY <bound index>, pk`, and make `reverse()` flip that.
-
-## 4. equalsIgnoreCase / startsWithIgnoreCase / anyOfIgnoreCase are ASCII-only
-
-SQLite's `lower()` folds A-Z only, and the needle is lowered in JS (full Unicode)
-while the column is lowered in SQL — so it matches only already-lowercase stored
-values. `equalsIgnoreCase('ÉCOLE')` misses `ÉCOLE`; same for Cyrillic, Greek,
-Å-with-ring. ASCII, Turkish İ and German ß all match Dexie.
-
-The docs call these "do not use the index" — a performance note. The correctness
-gap is undocumented.
-
-**Fix:** register a Unicode-aware `lower`, or store a normalised shadow column.
-
-## 5. liveQuery over a Map emits once, then is dead forever
-
-`client/src/index.ts` dedupes with `JSON.stringify(value)`, and
-`JSON.stringify(new Map(...))` is `'{}'` for every Map — including the one
-`Collection.toMap()` returns. Three rows, add three more, and the subscriber
-never hears again. No error. Same class for `Set`.
-
-**Fix:** dedupe on something that distinguishes Maps/Sets, or skip dedupe for
-non-plain results.
-
-## 6. multiEntry keys()/uniqueKeys()/eachKey() return the row's OTHER tags
-
-The shadow-table read filters by matching primary keys rather than by the
-condition, so every element of every matching row comes back.
-`where('tags').equals('a').uniqueKeys()` returns `['a','b']`. `primaryKeys()` and
-`count()` on the same collection are correct — only the key accessors leak. A tag
-facet count built on this shows tags that do not match.
-
-## 7. sortBy() ignores reverse()
-
-Dexie multiplies by the collection direction; granth hardcodes ascending on both
-its indexed and client-side paths. `t.reverse().sortBy('age')` comes back exactly
-inverted, silently. Related: `sortBy` puts missing keys FIRST on an indexed
-keyPath and LAST on a non-indexed one — the same method, two answers, depending
-on whether the field happens to be indexed.
-
-## 8. keys() on a compound index returns [undefined, ...] once .filter() is attached
-
-The client-side branch does a literal property lookup for `'[name+age]'` instead
-of reading the tuple. The server-side branch is correct, so attaching a filter
-silently changes the result.
-
-## 9. notEqual on a compound index throws
-
-The client special-cases `notEqual` out of the array unwrap, so the raw array is
-bound as a parameter. `equals(['a',1])` works on the same index — the asymmetry
-is the bug.
-
-## 10. limit() mishandles negative and non-integer values
-
-`Number(plan.limit)` is interpolated into the SQL text. `limit(-1)` returns
+**10. `limit()` mishandled negative and non-integer values.** `limit(-1)` returned
 **every row** (SQLite reads a negative limit as unlimited) where Dexie returns
-none — so a `limit(pageSize - taken)` that underflows dumps the whole table.
-`limit(1.7)` and `limit(NaN)` throw SQL errors.
+none, so a `limit(pageSize - taken)` that underflowed dumped the whole table.
+`limit(1.7)` and `limit(NaN)` were SQL errors.
 
-## 11. bulkAdd / bulkPut inside the batch form of transaction() always fails
+**11. `bulkAdd`/`bulkPut` inside the batch form of `transaction()` always failed.**
+`batch()` opened a transaction without setting `inTx`, so the nested bulk helper
+issued a second `BEGIN` and wrote nothing. `tx.friends.add()` in the same form
+worked, so it read as bad data rather than a library bug. All three call sites
+now share one `inTransaction()` helper, which is the only thing that touches
+`inTx`.
 
-`api.batch` opens a transaction without setting `inTx`, so the nested bulk helper
-issues a second `BEGIN`: "cannot start a transaction within a transaction", zero
-rows written. `tx.friends.add(...)` in the same form works, so it reads as bad
-data rather than a library bug. `TxTable` exposes both methods publicly.
+**12. `bulkAdd`/`bulkPut` returned the wrong shape.** Found by the new parity
+suite, not by either review: Dexie resolves to the **last** key and to every key
+only with `{ allKeys: true }`. Returning the array unconditionally meant
+`const id = await t.bulkAdd(xs)` silently handed back an array.
 
-## 12. prefixUpperBound mishandles a lone low surrogate
+**13. Smaller confirmed items.** `update(k, {x: undefined})` kept the key holding
+an invisible sentinel instead of deleting the property (patches now encode
+`undefined` as RFC 7396 removal, while stored documents keep it — they mean
+different things). `get(null)` / `get({})` returned `undefined` instead of
+rejecting.
 
-The surrogate step-back does not check that a high surrogate precedes it, so for
-`'a\uDC00'` it returns a bound BELOW the prefix and `startsWith` matches nothing.
+## Divergences that stand, and why
 
-## 13. Lower severity, confirmed
+- **A lone surrogate can be stored but not matched.** It round-trips exactly, but
+  `json_extract` decodes our JSON escape to WTF-8 (`ED B0 80`) while the driver
+  binds the same string as U+FFFD (`EF BF BD`), so the stored key sorts below its
+  own lower bound. Fixing it would mean mangling the value on write — losing the
+  round-trip Dexie preserves. It fails **closed**: no rows, never wrong rows.
+  This one was diagnosed wrong twice before anyone read the actual bytes; the
+  recorded cause (`prefixUpperBound`'s surrogate step-back) was correct code.
 
-- `update(k, {x: undefined})` keeps the key with the UNDEF sentinel; Dexie deletes
-  the property, so `'x' in doc` differs.
-- `get(null)` / `get(undefined)` / `get({})` return undefined; Dexie throws.
-- `add({id:'abc'})` on a `++id` table throws `datatype mismatch`; Dexie accepts it.
-- `orderBy('*tags')` throws; Dexie orders by element.
-- `Collection.delete()` with a client-side filter returns the candidate count, not
-  rows actually deleted.
+- **`sortBy` with missing keys.** Dexie's comparator returns 0 whenever either
+  side is `undefined`, making it non-transitive: verified, the same code leaves
+  `[3, undefined, 1]` **unsorted** and sorts `[z, undefined, a]` with `undefined`
+  first. granth sorts transitively with `undefined` last. Non-transitivity cannot
+  be replicated in general — the output depends on the sort algorithm's internals.
 
-## Unverified, neither confirmed nor dismissed
+- **`get(null)` / `get({})`** — both reject; only the message text differs.
 
-`NoLeaderError` says "safe to retry", but a SLOW (not dead) leader — a frozen
+- **`add({id: 'abc'})` on a `++id` table** throws where Dexie accepts it. An
+  auto-increment key is a SQLite rowid alias and can only be an integer. The error
+  now names the table, the key and the fix instead of surfacing as
+  `datatype mismatch`.
+
+## Unverified — neither confirmed nor dismissed
+
+`NoLeaderError` says "safe to retry", but a **slow** (not dead) leader — a frozen
 background tab keeps its Web Lock, so no re-election happens — may process the
-call after the caller timed out, applying the write twice. A probe attempt did
-not reproduce it: both clients shared the fake LockManager, so the follower
-elected itself and never took the follower path. Needs a harness that pins one
-client as leader while stalling its worker.
+call after the caller timed out, applying the write twice. A probe did not
+reproduce it: both clients shared the fake `LockManager`, so the follower elected
+itself and never took the follower path. It needs a harness that pins one client
+as leader while stalling its worker.
 
-## What DID hold up
+## What the fixes could have broken, and how that is guarded
 
-Ran and matched Dexie exactly: `anyOf` with duplicates/empty/mixed types;
-`between` with lo > hi and equal bounds; `until()`; `.filter()` with
-limit/offset/count in either order; `offset`/`limit` edge values;
-`reverse().reverse()`; cross-type key ordering; the key accessors on ordinary
-single-column indexes; compound `equals`; all `modify(fn)` forms; `add`/`put`/
-`update` return values; explicit-key-then-auto-increment continuation; Date
-primary keys; `where({...})`; `or()`; `inAnyRange`; and liveQuery on plain
-results — correct initial emit, correct emit on an in-set change, correctly
-silent on an unrelated write.
+The parity suite carries explicit regression cases for the ways these changes
+could go wrong: that `sortBy` still keeps rows with no key even though `orderBy`
+now drops them; that a client-side `.filter()` does not change iteration order;
+that `equals`, `between`, `anyOf`, compound `equals`, multiEntry `equals`,
+string primary keys, `or()`, Date round-trips and ASCII `equalsIgnoreCase` all
+still behave.
 
-Also sound under adversarial probing: the chunked bulk-insert id derivation
-(exact chunk boundaries, trigger-firing tables, non-contiguous rowids, key `0`
-and `''`, duplicate keys within a chunk, mid-chunk rollback), and SQL injection
-across every path that becomes an identifier or a JSON path.
+The browser suite gained a Unicode case-fold check, because the UDF exists only
+on the sqlite-wasm path and its callback there takes a context pointer first —
+a signature Node cannot exercise. It caught a real browser-only crash
+immediately: sqlite-wasm derives SQL arity from the callback's `length`, so the
+first wrapper registered the function as taking zero arguments and **every**
+ignore-case query failed in the browser while Node stayed green.
+
+The two guards whose fixes are invisible from the outside — the batch-form
+`BEGIN` and the liveQuery dedupe — were each verified by reverting the fix and
+watching the guard fail.

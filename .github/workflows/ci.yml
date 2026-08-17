@@ -13,6 +13,11 @@ jobs:
       # Builds every package, then runs: engine + client suites, the no-Worker
       # runtime suite, both adversarial suites, the generated Dexie compat audit
       # (which FAILS if we regress), and the codemod fixtures.
+      # Runs the Dexie PARITY suite among others: the same script against the real
+      # dexie package and against granth, diffing the answers. The name-walking
+      # compat audit cannot catch a method that exists and returns the wrong
+      # thing — which is how 19 defects, one of them a row-destroying delete,
+      # stayed invisible to a fully green suite.
       - run: npm test
       # The Node suites cannot see OPFS, the opfs-sahpool VFS, dedicated Workers
       # or Web Locks. Without this job a change can be green in Node and broken

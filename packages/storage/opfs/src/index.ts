@@ -20,6 +20,18 @@ export function sqliteWasmAdapter(sqlite3: any, db: any): Adapter {
       db.exec({ sql, bind: params });
       return { changes: db.changes(), lastInsertRowid: sqlite3.capi.sqlite3_last_insert_rowid(db) };
     },
+    /**
+     * oo1 hands the callback a context pointer FIRST, so this is (pCx, v) rather
+     * than (v) — and it derives the SQL arity from the callback's `length`. A
+     * rest-param wrapper has length 1, which registered the function as taking
+     * ZERO arguments: "wrong number of arguments to function granth_lower()" on
+     * every ignore-case query, in the browser only. `arity` is stated explicitly
+     * so the registration does not depend on how the wrapper happens to be
+     * written.
+     */
+    createFunction(name: string, fn: (...args: unknown[]) => unknown) {
+      db.createFunction(name, (_cx: unknown, v: unknown) => fn(v), { arity: 1, deterministic: true });
+    },
   };
 }
 

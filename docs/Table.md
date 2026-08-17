@@ -39,7 +39,7 @@ One table. Reach it as `db.friends` or `db.table('friends')`.
 | `upsert(key, changes)` | `Promise<Key>` | Insert if absent, merge if present |
 | `delete(key)` | `Promise<number>` | |
 | `clear()` | `Promise<number>` | |
-| `bulkAdd(docs)` / `bulkPut(docs)` | `Promise<Key[]>` | One atomic batch, one round trip |
+| `bulkAdd(docs, opts?)` / `bulkPut(docs, opts?)` | `Promise<Key>` | One atomic batch, one round trip. Resolves to the **last** key, or to every key with `{ allKeys: true }` — as in Dexie |
 | `bulkUpdate([{key, changes}])` | `Promise<number>` | |
 | `bulkDelete(keys)` | `Promise<number[]>` | |
 

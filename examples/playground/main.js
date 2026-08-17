@@ -145,6 +145,19 @@ async function run() {
       eq((await db.friends.where({ name: 'bob', age: 25 }).toArray()).map((f) => f.name), ['bob']);
     });
 
+    // The Unicode case-folding UDF only exists on the sqlite-wasm path, and its
+    // callback there takes a context pointer FIRST — a signature the Node suites
+    // cannot check. Without it these fall back to SQLite's ASCII-only lower(),
+    // which folds A-Z and leaves every accented character alone.
+    await check('ignore-case queries fold non-ASCII', async () => {
+      await db.friends.bulkAdd([{ name: 'ÉCOLE', age: 91 }, { name: 'Ångström', age: 92 }]);
+      eq((await db.friends.where('name').equalsIgnoreCase('école').toArray()).map((f) => f.name), ['ÉCOLE']);
+      eq((await db.friends.where('name').startsWithIgnoreCase('ångs').toArray()).map((f) => f.name), ['Ångström']);
+      eq((await db.friends.where('name').anyOfIgnoreCase(['ÉCOLE']).toArray()).map((f) => f.name), ['ÉCOLE']);
+      await db.friends.where('age').above(90).delete();
+      eq(await db.friends.count(), 4);
+    });
+
     await check('multiEntry index via trigger-maintained shadow table', async () => {
       eq((await db.friends.where('tags').equals('math').toArray()).map((f) => f.name).sort(), ['ada', 'cy']);
       eq((await db.friends.where('tags').equals('eng').toArray()).map((f) => f.name).sort(), ['bob', 'cy']);

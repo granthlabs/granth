@@ -4,7 +4,8 @@ import { serveInWorker } from 'opfs-leader/worker';
 import { Granth } from 'granthdb';
 
 const A = (db)=>({all:(s,p=[])=>db.prepare(s).all(...p).map(r=>({...r})),exec:s=>db.exec(s),
-  run:(s,p=[])=>{const r=db.prepare(s).run(...p);return{changes:Number(r.changes),lastInsertRowid:Number(r.lastInsertRowid)}}});
+  run:(s,p=[])=>{const r=db.prepare(s).run(...p);return{changes:Number(r.changes),lastInsertRowid:Number(r.lastInsertRowid)}},
+  createFunction:(n,f)=>db.function(n,f)});
 function fakeWorker(){const engine=createEngine(A(new DatabaseSync(':memory:')));const L={message:[],error:[]};
   const scope={addEventListener:(t,f)=>scope._r=f,postMessage:m=>L.message.forEach(f=>f({data:m}))};
   serveInWorker(rpcHandlers(()=>engine),{scope});
@@ -70,6 +71,60 @@ await chk('injection via a value', async () => {
   const id = await db.t.add({ name: `x'); DROP TABLE t;--` });
   return (await db.t.get(id)).name.includes('DROP') ? null : 'value mangled';
 });
+await chk('bulkAdd inside the batch form of transaction()', async () => {
+  // The batch form records ops and applies them as one engine batch. batch()
+  // opened a transaction WITHOUT setting inTx, so the nested bulk helper issued
+  // a second BEGIN and wrote nothing — while tx.t.add() in the same form worked,
+  // which made it read as bad data rather than a library bug.
+  const before = await db.t.count();
+  await db.transaction((tx) => { tx.t.bulkAdd([{ name:'bp1' }, { name:'bp2' }]); });
+  const after = await db.t.count();
+  return after === before + 2 ? null : `wrote ${after - before}/2`;
+});
+await chk('bulkPut and add mixed in the batch form', async () => {
+  const before = await db.t.count();
+  await db.transaction((tx) => { tx.t.add({ name:'m1' }); tx.t.bulkPut([{ name:'m2' }, { name:'m3' }]); });
+  const after = await db.t.count();
+  return after === before + 3 ? null : `wrote ${after - before}/3`;
+});
+await chk('a failing batch rolls back completely', async () => {
+  const before = await db.t.count();
+  try { await db.transaction((tx) => { tx.t.bulkAdd([{ name:'r1' }]); tx.t.add(null); }); } catch {}
+  const after = await db.t.count();
+  return after === before ? null : `partial write: ${before} -> ${after}`;
+});
+
+await chk('liveQuery over a Map keeps emitting', async () => {
+  // JSON.stringify(new Map(...)) is '{}' for EVERY map, so the dedupe key never
+  // changed and the subscriber went silent after its first emission — no error,
+  // just a UI that stopped updating. toMap() is a documented feature and so is
+  // liveQuery; combining them produced silence.
+  const seen = [];
+  const sub = db.liveQuery(() => db.t.toCollection().toMap(), { tables: ['t'] })
+    .subscribe((m) => seen.push(m.size));
+  const settle = () => new Promise((r) => setTimeout(r, 60));
+  await settle();
+  const first = seen.length;
+  await db.t.add({ name: 'lq1' });
+  await settle();
+  await db.t.add({ name: 'lq2' });
+  await settle();
+  sub.unsubscribe();
+  if (first === 0) return 'never emitted at all';
+  return seen.length >= 3 ? null : `emitted ${seen.length} times across two writes: ${seen.join(',')}`;
+});
+await chk('liveQuery still dedupes an unchanged plain result', async () => {
+  const seen = [];
+  const sub = db.liveQuery(() => db.t.where('name').equals('nothing-matches-this').toArray(), { tables: ['t'] })
+    .subscribe((r) => seen.push(r.length));
+  const settle = () => new Promise((r) => setTimeout(r, 60));
+  await settle();
+  await db.t.add({ name: 'unrelated-1' });
+  await settle();
+  sub.unsubscribe();
+  return seen.length === 1 ? null : `re-emitted an unchanged result ${seen.length} times`;
+});
+
 console.log(bad.length ? 'CLIENT FINDINGS:\n- ' + bad.join('\n- ') : 'no client findings');
 await db.close();
 

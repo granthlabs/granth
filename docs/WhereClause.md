@@ -57,8 +57,27 @@ await db.friends.where('tags').startsWith('ma').toArray();   // has a tag starti
 Unlike Dexie you do **not** need `.distinct()` — a document is returned once no matter how many
 of its array elements match.
 
-## Performance note
+## Case-insensitive matching
 
-`equalsIgnoreCase` / `startsWithIgnoreCase` / `anyOfIgnoreCase` apply `lower()` and therefore do
-not use the index. Fine at small scale; store a normalized lowercase field if it shows up in a
-profile.
+`equalsIgnoreCase` / `startsWithIgnoreCase` / `anyOfIgnoreCase` fold with JavaScript's
+`toLowerCase()`, registered into SQLite as a function — so they are **full Unicode**:
+`equalsIgnoreCase('ÉCOLE')` matches `école`, and Greek, Cyrillic and Å-with-ring all
+behave. (SQLite's built-in `lower()` folds `A-Z` and nothing else, which would make any
+non-English search box silently under-match.)
+
+The cost is that they cannot use the index. Fine at small scale; store a normalized
+lowercase field and query that if it shows up in a profile.
+
+::: warning Custom adapters
+If you supply your own [`Adapter`](/Storage), implement the optional `createFunction`
+member — these three operators need it. Without it they fail loudly with
+`no such function: granth_lower` rather than quietly returning too few rows.
+:::
+
+## Known limitation: lone surrogates
+
+A string containing an unpaired surrogate (half of an emoji, typically from a truncated
+string) **stores and reads back exactly**, but cannot be matched by `equals` or
+`startsWith`. SQLite's JSON decoder and the driver's parameter binding encode it
+differently, so the two sides of the comparison never meet. The query returns no rows —
+it never returns wrong ones.

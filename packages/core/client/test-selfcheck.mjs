@@ -23,6 +23,7 @@ function nodeAdapter(db) {
       const r = db.prepare(sql).run(...params);
       return { changes: Number(r.changes), lastInsertRowid: Number(r.lastInsertRowid) };
     },
+    createFunction: (n, f) => db.function(n, f),
   };
 }
 
@@ -73,8 +74,16 @@ const V1 = [{ version: 1, stores: { friends: '++id, name, age, *tags, [name+age]
   // A range must ALSO exclude the null/undefined sentinels. SQLite orders
   // INTEGER before TEXT, so without this `age > 25` matched every row whose age
   // was null or absent; IndexedDB keeps such records out of the index entirely.
-  assert.deepEqual(q.params, [25, '\u0000U', '\u0000Z']);
+  // TWO pairs: one excluding the sentinels from the RANGE, one from the ORDER BY
+  // index. orderBy('name') iterates the name index, so a row with no name is not
+  // in the result at all — and the range's exclusion says nothing about `name`.
+  assert.deepEqual(q.params, [25, '\u0000U', '\u0000Z', '\u0000U', '\u0000Z']);
   assert.match(q.sql, /"ix\$age" NOT IN \(\?, \?\)/, 'range queries must exclude non-key sentinels');
+  assert.match(
+    q.sql,
+    /"ix\$name" IS NOT NULL AND "ix\$name" NOT IN \(\?, \?\)/,
+    'an explicit ORDER BY must exclude rows that are not in that index'
+  );
 
   // multiEntry becomes "some element matches", not a column compare.
   const m = compile(store, { or: [{ and: [{ index: 'tags', op: 'equals', values: ['x'] }] }], or_: 0 });
