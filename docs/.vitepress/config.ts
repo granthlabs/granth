@@ -35,6 +35,7 @@ export default defineConfig({
           { text: 'Tutorial', link: '/Tutorial' },
           { text: 'Migrating from Dexie', link: '/MigratingFromDexie' },
           { text: 'Frameworks', link: '/Frameworks' },
+          { text: 'TanStack, RxJS, Zustand', link: '/StateLibraries' },
         ],
       },
       {

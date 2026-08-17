@@ -6,12 +6,11 @@
   "description": "Browser verification for opfs-sqlite against real sqlite-wasm + OPFS. Not published.",
   "scripts": {
     "dev": "vite --port 5178",
-    "test": "node test-encryption.mjs"
+    "test": "node test-encryption.mjs && node test-integrations.mjs"
   },
   "dependencies": {
     "@sqlite.org/sqlite-wasm": "3.53.0-build1",
     "dexie": "^4.4.5",
-    "granthdb": "*",
     "granth-engine": "*",
     "granth-migrate-idb": "*",
     "granth-react": "*",
@@ -21,15 +20,19 @@
     "granth-storage-memory": "*",
     "granth-storage-opfs": "*",
     "granth-vue": "*",
+    "granthdb": "*",
     "opfs-leader": "*",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "vue": "^3.5.13"
   },
   "devDependencies": {
+    "@tanstack/query-core": "^5.101.4",
     "@vitejs/plugin-react": "^4.3.4",
     "@vitejs/plugin-vue": "^5.2.1",
     "playwright": "^1.62.1",
-    "vite": "^5.4.0"
+    "rxjs": "^7.8.2",
+    "vite": "^5.4.0",
+    "zustand": "^5.0.15"
   }
 }

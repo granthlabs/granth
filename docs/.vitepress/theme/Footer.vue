@@ -14,6 +14,7 @@ const columns = [
       { text: 'Tutorial', href: '/Tutorial' },
       { text: 'Migrating from Dexie', href: '/MigratingFromDexie' },
       { text: 'Frameworks', href: '/Frameworks' },
+      { text: 'State libraries', href: '/StateLibraries' },
       { text: 'Runtimes', href: '/Runtimes' },
     ],
   },
