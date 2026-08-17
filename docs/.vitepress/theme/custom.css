@@ -130,7 +130,7 @@
   /* The panel column is wider than its content so the code bleeds off the right
      edge rather than sitting in a neat card — it reads as a window onto a real
      file instead of a decoration. */
-  grid-template-columns: minmax(0, 1fr) minmax(0, 0.92fr);
+  grid-template-columns: minmax(0, 1fr) minmax(560px, 0.95fr);
   align-items: center;
   gap: 48px;
   min-height: 560px;
@@ -211,11 +211,14 @@
   border-bottom: 6px solid transparent;
 }
 
-/* The panel runs past the right edge of the viewport. */
+/* Fully in view, not bled off the edge.
+   Bleeding it past the viewport cut the panel mid-pattern and read as a
+   rendering fault rather than as a deliberate crop — the code is the argument
+   here, so clipping the thing you want people to read is the wrong trade. */
 .ghero__panel {
   position: relative;
   min-width: 0;
-  margin-right: -80px;
+  padding-right: 48px;
 }
 
 @media (max-width: 1100px) {
@@ -225,7 +228,7 @@
     gap: 44px;
     min-height: 0;
   }
-  .ghero__panel { margin-right: -24px; }
+  .ghero__panel { padding-right: 0; }
 }
 
 /* ----------------------------------------------------- hero showcase ----- */
@@ -237,8 +240,7 @@
 .showcase {
   position: relative;
   width: 100%;
-  border-radius: var(--g-radius-lg) 0 0 var(--g-radius-lg);
-  border-right: none;
+  border-radius: var(--g-radius-lg);
   overflow: hidden;
   text-align: left;
   background: oklch(20% 0.016 260);
