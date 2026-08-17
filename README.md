@@ -44,21 +44,24 @@ real indexes, a real query planner, real transactions, running off the main thre
 
 The name follows Dexie's own: *inDEXed → Dexie*, so *sq**LITE** → litie*.
 
-### Things Dexie cannot do
+### What a SQL engine gives you
+
+**Filter on one index and order by another.** A cursor-based store can only use one index per
+query; a query planner has no such limit:
+
+```js
+await db.issues.where('key').anyOf(['a','b']).orderBy('updated_at').limit(10).toArray();
+```
+
+Plus a few conveniences that fall out of having real SQL underneath:
 
 | | |
 |---|---|
-| **Filter on one index, sort by another** | [dexie#297](https://github.com/dexie/Dexie.js/issues/297) — 30 👍, open since 2016. Impossible in IndexedDB; trivial in SQL. |
-| `toMap()` | [dexie#2009](https://github.com/dexie/Dexie.js/issues/2009) |
-| `for await (const doc of collection)` | [dexie#300](https://github.com/dexie/Dexie.js/issues/300) |
-| `db.clearAll()` | [dexie#1571](https://github.com/dexie/Dexie.js/issues/1571) |
-| `db.size()` | [dexie#689](https://github.com/dexie/Dexie.js/issues/689) |
-| No "first `toArray()` returns `[]`" trap | [dexie#1273](https://github.com/dexie/Dexie.js/issues/1273) — queries auto-open |
-
-```js
-// The dexie#297 case — one index filters, another orders:
-await db.issues.where('key').anyOf(['a','b']).orderBy('updated_at').limit(10).toArray();
-```
+| `toMap(keyPath?)` | results keyed by primary key, or any keyPath |
+| `for await (const doc of collection)` | stream a query without materialising it yourself |
+| `db.clearAll()` | empty every table, keep the schema |
+| `db.size()` | bytes on disk |
+| Queries auto-open | no "call `open()` first" ordering trap |
 
 ## Compatibility
 

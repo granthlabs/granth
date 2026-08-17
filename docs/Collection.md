@@ -28,9 +28,8 @@ breaks migrated code *silently*.
 
 ### Filter on one index, sort by another
 
-This is [dexie#297](https://github.com/dexie/Dexie.js/issues/297), Dexie's single
-most-requested missing feature (30 👍, open since 2016). IndexedDB can only use one index per
-query, so Dexie cannot do it. SQLite can, so **litie just does it**:
+A cursor-based store can only use a single index per query. A SQL query planner can filter on
+one index and order by another, so this just works:
 
 ```js
 await db.issues
@@ -53,7 +52,7 @@ exists so migrated code runs unchanged.
 | `toArray()` | `Promise<T[]>` |
 | `first()` / `last()` | `Promise<T \| undefined>` |
 | `count()` | `Promise<number>` |
-| `toMap(keyPath?)` | `Promise<Map>` *(dexie#2009)* |
+| `toMap(keyPath?)` | `Promise<Map>` |
 | `primaryKeys()` | `Promise<Key[]>` |
 | `keys()` | `Promise<IndexKey[]>` — **index** keys |
 | `uniqueKeys()` | `Promise<IndexKey[]>` |
@@ -61,7 +60,7 @@ exists so migrated code runs unchanged.
 | `sortBy(keyPath)` | `Promise<T[]>` — accepts any keyPath, not just an index |
 | `each(fn)` / `eachKey(fn)` / `eachPrimaryKey(fn)` / `eachUniqueKey(fn)` | `Promise<void>` |
 
-`for await (const doc of collection) { ... }` also works *(dexie#300)*.
+`for await (const doc of collection) { ... }` also works.
 
 ## Writing
 

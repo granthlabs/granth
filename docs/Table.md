@@ -20,7 +20,7 @@ Reach it as `db.friends` or `db.table('friends')`.
 | `toArray()` | `Promise<T[]>` | |
 | `count()` | `Promise<number>` | |
 | `each(fn)` | `Promise<void>` | |
-| `toMap(keyPath?)` | `Promise<Map>` | Keyed by primary key, or any keyPath *(dexie#2009)* |
+| `toMap(keyPath?)` | `Promise<Map>` | Keyed by primary key, or any keyPath |
 | `where(index)` | [`WhereClause`](./WhereClause.md) | |
 | `where({a, b})` | [`Collection`](./Collection.md) | Multi-index equality, AND'ed |
 | `orderBy(index)` | `Collection` | |
@@ -28,7 +28,7 @@ Reach it as `db.friends` or `db.table('friends')`.
 | `limit(n)` / `offset(n)` / `reverse()` | `Collection` | |
 | `toCollection()` | `Collection` | |
 
-`for await (const doc of db.friends) { ... }` also works *(dexie#300)*.
+`for await (const doc of db.friends) { ... }` also works.
 
 ## Writing
 

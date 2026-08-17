@@ -77,12 +77,12 @@ See [liveQuery](./liveQuery.md).
 ### `clearAll()` → `Promise<string[]>`
 
 Empties every table without dropping the schema. Returns the table names cleared.
-*(Dexie has no equivalent — [dexie#1571](https://github.com/dexie/Dexie.js/issues/1571).)*
+
 
 ### `size()` → `Promise<number>`
 
 Bytes the database occupies on disk.
-*(Dexie has no equivalent — [dexie#689](https://github.com/dexie/Dexie.js/issues/689).)*
+
 
 ### `storageKind()` → `Promise<'opfs' | 'indexeddb'>`
 

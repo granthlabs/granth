@@ -71,10 +71,10 @@ Stores with out-of-line keys throw a clear error — litie requires an inline `k
 
 ## 3. What you gain
 
-- **Filter on one index, order by another** — [dexie#297](https://github.com/dexie/Dexie.js/issues/297),
+- **Filter on one index, order by another** —,
   30 👍, impossible in IndexedDB.
-- `toMap()` *(dexie#2009)*, `for await` iteration *(dexie#300)*, `clearAll()` *(dexie#1571)*,
-  `size()` *(dexie#689)*.
+- `toMap()`, `for await` iteration, `clearAll()`,
+  `size()`.
 - Real SQL indexes and query planning instead of cursor walking.
 - Queries run in a worker, off the main thread.
-- No "first `toArray()` returns `[]`" ordering trap *(dexie#1273)* — queries auto-open.
+- No "first `toArray()` returns `[]`" ordering trap — queries auto-open.
