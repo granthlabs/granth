@@ -82,6 +82,20 @@ export function parseStore(table: string, spec: string): StoreDef {
     return { name: kp, keyPaths: [kp], unique, multi, compound: false };
   });
 
+  // A DOTTED primary key is not supported: the key is a real SQLite column, and
+  // reading it back out of a nested document would mean a different code path in
+  // split/get/delete than the one every other key takes. Rejecting here is not
+  // the interesting part — it already failed, but at first insert, with
+  // `requires a "meta.uid"` on a document that HAS meta.uid. A wrong explanation
+  // at the wrong moment costs more than the missing feature.
+  if (pkName.includes('.')) {
+    throw new Error(
+      `granth: "${table}" declares a nested primary key "${pkName}", which is not supported. ` +
+        `Use a top-level key and index the nested field instead: ` +
+        `stores({ ${table}: '${pkName.split('.').pop()}, ${pkName}' }).`
+    );
+  }
+
   return { table, primKey: { name: pkName, auto }, indexes };
 }
 
