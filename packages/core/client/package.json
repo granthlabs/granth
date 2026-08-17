@@ -27,7 +27,7 @@
   ],
   "scripts": {
     "build": "tsc -b",
-    "test": "node test-selfcheck.mjs && node test-inline-runtime.mjs && node test-adversarial-engine.mjs && node test-adversarial-client.mjs && node test-compat-audit.mjs --assert && node test-docs-coverage.mjs --assert"
+    "test": "node test-selfcheck.mjs && node test-inline-runtime.mjs && node test-adversarial-engine.mjs && node test-adversarial-client.mjs && node test-compat-audit.mjs --assert && node test-docs-coverage.mjs --assert && node test-fuzz-security.mjs"
   },
   "engines": {
     "node": ">=18"

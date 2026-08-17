@@ -30,7 +30,19 @@ function assertKeyPath(kp: string): string {
   return kp;
 }
 
-const q = (id: string): string => `"${String(id).replace(/"/g, '""')}"`;
+const q = (id: string): string => {
+  const str = String(id);
+  // NUL terminates the C string SQLite actually parses, so an identifier
+  // containing one is emitted whole and read TRUNCATED — `"a\0b"` arrives as
+  // `"a`, an unterminated identifier. It fails safe (a syntax error, not an
+  // injection) and keyPath validation rejects NUL long before this, but a
+  // quoting function that can emit unparseable SQL is a broken last line of
+  // defence. Refuse instead, loudly.
+  if (str.includes('\u0000')) {
+    throw new Error('granth: identifiers cannot contain a NUL character');
+  }
+  return `"${str.replace(/"/g, '""')}"`;
+};
 /** Column backing a keyPath. `address.city` -> ix$address$city */
 export const col = (keyPath: string): string => `ix$${keyPath.replace(/\./g, '$')}`;
 export const jsonPath = (keyPath: string): string => `$.${keyPath}`;
