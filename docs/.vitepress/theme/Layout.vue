@@ -91,36 +91,53 @@ const isHighlighted = (n) => current.value.hl?.some(([a, b]) => n >= a && n <= b
 
 const benefits = [
   {
-    title: 'Queries that stay fast as data grows',
-    body: "SQLite's planner picks the index. Filter on one field and sort by another in a single statement, instead of pulling the table into JavaScript and sorting it there.",
-    href: '/Collection', linkText: 'Query API',
+    icon: 'layers',
+    title: 'Local-first storage',
+    body: 'SQLite compiled to WebAssembly, kept in OPFS — the fastest storage the browser offers, with no COOP/COEP headers required.',
+    points: ['Works fully offline', 'Megabytes, not a 5 MB cap', 'Falls back when OPFS is absent'],
   },
   {
-    title: 'Never blocks your interface',
-    body: 'SQL runs in a dedicated Worker. localStorage is synchronous and janks the main thread on every read; a slow scan here cannot drop a frame, because it is not on your thread.',
-    href: '/Runtimes', linkText: 'Runtimes',
+    icon: 'bolt',
+    title: 'A real query planner',
+    body: 'Filter on one index and order by another in a single statement. A cursor-based store walks one index per query and sorts the rest in JavaScript.',
+    points: ['Compound and multiEntry indexes', 'count() without iterating', 'bulkGet in one round trip'],
   },
   {
-    title: 'Correct with many tabs open',
-    body: 'One tab is elected writer through Web Locks and the rest route to it. Two tabs writing one file is how browser databases corrupt — so the test suite kills the writer mid-write.',
-    href: '/Runtimes', linkText: 'How election works',
+    icon: 'chip',
+    title: 'Off the main thread',
+    body: 'SQL executes in a dedicated Worker, so a slow scan cannot drop a frame. localStorage is synchronous and blocks on every read.',
+    points: ['No jank on large reads', 'Inline runtime for strict CSP', 'Streams results back by message'],
   },
   {
-    title: 'Your data survives the round trip',
-    body: 'Date, NaN, Infinity, BigInt and null come back as themselves. Plain JSON destroys all five silently, which is a data-loss bug wearing a serialisation costume.',
-    href: '/Granth', linkText: 'Value handling',
+    icon: 'tabs',
+    title: 'Safe across tabs',
+    body: 'One tab is elected writer through Web Locks and every other tab routes to it. Two tabs writing one file is how browser databases corrupt.',
+    points: ['Single-writer election', 'Failover tested by killing the writer', 'Cross-tab transactions'],
   },
   {
-    title: 'Encrypt what matters, at rest',
-    body: 'Browser storage is plaintext on disk — OPFS included. A field-level AES-GCM addon seals sensitive values before they reach SQLite, with a test that greps the raw file to prove it.',
-    href: '/Encryption', linkText: 'Encryption',
+    icon: 'shield',
+    title: 'Encrypted at rest, honestly',
+    body: 'Browser storage is plaintext on disk, OPFS included. A field-level AES-GCM addon seals values before they reach SQLite.',
+    points: ['AES-GCM, fresh IV per value', 'Proven by grepping the raw file', 'Clear about what it cannot stop'],
   },
   {
-    title: 'Migrate without a rewrite',
-    body: 'A codemod rewrites what is safe and reports what is not. Then import your existing IndexedDB data, schema inference included, and delete the old blob.',
-    href: '/MigratingFromDexie', linkText: 'Migration guide',
+    icon: 'puzzle',
+    title: 'Any framework, no adapter',
+    body: 'A live query is already an observable and already a Svelte store, so most ecosystems need no glue at all.',
+    points: ['React, Vue, Angular, Svelte', 'RxJS, Zustand, TanStack Query', 'Storage and runtime are plugins'],
   },
 ];
+
+/* Outline icons, 28px, stroke-based so they read as a set. Inline rather than an
+   icon package: six shapes are not worth a dependency, and these inherit colour. */
+const icons = {
+  layers: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 21 7.5 12 12 3 7.5z"/><path d="M3 12.5 12 17l9-4.5"/><path d="M3 17 12 21.5 21 17"/></svg>',
+  bolt: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>',
+  chip: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M10 3v3M14 3v3M10 18v3M14 18v3M3 10h3M3 14h3M18 10h3M18 14h3"/></svg>',
+  tabs: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M8 6V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-2"/></svg>',
+  shield: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 20 5.5v6c0 5-3.4 8.9-8 10.5-4.6-1.6-8-5.5-8-10.5v-6z"/><path d="M9 12l2 2 4-4"/></svg>',
+  puzzle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3h4a1 1 0 0 1 1 1v2a2 2 0 1 0 4 0V4h1a1 1 0 0 1 1 1v4h-2a2 2 0 1 0 0 4h2v4a1 1 0 0 1-1 1h-4v-2a2 2 0 1 0-4 0v2H5a1 1 0 0 1-1-1v-4h2a2 2 0 1 0 0-4H4V5a1 1 0 0 1 1-1h5z"/></svg>',
+};
 
 const copied = ref(false);
 async function copy() {
@@ -185,20 +202,22 @@ async function copy() {
       <section class="benefits">
         <div class="benefits__pattern" aria-hidden="true" />
         <div class="benefits__inner">
-          <p class="benefits__eyebrow">Primary benefits</p>
-          <h2 class="benefits__title">Why granthdb?</h2>
-          <p class="benefits__lede">
-            IndexedDB's model with a real query engine underneath — off your main thread,
-            correct when the user has three tabs open, and reachable through the API you
-            already know.
-          </p>
+          <!-- Heading sits in its own column so the grid reads as one block
+               rather than a headline stranded above six loose items. -->
+          <header class="benefits__head">
+            <p class="benefits__eyebrow">Primary benefits</p>
+            <h2 class="benefits__title">Why granthdb?</h2>
+            <span class="benefits__rule" aria-hidden="true" />
+          </header>
 
           <div class="benefits__grid">
-            <article v-for="(b, i) in benefits" :key="b.title" class="benefit">
-              <span class="benefit__num" aria-hidden="true">{{ String(i + 1).padStart(2, '0') }}</span>
+            <article v-for="b in benefits" :key="b.title" class="benefit">
+              <span class="benefit__icon" aria-hidden="true" v-html="icons[b.icon]" />
               <h3 class="benefit__title">{{ b.title }}</h3>
               <p class="benefit__body">{{ b.body }}</p>
-              <a v-if="b.href" class="benefit__link" :href="b.href">{{ b.linkText }} &rarr;</a>
+              <ul class="benefit__points">
+                <li v-for="pt in b.points" :key="pt">{{ pt }}</li>
+              </ul>
             </article>
           </div>
         </div>

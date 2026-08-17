@@ -338,110 +338,144 @@
   overflow: hidden;
 }
 
-/* The section gets its own surface so it reads as a distinct band rather than
-   more of the same page. Radial washes, not wedges — softer than the code panel
-   because there is body copy sitting on it. */
 .benefits__pattern {
   position: absolute;
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(60% 55% at 12% 0%, oklch(26% 0.05 258 / 0.55), transparent 70%),
-    radial-gradient(50% 50% at 92% 18%, oklch(24% 0.045 285 / 0.5), transparent 72%),
-    radial-gradient(70% 60% at 50% 110%, oklch(22% 0.035 235 / 0.55), transparent 70%);
+    radial-gradient(58% 55% at 10% 0%, oklch(24% 0.045 258 / 0.5), transparent 70%),
+    radial-gradient(50% 50% at 94% 20%, oklch(22% 0.04 285 / 0.45), transparent 72%);
 }
 
-.benefits__inner { position: relative; max-width: 1280px; margin: 0 auto; }
+/* Heading in its OWN column beside the grid, not stranded above it: the whole
+   section then reads as one block. Below 1100px it stacks. */
+.benefits__inner {
+  position: relative;
+  max-width: 1320px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) 1fr;
+  gap: 48px;
+}
+
+.benefits__head { padding-top: 4px; }
 
 .benefits__eyebrow {
-  margin: 0 0 8px;
+  margin: 0 0 14px;
   font-size: var(--g-text-xs);
-  font-weight: 700;
-  letter-spacing: 0.12em;
+  font-weight: 600;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--g-accent);
+  color: var(--g-text-3);
 }
 
 .benefits__title {
-  margin: 0 0 14px;
-  font-size: clamp(1.9rem, 3.4vw, var(--g-text-3xl));
-  font-weight: 780;
-  letter-spacing: -0.035em;
-  line-height: 1.08;
+  margin: 0 0 20px;
+  font-size: clamp(2rem, 3.2vw, var(--g-text-3xl));
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
   color: var(--g-text);
 }
 
-.benefits__lede {
-  margin: 0 0 48px;
-  max-width: 60ch;
-  font-size: var(--g-text-lg);
-  line-height: 1.6;
-  color: var(--g-text-2);
+.benefits__rule {
+  display: block;
+  width: 72px;
+  height: 1px;
+  background: var(--g-line);
 }
 
+/* Divider rules instead of card boxes. Six outlined panels fight each other;
+   a hairline is enough separation and lets the content carry the section. */
 .benefits__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 56px 0;
 }
 
 .benefit {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  background: oklch(19% 0.016 260 / 0.8);
-  border: 1px solid var(--g-line-soft);
-  border-radius: var(--g-radius-xl);
-  padding: 28px 26px 24px;
-  backdrop-filter: blur(6px);   /* so the pattern reads THROUGH the card */
-  transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
+  padding: 0 34px;
+  border-left: 1px solid var(--g-line-soft);
 }
 
-.benefit:hover {
-  border-color: var(--g-accent-dim);
-  background: oklch(22% 0.018 260 / 0.92);
-  transform: translateY(-3px);
+/* The leftmost item in each row needs no rule — it is the edge, not a divide. */
+.benefit:nth-child(3n + 1) { border-left: none; padding-left: 0; }
+
+.benefit__icon {
+  display: block;
+  width: 30px;
+  height: 30px;
+  margin-bottom: 22px;
+  color: var(--g-text);
 }
 
-/* A number instead of an icon: it sequences the list and cannot be mistaken for
-   decoration the way a generic glyph can. */
-.benefit__num {
-  font-family: var(--vp-font-family-mono);
-  font-size: var(--g-text-xs);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: var(--g-accent);
-  opacity: 0.75;
-  margin-bottom: 14px;
-}
+.benefit__icon svg { width: 100%; height: 100%; display: block; }
 
 .benefit__title {
-  margin: 0 0 10px;
+  margin: 0 0 12px;
   font-size: var(--g-text-lg);
-  font-weight: 650;
-  letter-spacing: -0.018em;
+  font-weight: 600;
+  letter-spacing: -0.012em;
   line-height: 1.3;
   color: var(--g-text);
 }
 
 .benefit__body {
-  margin: 0 0 16px;
+  margin: 0 0 22px;
   font-size: var(--g-text-sm);
-  line-height: 1.68;
+  line-height: 1.7;
   color: var(--g-text-2);
 }
 
-.benefit__link {
-  margin-top: auto;             /* pins links to a common baseline across cards */
+.benefit__points { list-style: none; margin: 0; padding: 0; }
+
+.benefit__points li {
+  position: relative;
+  padding-left: 24px;
+  margin-bottom: 9px;
   font-size: var(--g-text-sm);
-  font-weight: 600;
-  color: var(--g-accent);
-  text-decoration: none;
+  line-height: 1.5;
+  color: var(--g-text);
 }
 
-.benefit__link:hover { text-decoration: underline; }
+/* Tick drawn in CSS — no icon font, no request, scales with the text. */
+.benefit__points li::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 0.4em;
+  width: 10px;
+  height: 5px;
+  border-left: 1.6px solid var(--g-text-2);
+  border-bottom: 1.6px solid var(--g-text-2);
+  transform: rotate(-45deg);
+}
+
+@media (max-width: 1100px) {
+  .benefits__inner { grid-template-columns: 1fr; gap: 40px; }
+  .benefits__grid { grid-template-columns: repeat(2, 1fr); gap: 44px 0; }
+  .benefit:nth-child(3n + 1) { border-left: 1px solid var(--g-line-soft); padding-left: 34px; }
+  .benefit:nth-child(2n + 1) { border-left: none; padding-left: 0; }
+}
+
+@media (max-width: 700px) {
+  .benefits__grid { grid-template-columns: 1fr; gap: 40px 0; }
+  .benefit,
+  .benefit:nth-child(3n + 1),
+  .benefit:nth-child(2n + 1) {
+    border-left: none;
+    padding: 0 0 0 0;
+  }
+}
 
 /* ------------------------------------------------------------- footer ---- */
+
+/* On doc pages the sidebar is position:fixed and full height, so a full-width
+   footer renders UNDERNEATH it. Inset the footer by the sidebar width wherever a
+   sidebar is actually present. */
+@media (min-width: 960px) {
+  body:has(.VPSidebar) .gfoot__inner { padding-left: calc(var(--vp-sidebar-width, 272px) + 24px); }
+}
 
 .gfoot {
   position: relative;
@@ -509,11 +543,22 @@
   padding: 7px 11px;
 }
 
+/* Four explicit columns, not auto-fit: on doc pages the footer is inset by the
+   sidebar, and auto-fit could no longer fit four tracks so the last column
+   wrapped onto its own row and looked like a mistake. Explicit columns keep the
+   directory readable, and the breakpoints below step it down deliberately. */
 .gfoot__cols {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 32px 24px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 32px 20px;
 }
+
+@media (max-width: 1180px) { .gfoot__cols { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px)  { .gfoot__cols { grid-template-columns: 1fr; } }
+
+/* The install line is long; let it wrap inside its own box rather than forcing
+   the brand column wider than its share. */
+.gfoot__install { white-space: normal; line-height: 1.5; }
 
 .gfoot__col h3 {
   margin: 0 0 14px;
