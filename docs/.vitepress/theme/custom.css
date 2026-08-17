@@ -1,0 +1,248 @@
+/**
+ * granthdb docs theme.
+ *
+ * Every value here is a TOKEN override, not a call-site value: VitePress already
+ * has a full variable system (--vp-c-*, --vp-font-*), so the job is to redefine
+ * the scale once and let the theme apply it. Nothing below styles an individual
+ * element with a raw colour.
+ *
+ * Ramps are authored in OKLCH because HSL lightness is not perceived lightness —
+ * two HSL colours at the same L can differ wildly in how bright they look, which
+ * is what makes hand-tuned HSL ramps drift. OKLCH L is perceptual, so a ramp
+ * stepped evenly in L actually looks evenly stepped.
+ */
+
+:root {
+  /* Brand: a deep teal-blue. Saturated greys lean the same way, so the neutral
+     surfaces sit under the accent instead of fighting it. */
+  --granth-brand-100: oklch(96% 0.02 235);
+  --granth-brand-200: oklch(89% 0.05 235);
+  --granth-brand-400: oklch(68% 0.12 235);
+  --granth-brand-500: oklch(58% 0.14 235);
+  --granth-brand-600: oklch(50% 0.13 235);
+  --granth-brand-700: oklch(42% 0.11 235);
+
+  /* VitePress brand slots. 1 = text/links, 2 = hover, 3 = solid fills. */
+  --vp-c-brand-1: var(--granth-brand-600);
+  --vp-c-brand-2: var(--granth-brand-500);
+  --vp-c-brand-3: var(--granth-brand-500);
+  --vp-c-brand-soft: oklch(58% 0.14 235 / 0.10);
+
+  /* Type scale, hand-picked and non-linear — no two adjacent steps within 25%. */
+  --granth-text-sm: 13px;
+  --granth-text-base: 16px;
+  --granth-text-lg: 19px;
+  --granth-text-xl: 24px;
+
+  --vp-font-family-base: 'Inter var', 'Inter', ui-sans-serif, system-ui, -apple-system,
+    'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  --vp-font-family-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, 'SF Mono',
+    Menlo, Consolas, monospace;
+}
+
+.dark {
+  /* Not the same ramp dimmed: on a dark surface a mid-chroma accent reads muddy,
+     so the accent lifts in lightness and drops slightly in chroma. */
+  --vp-c-brand-1: oklch(78% 0.11 235);
+  --vp-c-brand-2: oklch(84% 0.10 235);
+  --vp-c-brand-3: oklch(52% 0.13 235);
+  --vp-c-brand-soft: oklch(78% 0.11 235 / 0.14);
+}
+
+/* ---------------------------------------------------------------- hero ---- */
+
+/* Hierarchy from weight and colour, not size: the name is heavy and tinted, the
+   tagline is a lighter grey at a modest size. Shouting the headline louder would
+   just make the tagline unreadable by comparison. */
+.VPHero .name {
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  background: linear-gradient(100deg, var(--granth-brand-600), var(--granth-brand-400));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.dark .VPHero .name {
+  background: linear-gradient(100deg, oklch(84% 0.10 235), oklch(72% 0.09 200));
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.VPHero .text {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.15;          /* large type wants tight leading */
+}
+
+.VPHero .tagline {
+  /* 45-75 characters is the readable band; cap the PARAGRAPH, not the container. */
+  max-width: 34em;
+  line-height: 1.55;          /* small type wants loose leading */
+  color: var(--vp-c-text-2);
+}
+
+/* ------------------------------------------------------- feature cards ---- */
+
+/* More space AROUND a group than WITHIN it: the gap between cards must exceed
+   the gap between a card's title and its body, or the grid reads as one mass. */
+.VPFeatures .items {
+  gap: 20px;
+}
+
+.VPFeature {
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+  padding: 24px;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.VPFeature:hover {
+  border-color: var(--vp-c-brand-1);
+  transform: translateY(-2px);
+}
+
+.VPFeature .title {
+  font-size: var(--granth-text-lg);
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  margin-bottom: 8px;         /* tight to its own body... */
+}
+
+.VPFeature .details {
+  color: var(--vp-c-text-2);
+  line-height: 1.6;
+}
+
+/* ------------------------------------------------------------- content ---- */
+
+.vp-doc h2 {
+  /* Space above a section heading belongs to the heading, not the paragraph that
+     preceded it — so the heading groups with what follows. */
+  margin-top: 48px;
+  padding-top: 24px;
+  letter-spacing: -0.02em;
+}
+
+.vp-doc h3 {
+  margin-top: 32px;
+  letter-spacing: -0.01em;
+}
+
+/* API pages are dense with `code` headings; a monospace h3 reads as a signature. */
+.vp-doc h3 code {
+  font-size: 0.92em;
+  font-weight: 650;
+}
+
+.vp-doc p,
+.vp-doc li {
+  line-height: 1.7;
+}
+
+/* Cap prose measure without narrowing tables or code, which need the room. */
+.vp-doc p {
+  max-width: 72ch;
+}
+
+/* Fewer borders: the table already differs in background, so row rules alone
+   carry the structure — an outer border on top of that is noise. */
+.vp-doc table {
+  display: table;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--granth-text-sm);
+}
+
+.vp-doc th {
+  font-weight: 650;
+  color: var(--vp-c-text-1);
+  text-align: left;
+}
+
+.vp-doc tr {
+  border-top: 1px solid var(--vp-c-divider);
+  background: transparent;
+}
+
+.vp-doc td,
+.vp-doc th {
+  padding: 10px 14px;
+  border: none;
+}
+
+/* Depth from an offset, not a blur: light comes from above, so a shadow with no
+   vertical offset is a glow. */
+.vp-doc div[class*='language-'] {
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 4px 12px rgb(0 0 0 / 0.04);
+}
+
+.vp-doc blockquote {
+  border-left: 3px solid var(--vp-c-brand-1);
+  background: var(--vp-c-brand-soft);
+  border-radius: 0 8px 8px 0;
+  padding: 12px 16px;
+}
+
+.vp-doc blockquote > p {
+  margin: 0;
+  color: var(--vp-c-text-1);
+}
+
+@media (max-width: 640px) {
+  /* Big things shrink faster than small things. */
+  .VPHero .name { font-size: 2.6rem; }
+  .VPFeature { padding: 20px; }
+}
+
+/* ------------------------------------------------- homepage body prose ---- */
+
+/* The home layout has no content container, so prose added under the hero would
+   otherwise run the full viewport width — well past the readable 45-75 character
+   band on a wide monitor. */
+.home-body {
+  max-width: 768px;
+  margin: 0 auto;
+  padding: 16px 24px 64px;
+}
+
+.home-body h2 {
+  font-size: var(--granth-text-xl);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  margin-top: 56px;
+  margin-bottom: 12px;
+}
+
+.home-body h2:first-child {
+  margin-top: 0;
+}
+
+.home-body p {
+  color: var(--vp-c-text-2);
+  line-height: 1.7;
+  max-width: 68ch;
+}
+
+.home-body table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--granth-text-sm);
+  margin: 16px 0;
+}
+
+.home-body th,
+.home-body td {
+  padding: 10px 14px;
+  text-align: left;
+}
+
+.home-body tr {
+  border-top: 1px solid var(--vp-c-divider);
+}
+
+.home-body th {
+  font-weight: 650;
+  color: var(--vp-c-text-1);
+}

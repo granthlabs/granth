@@ -170,3 +170,30 @@ Events: `ready`, `versionchange`, `blocked`, `close`.
 ```js
 if (!Granth.isSupported()) return <ServerFallback />;
 ```
+
+### `db.Version` *(Dexie compatibility)*
+
+Present so that code doing `instanceof db.Version` or feature-detecting it keeps
+working after a migration. Schema versions are declared with
+[`version(n).stores({...})`](#versionnstoresobject); there is nothing useful to
+call on this class, and new code should ignore it.
+
+## Utilities
+
+### `getByKeyPath(obj, keyPath)` → `unknown`
+
+Reads a possibly-dotted keyPath out of a plain object, the same way an index
+does when it evaluates `'addr.city'`. Exported because sorting or grouping
+results client-side otherwise means re-implementing it — and re-implementing it
+slightly differently is how a list ends up ordered differently from the query
+that produced it.
+
+```js
+import { getByKeyPath } from 'granthdb';
+
+const rows = await db.friends.toArray();
+rows.sort((a, b) => getByKeyPath(a, 'addr.city') < getByKeyPath(b, 'addr.city') ? -1 : 1);
+```
+
+Returns `undefined` for a missing path rather than throwing, so it is safe on
+documents that predate the field.
