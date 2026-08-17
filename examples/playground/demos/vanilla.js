@@ -14,7 +14,7 @@ document.getElementById('f').addEventListener('submit', async (e) => {
 // subscribe() returns an unsubscribe function AND carries .unsubscribe() —
 // so the same object works as a Svelte store and as an RxJS-style subscription.
 db.liveQuery(() => db.todos.orderBy('created').toArray()).subscribe((todos) => {
-  list.innerHTML = todos.length ? '' : '<li class="empty">Nothing yet.</li>';
+  list.innerHTML = todos.length ? '' : '<li class="empty">No todos yet — add one above and the list updates itself.</li>';
   for (const t of todos) {
     const li = document.createElement('li');
     li.className = t.done ? 'done' : '';

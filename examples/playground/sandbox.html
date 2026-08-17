@@ -1,87 +1,137 @@
 <!doctype html>
+<html lang="en">
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>granthdb sandbox</title>
+<title>Sandbox — granthdb</title>
+<meta name="description" content="Run real queries against a real SQLite database in your browser's OPFS. Nothing is uploaded.">
+<link rel="stylesheet" href="./ui.css">
 <style>
-  :root {
-    color-scheme: dark;
-    --bg: #14161c; --panel: #1a1d25; --line: #2a2f3a;
-    --text: #e8eaf0; --dim: #9aa3b4; --accent: #7fb4ff; --bad: #ff8f8f; --good: #86e0a8;
-    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* Two panes on a wide screen, stacked on a narrow one. The result pane gets
+     the larger share — it is what needs room to breathe. */
+  .sandbox {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    gap: var(--g-space-5);
+    align-items: start;
   }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; background: var(--bg); color: var(--text);
-    font: 15px/1.6 ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  }
-  header { padding: 20px 24px; border-bottom: 1px solid var(--line); display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
-  h1 { margin: 0; font-size: 19px; letter-spacing: -0.02em; }
-  .meta { font: 12px var(--mono); color: var(--dim); }
-  main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0; min-height: calc(100vh - 66px); }
-  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
-  section { padding: 20px 24px; min-width: 0; }
-  section + section { border-left: 1px solid var(--line); }
-  @media (max-width: 900px) { section + section { border-left: none; border-top: 1px solid var(--line); } }
-  h2 { margin: 0 0 12px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--dim); font-weight: 600; }
-  #code {
-    width: 100%; min-height: 220px; padding: 14px; resize: vertical;
-    background: #10131a; color: var(--text); border: 1px solid var(--line); border-radius: 8px;
-    font: 13px/1.65 var(--mono); tab-size: 2;
-  }
-  #code:focus, button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .row { display: flex; gap: 10px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
-  button {
-    font: 600 13px/1 ui-sans-serif, system-ui, sans-serif; padding: 10px 18px; border-radius: 7px; cursor: pointer;
-    background: var(--accent); color: #10131a; border: 1px solid var(--accent);
-  }
-  button.ghost { background: transparent; color: var(--text); border-color: var(--line); }
-  button:disabled { opacity: 0.5; cursor: default; }
-  select { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 7px; padding: 9px 10px; font-size: 13px; }
-  .hint { color: var(--dim); font-size: 12px; }
-  pre { margin: 0; padding: 14px; background: #10131a; border: 1px solid var(--line); border-radius: 8px;
-        font: 12.5px/1.6 var(--mono); white-space: pre-wrap; word-break: break-word; max-height: 46vh; overflow: auto; }
-  .err { color: var(--bad); }
-  .ok { color: var(--good); }
-  table { width: 100%; border-collapse: collapse; font: 12.5px var(--mono); margin-top: 12px; }
-  th, td { text-align: left; padding: 7px 10px; border-top: 1px solid var(--line); vertical-align: top; }
-  th { color: var(--dim); font-weight: 600; }
-</style>
+  /* minmax(0, 1fr), not 1fr: a bare `1fr` floors at the content's width, so the
+     result table stretched the column and the whole page scrolled sideways. */
+  @media (max-width: 940px) { .sandbox { grid-template-columns: minmax(0, 1fr); } }
 
-<header>
-  <h1>granthdb sandbox</h1>
-  <span class="meta" id="env">booting…</span>
+  /* The editor is the primary object on this screen, so it gets the height. */
+  #code { min-height: 232px; }
+
+  /* Label + control is one group; the gap below the GROUP is larger than the gap
+     inside it, or the two read as unrelated. */
+  .group + .group { margin-top: var(--g-space-5); }
+
+  .runbar { margin-top: var(--g-space-5); }
+  kbd {
+    font: 600 11px/1 var(--g-mono);
+    padding: 4px 6px;
+    border: 1px solid var(--g-line);
+    border-bottom-width: 2px;
+    border-radius: 5px;
+    background: var(--g-bg-panel);
+    color: var(--g-text-2);
+  }
+  .result-meta { display: flex; align-items: center; gap: var(--g-space-3); margin-left: auto; }
+  #table:empty { display: none; }
+  /* Only separate the table from the JSON when both are actually on screen. */
+  pre.out:not(:empty) + #table { margin-top: var(--g-space-4); }
+  pre.out.err { border-color: var(--g-bad-soft); background: var(--g-bad-soft); }
+  pre.out.ok { border-color: var(--g-good-soft); background: var(--g-good-soft); }
+  /* An empty <pre> is not a result — hide it rather than showing a blank slab. */
+  pre.out:empty { display: none; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <a class="topbar__brand" href="./sandbox.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <ellipse cx="12" cy="6" rx="8" ry="3" /><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6" /><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" />
+    </svg>
+    granthdb
+  </a>
+  <nav class="topbar__nav">
+    <a href="./sandbox.html" aria-current="page">Sandbox</a>
+    <a href="./demos/">Examples</a>
+    <a href="./">Verify</a>
+    <a href="../Tutorial.html">Docs</a>
+    <a href="https://github.com/sundarshahi/granth">GitHub</a>
+  </nav>
 </header>
 
-<main>
-  <section>
-    <h2>Try a query</h2>
-    <label class="hint" for="examples">Load an example</label>
-    <div class="row">
-      <select id="examples" aria-label="Load an example"></select>
-      <button class="ghost" id="reset" type="button">Reseed data</button>
-    </div>
-
-    <div class="row" style="margin-top:14px; width:100%">
-      <textarea id="code" spellcheck="false" aria-label="Query code"></textarea>
-    </div>
-
-    <div class="row">
-      <button id="run" type="button">Run</button>
-      <span class="hint">⌘/Ctrl + Enter</span>
-      <span class="hint" id="timing"></span>
-    </div>
-
-    <p class="hint" style="margin-top:16px">
-      Everything runs locally in your browser against a real SQLite database in OPFS.
-      Nothing is uploaded. <code>db</code> is in scope — try <code>db.friends</code>.
+<div class="page">
+  <div class="page__head">
+    <h1>Sandbox</h1>
+    <p>
+      A real SQLite database, running in this tab against your browser's origin-private
+      file system. Queries execute locally in a Web&nbsp;Worker — nothing is uploaded, and
+      the data survives a reload.
     </p>
-  </section>
+  </div>
 
-  <section>
-    <h2>Result</h2>
-    <pre id="out">Run something.</pre>
-    <div id="table"></div>
-  </section>
-</main>
+  <div class="sandbox">
+    <section class="card" aria-labelledby="query-title">
+      <div class="card__head">
+        <h2 class="card__title" id="query-title">Query</h2>
+        <span class="badge badge--idle" id="env">Opening database…</span>
+      </div>
+
+      <div class="card__body">
+        <div class="group">
+          <label class="label" for="examples">Start from an example</label>
+          <div class="row">
+            <select class="field" id="examples" style="flex:1 1 220px; width:auto"></select>
+            <button class="btn btn--ghost" id="reset" type="button">Reseed data</button>
+          </div>
+        </div>
+
+        <div class="group">
+          <label class="label" for="code">JavaScript — <code>db</code> is in scope</label>
+          <textarea class="field" id="code" spellcheck="false" autocapitalize="off" autocorrect="off"></textarea>
+        </div>
+
+        <div class="row runbar">
+          <button class="btn" id="run" type="button">Run query</button>
+          <span class="hint"><kbd>⌘</kbd><kbd>↵</kbd> or <kbd>Ctrl</kbd><kbd>↵</kbd></span>
+        </div>
+      </div>
+
+      <div class="card__foot">
+        Whatever you <code>return</code> is shown alongside. Tables:
+        <code>db.friends</code>, <code>db.notes</code>.
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="result-title">
+      <div class="card__head">
+        <h2 class="card__title" id="result-title">Result</h2>
+        <span class="result-meta">
+          <span class="meta" id="rowcount"></span>
+          <span class="meta" id="timing"></span>
+        </span>
+      </div>
+      <div class="card__body">
+        <!-- Exactly one of these is visible at a time: `state` carries the
+             empty / loading / error screens, `out` + `table` the success one. -->
+        <div id="state" class="state">
+          <span class="state__title">Nothing run yet</span>
+          <p class="state__body">
+            Pick an example or write your own query, then press <strong>Run query</strong>.
+            Rows that share a shape come back as a table; anything else as JSON.
+          </p>
+        </div>
+        <pre class="out" id="out" tabindex="0" aria-live="polite"></pre>
+        <div id="table" class="table-wrap"></div>
+      </div>
+    </section>
+  </div>
+</div>
 
 <script type="module" src="./sandbox.js"></script>
+</body>
+</html>

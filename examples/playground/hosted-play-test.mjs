@@ -124,6 +124,28 @@ for (const name of ['vanilla', 'react', 'vue', 'svelte', 'solid', 'no-worker']) 
   await page.close();
 }
 
+// The verification page is hosted now, so two things must hold: it must NOT
+// auto-run for a visitor (it writes and then deletes a database), and pressing
+// the button must actually run the suite green through the built bundle.
+{
+  const { page, problems } = await open('');
+  try {
+    const ranOnLoad = await page.evaluate(() => Boolean(window.__RESULTS__));
+    check('verification page does not auto-run for a visitor', !ranOnLoad && problems.length === 0,
+      ranOnLoad ? 'started on load without being asked' : problems[0] ?? '');
+
+    await page.click('#start');
+    await page.waitForFunction(() => window.__RESULTS__, null, { timeout: 120_000 });
+    const r = await page.evaluate(() => window.__RESULTS__);
+    check(`verification passes in the browser (${r.total ?? '?'} checks)`,
+      r.failed === 0 && problems.length === 0,
+      r.fatal ?? (r.failed ? `${r.failed} failed` : problems[0] ?? ''));
+  } catch (e) {
+    check('verification page runs', false, problems[0] ?? String(e.message).slice(0, 110));
+  }
+  await page.close();
+}
+
 // The hub is what the site links to, so its links must resolve on the host.
 {
   const { page, problems } = await open('demos/');

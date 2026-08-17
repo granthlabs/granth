@@ -31,7 +31,7 @@ function App() {
         <button className="primary">Add</button>
       </form>
       <ul>
-        {todos.length === 0 && <li className="empty">Nothing yet.</li>}
+        {todos.length === 0 && <li className="empty">No todos yet — add one above and the list updates itself.</li>}
         {todos.map((t) => (
           <li key={t.id} className={t.done ? 'done' : ''}>
             <input type="checkbox" checked={t.done} onChange={() => toggle(t.id)} />

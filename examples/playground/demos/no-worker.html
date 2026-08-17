@@ -1,8 +1,49 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><title>granth — no Worker</title>
-<link rel="stylesheet" href="./style.css"></head><body><main>
-<nav><a href="./vanilla.html">vanilla</a><a href="./react.html">react</a><a href="./vue.html">vue</a><a href="./svelte.html">svelte</a><a href="./solid.html">solid</a><a href="./no-worker.html">no-worker</a></nav>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Todos in No Worker — granthdb</title>
+<meta name="description" content="A live-updating todo list backed by SQLite in the browser, written in No Worker.">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="topbar__brand" href="../sandbox.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <ellipse cx="12" cy="6" rx="8" ry="3" /><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6" /><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" />
+    </svg>
+    granthdb
+  </a>
+  <nav class="topbar__nav">
+    <a href="../sandbox.html">Sandbox</a>
+    <a href="./" aria-current="page">Examples</a>
+    <a href="../">Verify</a>
+    <a href="../../Tutorial.html">Docs</a>
+    <a href="https://github.com/sundarshahi/granth">GitHub</a>
+  </nav>
+</header>
+<div class="page page--narrow">
+  <div class="page__head">
+    <h1>Framework examples</h1>
+    <p>The same todo list, the same database and the same queries in every one — only the binding differs. Add or tick an item and watch the live query update.</p>
+  </div>
+<nav class="demo-nav" aria-label="Framework">
+  <a href="./vanilla.html">Vanilla JS</a>
+  <a href="./react.html">React</a>
+  <a href="./vue.html">Vue</a>
+  <a href="./svelte.html">Svelte</a>
+  <a href="./solid.html">Solid</a>
+  <a href="./no-worker.html" aria-current="page">No Worker</a>
+</nav>
+  <main class="demo card">
 <h1>Todos — no Worker</h1>
-<p class="sub">The inline runtime: SQL runs on this thread. For strict CSP, SSR and embedded contexts. It cannot use OPFS, so it is paired with IndexedDB.</p>
-<form id="f"><input type="text" id="t" placeholder="What needs doing?" autocomplete="off"><button class="primary">Add</button></form>
-<ul id="list"></ul><div class="meta"><span id="stats"></span><span id="kind"></span></div>
-</main><script type="module" src="./no-worker.js"></script></body></html>
+<p class="sub">The inline runtime: SQL runs on this thread, for strict CSP, SSR and embedded contexts. It cannot use OPFS, so it is paired with IndexedDB.</p>
+<form id="f"><input type="text" id="t" placeholder="What needs doing?" autocomplete="off" aria-label="New todo"><button class="primary" type="submit">Add</button></form>
+<ul id="list"></ul>
+<div class="meta"><span id="stats"></span><span id="kind"></span></div>
+</main>
+</div>
+<script type="module" src="./no-worker.js"></script>
+</body>
+</html>

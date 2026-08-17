@@ -14,11 +14,16 @@ const page = (p) => resolve(here, p);
  * exist only under `vite dev` on a laptop — the site's only reference to the
  * sandbox was a GitHub source link, which shows HTML, not a running database.
  *
- * Deliberately NOT shipped: index.html, compat.html, stress.html and bench.html.
- * Those are test harnesses that wipe OPFS and auto-run on load; the browser
- * suites drive them from the dev server, where they belong.
+ * index.html IS shipped — it is the verification suite, and letting someone prove
+ * OPFS durability in their own browser is worth more than any claim on the docs
+ * site. It only auto-runs when ?phase= is present, which is how CI drives it, so
+ * a visitor gets an explanation and a button instead of a destructive surprise.
+ *
+ * Still NOT shipped: compat.html, stress.html and bench.html — harnesses that
+ * auto-run on load with no idle state, driven from the dev server.
  */
 const HOSTED = {
+  verify: page('index.html'),
   sandbox: page('sandbox.html'),
   demos: page('demos/index.html'),
   vanilla: page('demos/vanilla.html'),

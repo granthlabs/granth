@@ -1,0 +1,317 @@
+/**
+ * Shared UI for every hosted page under /play/ — sandbox, framework demos and
+ * the browser verification run.
+ *
+ * These pages are the first thing a visitor actually touches, and they used to
+ * be three unrelated designs: the sandbox had its own hex palette and the demos
+ * were a LIGHT theme, so "Examples" dropped you from a dark docs page onto a
+ * white one. Everything here is built from tokens.css, which the docs site uses
+ * too — no colour, size, space or radius is invented at a call site.
+ */
+
+@import '../../docs/.vitepress/theme/tokens.css';
+
+*, *::before, *::after { box-sizing: border-box; }
+
+/* The `hidden` attribute is only `display: none` at UA-stylesheet strength, so
+   ANY display declaration silently beats it. `.state { display: flex }` did
+   exactly that, and both the sandbox's "Nothing run yet" and the verification
+   page's "Ready to run" stayed on screen underneath their own results. */
+[hidden] { display: none !important; }
+
+html { color-scheme: dark; }
+
+body {
+  margin: 0;
+  background: var(--g-bg);
+  color: var(--g-text);
+  font: var(--g-text-base) / 1.6 var(--g-font);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Fitts: interactive targets are never smaller than the WCAG 2.2 24×24 floor. */
+button, [role='button'], select, input, textarea, a.btn { min-height: 36px; }
+
+/* One visible focus treatment everywhere. Keyboard operation is not optional,
+   and a focus ring that only some controls have is worse than none. */
+:where(a, button, select, input, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--g-accent);
+  outline-offset: 2px;
+  border-radius: var(--g-radius);
+}
+
+/* ------------------------------------------------------------------ shell */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--g-space-4);
+  flex-wrap: wrap;
+  padding: var(--g-space-3) var(--g-space-5);
+  border-bottom: 1px solid var(--g-line-soft);
+  background: var(--g-bg-sunk);
+}
+
+.topbar__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--g-space-2);
+  font-size: var(--g-text-sm);
+  font-weight: 600;
+  color: var(--g-text);
+  text-decoration: none;
+  letter-spacing: -0.01em;
+}
+.topbar__brand svg { width: 18px; height: 18px; color: var(--g-accent); }
+
+.topbar__nav { display: flex; gap: var(--g-space-4); margin-left: auto; flex-wrap: wrap; }
+.topbar__nav a {
+  font-size: var(--g-text-sm);
+  color: var(--g-text-3);
+  text-decoration: none;
+  transition: color var(--g-fast);
+}
+.topbar__nav a:hover { color: var(--g-text); }
+/* The active item must stay active on the pages beneath it — the usual nav bug. */
+.topbar__nav a[aria-current='page'] { color: var(--g-text); font-weight: 600; }
+
+.page { max-width: 1180px; margin: 0 auto; padding: var(--g-space-6) var(--g-space-5) var(--g-space-8); }
+.page--narrow { max-width: 660px; }
+
+/* Heading and its subtitle belong together, so the gap BELOW the pair is much
+   larger than the gap inside it. This is the spacing rule that fixes most
+   layouts, and the one most often gotten wrong. */
+.page__head { margin-bottom: var(--g-space-6); }
+.page__head h1 {
+  margin: 0 0 var(--g-space-2);
+  font-size: var(--g-text-2xl);
+  line-height: 1.15;          /* line-height is inverse to size */
+  letter-spacing: -0.02em;
+  font-weight: 600;
+}
+.page__head p {
+  margin: 0;
+  color: var(--g-text-2);
+  font-size: var(--g-text-base);
+  max-width: 62ch;            /* cap the paragraph, not the container */
+}
+
+/* -------------------------------------------------------------- surfaces */
+
+/* Elevation on a dark surface comes from a LIGHTER background plus a hairline;
+   the shadow only supplies contact. A blurred offset-less shadow is a glow. */
+.card {
+  background: var(--g-bg-soft);
+  border: 1px solid var(--g-line-soft);
+  border-radius: var(--g-radius-lg);
+  box-shadow: var(--g-shadow-sm);
+  /* A grid/flex item's default min-width is `auto`, i.e. its content — so a
+     nowrap table inside made the CARD wider than the column, which made the
+     PAGE wider than a phone. The overflow-x on .table-wrap can only engage once
+     the ancestors are allowed to be narrower than their contents. */
+  min-width: 0;
+}
+.card__body, .card__head { min-width: 0; }
+.card__head {
+  display: flex;
+  align-items: center;
+  gap: var(--g-space-3);
+  flex-wrap: wrap;
+  padding: var(--g-space-4) var(--g-space-5);
+  border-bottom: 1px solid var(--g-line-soft);
+}
+.card__title {
+  margin: 0;
+  font-size: var(--g-text-xs);
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--g-text-3);
+}
+.card__body { padding: var(--g-space-5); }
+.card__foot {
+  padding: var(--g-space-3) var(--g-space-5);
+  border-top: 1px solid var(--g-line-soft);
+  color: var(--g-text-3);
+  font-size: var(--g-text-xs);
+}
+
+/* --------------------------------------------------------------- actions */
+
+/* A pyramid, ranked by importance on the screen — not by meaning. One solid
+   button per view; everything else is outline or link. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--g-space-2);
+  padding: var(--g-space-2) var(--g-space-4);
+  border: 1px solid transparent;
+  border-radius: var(--g-radius);
+  background: var(--g-accent);
+  color: oklch(18% 0.03 260);
+  font: 600 var(--g-text-sm) / 1 var(--g-font);
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background var(--g-fast), border-color var(--g-fast), color var(--g-fast);
+}
+.btn:hover:not(:disabled) { background: oklch(82% 0.13 255); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn--ghost {
+  background: transparent;
+  border-color: var(--g-line);
+  color: var(--g-text-2);
+}
+.btn--ghost:hover:not(:disabled) { background: var(--g-bg-panel); color: var(--g-text); border-color: var(--g-line); }
+
+.btn--link {
+  background: none;
+  border: 0;
+  padding: var(--g-space-1) var(--g-space-2);
+  color: var(--g-accent);
+  font-weight: 500;
+}
+.btn--link:hover:not(:disabled) { background: none; text-decoration: underline; }
+
+/* ---------------------------------------------------------------- fields */
+
+/* Labels above and always visible: a placeholder as a label fails memory,
+   accessibility and autofill together. */
+.label {
+  display: block;
+  margin-bottom: var(--g-space-2);
+  font-size: var(--g-text-xs);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--g-text-3);
+}
+
+.field, select.field, textarea.field {
+  width: 100%;
+  padding: var(--g-space-2) var(--g-space-3);
+  background: var(--g-bg-sunk);
+  border: 1px solid var(--g-line);
+  border-radius: var(--g-radius);
+  color: var(--g-text);
+  font: var(--g-text-sm) / 1.6 var(--g-font);
+}
+.field::placeholder { color: var(--g-text-3); }
+textarea.field { font-family: var(--g-mono); font-size: var(--g-text-sm); line-height: 1.65; resize: vertical; tab-size: 2; }
+
+.hint { color: var(--g-text-3); font-size: var(--g-text-xs); }
+.row { display: flex; gap: var(--g-space-2); align-items: center; flex-wrap: wrap; }
+
+/* ---------------------------------------------------------------- status */
+
+/* Colour is never the only carrier — every badge shows a glyph and, where there
+   is one, a number. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--g-space-2);
+  padding: var(--g-space-1) var(--g-space-3);
+  border-radius: var(--g-radius-pill);
+  font: 600 var(--g-text-xs) / 1.5 var(--g-font);
+  border: 1px solid transparent;
+}
+.badge--good { background: var(--g-good-soft); color: var(--g-good); border-color: var(--g-good-soft); }
+.badge--bad  { background: var(--g-bad-soft);  color: var(--g-bad);  border-color: var(--g-bad-soft); }
+.badge--warn { background: var(--g-warn-soft); color: var(--g-warn); border-color: var(--g-warn-soft); }
+.badge--idle { background: var(--g-bg-panel);  color: var(--g-text-3); border-color: var(--g-line-soft); }
+.badge--info { background: var(--g-accent-soft); color: var(--g-accent); border-color: var(--g-accent-soft); }
+
+.meta { color: var(--g-text-3); font: var(--g-text-xs) / 1.6 var(--g-mono); }
+
+/* ------------------------------------------------------------ the states */
+
+/* A screen is eight screens. These are the ones that are not the happy path,
+   and they are styled once so no page invents its own. */
+.state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--g-space-3);
+  padding: var(--g-space-6) var(--g-space-5);
+  border-radius: var(--g-radius-lg);
+  background: var(--g-bg-sunk);
+  border: 1px dashed var(--g-line-soft);
+  color: var(--g-text-2);
+}
+.state__title { font-weight: 600; color: var(--g-text); font-size: var(--g-text-base); }
+.state__body { margin: 0; font-size: var(--g-text-sm); color: var(--g-text-2); max-width: 58ch; }
+
+/* An error the USER can fix (a bad query) reads differently from one WE caused.
+   Same shell, different accent and heading — four kinds of bad news, not one. */
+.state--error { border-style: solid; border-color: var(--g-bad-soft); background: var(--g-bad-soft); }
+.state--error .state__title { color: var(--g-bad); }
+
+.state--loading { border-style: solid; }
+
+/* Skeletons match the final layout; a spinner tells you nothing about what is
+   coming. Scoped to the thing loading, never the whole page. */
+.skeleton {
+  height: 12px;
+  border-radius: var(--g-radius);
+  background: linear-gradient(90deg, var(--g-bg-panel) 25%, var(--g-line-soft) 37%, var(--g-bg-panel) 63%);
+  background-size: 400% 100%;
+  animation: g-shimmer 1.3s ease infinite;
+}
+.skeleton + .skeleton { margin-top: var(--g-space-2); }
+@keyframes g-shimmer { from { background-position: 100% 50%; } to { background-position: 0 50%; } }
+
+/* ----------------------------------------------------------------- table */
+
+.table-wrap { overflow-x: auto; }
+table.data { width: 100%; border-collapse: collapse; font: var(--g-text-xs) / 1.6 var(--g-mono); }
+table.data th, table.data td {
+  text-align: left;
+  padding: var(--g-space-2) var(--g-space-3);
+  border-top: 1px solid var(--g-line-soft);
+  vertical-align: top;
+  white-space: nowrap;
+}
+table.data th {
+  color: var(--g-text-3);
+  font-weight: 600;
+  font-family: var(--g-font);
+  font-size: var(--g-text-xs);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-top: 0;
+}
+/* Numbers right-align so digits line up; everything else stays left. */
+table.data td.num, table.data th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+pre.out {
+  margin: 0;
+  padding: var(--g-space-4);
+  background: var(--g-bg-sunk);
+  border: 1px solid var(--g-line-soft);
+  border-radius: var(--g-radius);
+  font: var(--g-text-sm) / 1.65 var(--g-mono);
+  color: var(--g-text-2);
+  overflow: auto;
+  max-height: 420px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+code { font: 0.92em var(--g-mono); color: var(--g-text); background: var(--g-bg-panel); padding: 1px 5px; border-radius: 4px; }
+a { color: var(--g-accent); }
+
+/* Motion is decoration here; every animation is optional by definition. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
+
+/* Design at ~400px first, and let the big things shrink faster than the small. */
+@media (max-width: 720px) {
+  .page { padding: var(--g-space-5) var(--g-space-4) var(--g-space-7); }
+  .page__head h1 { font-size: var(--g-text-xl); }
+  .card__body, .card__head { padding: var(--g-space-4); }
+  .topbar { padding: var(--g-space-3) var(--g-space-4); }
+  .topbar__nav { gap: var(--g-space-3); width: 100%; margin-left: 0; }
+}

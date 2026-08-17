@@ -30,7 +30,7 @@ function App() {
         <button type="submit">Add</button>
       </form>
       <Show when={todos()} fallback={<p class="empty">Loading…</p>}>
-        <Show when={todos().length} fallback={<p class="empty">Nothing yet.</p>}>
+        <Show when={todos().length} fallback={<p class="empty">No todos yet — add one above and the list updates itself.</p>}>
           <ul>
             <For each={todos()}>{(t) => (
               <li>

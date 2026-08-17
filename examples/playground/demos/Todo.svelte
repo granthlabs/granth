@@ -26,7 +26,7 @@
 {#if $todos === undefined}
   <p class="empty">Loading…</p>
 {:else if $todos.length === 0}
-  <p class="empty">Nothing yet.</p>
+  <p class="empty">No todos yet — add one above and the list updates itself.</p>
 {:else}
   <ul>
     {#each $todos as t (t.id)}

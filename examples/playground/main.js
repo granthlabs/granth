@@ -10,7 +10,16 @@ const log = (name, ok, detail = '') => {
   results.push({ name, ok, detail });
   const li = document.createElement('li');
   li.className = ok ? 'ok' : 'fail';
-  li.textContent = `${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? ' — ' + detail : ''}`;
+  // PASS/FAIL as its own element: the WORD is what carries the status, so the
+  // list stays readable in a monochrome screenshot and to a screen reader.
+  // Colour only reinforces it — and an extra ✓ glyph next to the word would just
+  // say the same thing twice.
+  const tag = document.createElement('span');
+  tag.className = 'tag';
+  tag.textContent = ok ? 'PASS' : 'FAIL';
+  const text = document.createElement('span');
+  text.textContent = `${name}${detail ? ' — ' + detail : ''}`;
+  li.append(tag, text);
   document.getElementById('out').appendChild(li);
   console[ok ? 'log' : 'error'](`${ok ? 'PASS' : 'FAIL'} ${name}`, detail);
 };
@@ -35,22 +44,40 @@ const V2 = { friends: '++id, name, age, city, flag, when, *tags, [name+age]' };
 /** @param {1|2} upto  open the database declaring versions up to `upto` */
 function makeDb(upto = 2) {
   const db = new Granth('playground', {
-    worker: () => {
-      const u = new URL('./db.worker.js', import.meta.url);
-      const f = new URLSearchParams(location.search).get('file');
-      if (f) u.searchParams.set('file', f);
-      return new Worker(u, { type: 'module' });
-    },
+    // Written INLINE on purpose. Vite only recognises a worker from the literal
+    // `new Worker(new URL('./x.js', import.meta.url))` shape; building the URL
+    // into a variable first defeats that analysis, so db.worker.js was left out
+    // of the production bundle entirely and the hosted page hung on a 404 while
+    // the dev server — which resolves modules live — stayed green.
+    //
+    // The variable existed to append a `?file=` override that db.worker.js never
+    // read and no test ever passed.
+    worker: () => new Worker(new URL('./db.worker.js', import.meta.url), { type: 'module' }),
   });
   db.version(1).stores(V1);
   if (upto >= 2) db.version(2).stores(V2);
   return db;
 }
 
-const PHASE = new URLSearchParams(location.search).get('phase') ?? 'fresh';
+const PARAMS = new URLSearchParams(location.search);
+const PHASE = PARAMS.get('phase') ?? 'fresh';
+/**
+ * The CI harness passes ?phase= explicitly, so it still starts on load. A person
+ * who just opened the page does not: this suite writes, reloads and finally
+ * DELETES a database, and doing that unannounced the moment someone arrives is
+ * not a thing to do to a visitor. Idle-by-default also lets the page explain
+ * what it is about to do while there is still a choice.
+ */
+const AUTORUN = PARAMS.has('phase');
 
 async function run() {
   document.getElementById('phase').textContent = PHASE;
+  // Swap the idle explanation for the live results the instant work starts —
+  // feedback well inside 400ms, long before the first check finishes.
+  document.getElementById('state')?.setAttribute('hidden', '');
+  document.getElementById('summary-row')?.removeAttribute('hidden');
+  const summaryEl = document.getElementById('summary');
+  if (summaryEl) summaryEl.textContent = 'Running…';
 
   await check('crossOriginIsolated is FALSE (no COOP/COEP needed)', () => {
     if (self.crossOriginIsolated) throw new Error('page IS cross-origin isolated — the test is not proving the sahpool claim');
@@ -321,14 +348,22 @@ async function run() {
     failed.length === 0 ? `ALL ${results.length} PASSED (${PHASE})` : `${failed.length} of ${results.length} FAILED`;
   document.getElementById('summary').className = failed.length ? 'fail' : 'ok';
   document.title = failed.length ? `FAIL ${failed.length}` : `PASS ${results.length}`;
+  // Durability across a real reload cannot be shown in one page load, so the
+  // next step only appears once there is data for it to prove.
+  if (PHASE === 'fresh' && failed.length === 0) {
+    document.getElementById('reload-hint')?.removeAttribute('hidden');
+  }
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-run().catch((err) => {
+const start = () => run().catch((err) => {
   log('harness', false, err?.stack ?? String(err));
   window.__RESULTS__ = { phase: PHASE, fatal: String(err?.stack ?? err), failed: 1 };
   document.getElementById('summary').textContent = 'FATAL: ' + err.message;
   document.getElementById('summary').className = 'fail';
   document.title = 'FATAL';
 });
+
+if (AUTORUN) start();
+else document.getElementById('start')?.addEventListener('click', start, { once: true });

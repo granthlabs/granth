@@ -1,23 +1,123 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>granth browser check</title>
-    <style>
-      body { font: 14px/1.5 ui-monospace, monospace; margin: 24px; max-width: 900px; }
-      h1 { font-size: 16px; }
-      #summary { font-weight: 700; padding: 8px 12px; border-radius: 6px; display: inline-block; }
-      .ok { background: #e7f6ec; color: #08421d; }
-      .fail { background: #fdecec; color: #5a1010; }
-      ul { list-style: none; padding: 0; }
-      li { padding: 3px 8px; border-radius: 4px; margin: 2px 0; }
-    </style>
-  </head>
-  <body>
-    <h1>granth — real sqlite-wasm + OPFS check &nbsp; phase=<span id="phase"></span></h1>
-    <p id="summary">running…</p>
-    <p>rows handed to reload phase: <span id="handoff">-</span></p>
-    <ul id="out"></ul>
-    <script type="module" src="./main.js"></script>
-  </body>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verify — granthdb</title>
+<meta name="description" content="Run granth's real browser verification suite against OPFS and SQLite-WASM in your own browser.">
+<link rel="stylesheet" href="./ui.css">
+<style>
+  /* Results are a long scannable list, so the row is the unit: a fixed-width
+     status glyph, then the name, then the detail. Aligning the glyphs is what
+     makes a failure findable without reading every line. */
+  #out { list-style: none; margin: 0; padding: 0; }
+  #out li {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: var(--g-space-3);
+    align-items: baseline;
+    padding: var(--g-space-2) var(--g-space-1);
+    border-top: 1px solid var(--g-line-soft);
+    font-size: var(--g-text-sm);
+    line-height: 1.5;
+  }
+  #out li:first-child { border-top: 0; }
+  /* The WORD is the status. Colour only reinforces it, so the list survives a
+     monochrome screenshot and reads correctly aloud. */
+  #out li .tag { font: 700 var(--g-text-xs) / 1.7 var(--g-mono); letter-spacing: 0.04em; }
+  #out li.ok   .tag { color: var(--g-good); }
+  #out li.fail .tag { color: var(--g-bad); }
+  #out li.fail { color: var(--g-bad); }
+
+  .summary-row { display: flex; align-items: center; gap: var(--g-space-3); flex-wrap: wrap; }
+  #summary { font-weight: 600; }
+  #summary.ok  { color: var(--g-good); }
+  #summary.fail { color: var(--g-bad); }
+
+  .facts { display: grid; gap: var(--g-space-4); grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); margin-top: var(--g-space-5); }
+  .fact__k { display: block; font-size: var(--g-text-xs); text-transform: uppercase; letter-spacing: 0.08em; color: var(--g-text-3); margin-bottom: var(--g-space-1); }
+  .fact__v { color: var(--g-text-2); font-size: var(--g-text-sm); }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <a class="topbar__brand" href="./sandbox.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <ellipse cx="12" cy="6" rx="8" ry="3" /><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6" /><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" />
+    </svg>
+    granthdb
+  </a>
+  <nav class="topbar__nav">
+    <a href="./sandbox.html">Sandbox</a>
+    <a href="./demos/">Examples</a>
+    <a href="./" aria-current="page">Verify</a>
+    <a href="../Tutorial.html">Docs</a>
+    <a href="https://github.com/sundarshahi/granth">GitHub</a>
+  </nav>
+</header>
+
+<div class="page page--narrow">
+  <div class="page__head">
+    <h1>Verify it in your browser</h1>
+    <p>
+      This is the same suite that gates every commit, running here instead of in CI. It opens a
+      real SQLite database in OPFS, exercises indexes, transactions and multi-tab coordination,
+      and proves the whole thing works with no <code>COOP</code>/<code>COEP</code> headers.
+    </p>
+  </div>
+
+  <section class="card" aria-labelledby="run-title">
+    <div class="card__head">
+      <h2 class="card__title" id="run-title">Verification</h2>
+      <span class="badge badge--idle" id="phase-badge">Phase <span id="phase">fresh</span></span>
+    </div>
+
+    <div class="card__body">
+      <!-- Idle by default. Auto-running a destructive suite on page load is fine
+           for the CI harness, which passes ?phase= explicitly, but a visitor
+           should be told what is about to happen and choose it. -->
+      <div id="state" class="state">
+        <span class="state__title">Ready to run</span>
+        <p class="state__body">
+          Roughly 25 checks, a few seconds. Everything happens locally in this tab — nothing is
+          uploaded. The suite uses its own <code>playground</code> database and deletes it at the
+          end, so no other site's data is touched.
+        </p>
+        <button class="btn" id="start" type="button">Run verification</button>
+      </div>
+
+      <div class="summary-row" id="summary-row" hidden>
+        <span id="summary"></span>
+        <span class="meta">rows handed to the reload phase: <span id="handoff">–</span></span>
+      </div>
+
+      <ul id="out"></ul>
+    </div>
+
+    <div class="card__foot" id="reload-hint" hidden>
+      Durability across a real page reload cannot be faked in one page load.
+      <a href="./?phase=reload">Run the reload phase</a> to confirm the data written above
+      survived — it reopens the same OPFS file, then deletes it.
+    </div>
+  </section>
+
+  <div class="facts">
+    <div>
+      <span class="fact__k">Storage</span>
+      <span class="fact__v">OPFS via <code>opfs-sahpool</code>, falling back to IndexedDB, then memory.</span>
+    </div>
+    <div>
+      <span class="fact__k">Isolation</span>
+      <span class="fact__v">No cross-origin isolation. The suite asserts <code>crossOriginIsolated === false</code>.</span>
+    </div>
+    <div>
+      <span class="fact__k">Engine</span>
+      <span class="fact__v">SQLite compiled to WASM, in a dedicated Worker, one writer per origin.</span>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="./main.js"></script>
+</body>
 </html>

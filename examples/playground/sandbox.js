@@ -85,11 +85,61 @@ async function seed() {
   await db.friends.bulkAdd(SEED.map((f) => ({ ...f })));
 }
 
+/**
+ * One place that decides which of the result states is on screen.
+ *
+ * A screen is eight screens and only one is the happy path; before this, the
+ * sandbox had exactly two (some JSON, or some JSON coloured red) and an empty
+ * result was the literal text `[]`.
+ */
+function show(state, { title, body, tone } = {}) {
+  const box = $('state');
+  const isState = state !== 'result';
+  box.hidden = !isState;
+  if (isState) {
+    box.className = `state${tone ? ` state--${tone}` : ''}`;
+    box.innerHTML = '';
+    const h = document.createElement('span');
+    h.className = 'state__title';
+    h.textContent = title;
+    const p = document.createElement('p');
+    p.className = 'state__body';
+    p.textContent = body;
+    box.append(h, p);
+    out.textContent = '';
+    out.className = 'out';
+    tableBox.innerHTML = '';
+  }
+}
+
 function render(value, ms) {
   tableBox.innerHTML = '';
   $('timing').textContent = ms == null ? '' : `${ms.toFixed(1)} ms`;
 
-  out.className = '';
+  const rows = Array.isArray(value) ? value.length : null;
+  $('rowcount').textContent = rows == null ? '' : `${rows} ${rows === 1 ? 'row' : 'rows'}`;
+
+  // "No rows matched" is a different answer from "there is no data", and both
+  // are different from "this returned nothing at all". Say which.
+  if (Array.isArray(value) && value.length === 0) {
+    show('empty', {
+      title: 'No rows matched',
+      body: 'The query ran without error and returned an empty list. Try widening the '
+        + 'condition, or press Reseed data if you have cleared the tables.',
+    });
+    return;
+  }
+  if (value === undefined) {
+    show('empty', {
+      title: 'Nothing returned',
+      body: 'The snippet ran but did not return a value. Add a `return` — for example '
+        + '`return await db.friends.toArray()`.',
+    });
+    return;
+  }
+
+  show('result');
+  out.className = 'out';
   out.textContent = JSON.stringify(value, (_k, v) => (typeof v === 'bigint' ? `${v}n` : v), 2) ?? String(value);
 
   // An array of flat objects is a table; anything else stays as JSON, because a
@@ -103,17 +153,30 @@ function render(value, ms) {
       : v instanceof Date ? v.toISOString()
       : typeof v === 'object' ? JSON.stringify(v)
       : String(v);
+  // Numbers right-align so digits line up column to column.
+  const numeric = (c) => value.every((r) => r[c] == null || typeof r[c] === 'number');
+
+  // The table is the better view of the same rows, so drop the JSON rather than
+  // printing both — two renderings of one result is noise, not thoroughness.
+  out.textContent = '';
 
   const table = document.createElement('table');
+  table.className = 'data';
   table.innerHTML =
-    `<thead><tr>${cols.map((c) => `<th>${c}</th>`).join('')}</tr></thead>` +
-    `<tbody>${value.map((r) => `<tr>${cols.map((c) => `<td>${cell(r[c])}</td>`).join('')}</tr>`).join('')}</tbody>`;
+    `<thead><tr>${cols.map((c) => `<th${numeric(c) ? ' class="num"' : ''}>${c}</th>`).join('')}</tr></thead>` +
+    `<tbody>${value.map((r) => `<tr>${cols.map((c) => `<td${numeric(c) ? ' class="num"' : ''}>${cell(r[c])}</td>`).join('')}</tr>`).join('')}</tbody>`;
   tableBox.appendChild(table);
 }
 
 async function run() {
   const code = $('code').value;
-  $('run').disabled = true;
+  const btn = $('run');
+  btn.disabled = true;
+  // Feedback inside 400ms even though the work is not done — the query itself is
+  // usually faster than that, but a cold worker start is not.
+  const label = btn.textContent;
+  btn.textContent = 'Running…';
+  $('rowcount').textContent = '';
   const t0 = performance.now();
   try {
     // Async so snippets can await. `db` is the only thing handed in.
@@ -121,12 +184,28 @@ async function run() {
     const value = await fn(db);
     render(value, performance.now() - t0);
   } catch (err) {
-    tableBox.innerHTML = '';
     $('timing').textContent = '';
-    out.className = 'err';
-    out.textContent = `${err.name}: ${err.message}`;
+    $('rowcount').textContent = '';
+    // Three different kinds of bad news, not one. A granth error means the query
+    // is wrong; a SyntaxError means the snippet does not parse; anything else is
+    // ours and worth reporting.
+    const msg = String(err?.message ?? err);
+    const isGranth = /^granth:/.test(msg);
+    const isSyntax = err instanceof SyntaxError;
+    show('error', {
+      tone: 'error',
+      title: isSyntax ? 'That snippet does not parse'
+        : isGranth ? 'The query was rejected'
+        : `${err?.name ?? 'Error'} while running`,
+      body: isSyntax
+        ? `${msg}. Check the JavaScript before it reaches the database.`
+        : isGranth
+          ? `${msg.replace(/^granth:\s*/, '')}`
+          : `${msg} — if this looks like a bug in granth rather than in the snippet, please report it.`,
+    });
   } finally {
-    $('run').disabled = false;
+    btn.disabled = false;
+    btn.textContent = label;
   }
 }
 
@@ -147,21 +226,63 @@ $('code').addEventListener('keydown', (e) => {
   if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); run(); }
 });
 $('reset').addEventListener('click', async () => {
-  await seed();
-  out.className = 'ok';
-  out.textContent = `Reseeded ${SEED.length} rows.`;
-  tableBox.innerHTML = '';
+  const btn = $('reset');
+  btn.disabled = true;
+  try {
+    await seed();
+    $('timing').textContent = '';
+    $('rowcount').textContent = '';
+    show('empty', {
+      title: `Reseeded ${SEED.length} rows`,
+      body: 'The friends and notes tables are back to their starting contents. Run a query to see them.',
+    });
+    $('env').textContent = await envLabel();
+  } finally {
+    btn.disabled = false;
+  }
 });
 
+async function envLabel() {
+  const [storage, runtime] = await Promise.all([db.storageKind(), db.runtimeKind()]);
+  return `storage: ${storage} · runtime: ${runtime} · ${await db.friends.count()} rows`;
+}
+
 (async () => {
+  // The controls stay disabled until there is a database behind them: offering a
+  // Run button that cannot run is a worse answer than making the wait visible.
+  $('run').disabled = true;
+  $('reset').disabled = true;
+  show('loading', {
+    title: 'Opening the database',
+    body: 'Starting a Web Worker, loading SQLite (WASM) and mounting an OPFS file. '
+      + 'The first visit downloads the engine; later ones come from cache.',
+  });
   try {
     await db.open();
     if ((await db.friends.count()) === 0) await seed();
-    const [storage, runtime] = await Promise.all([db.storageKind(), db.runtimeKind()]);
-    $('env').textContent = `storage: ${storage} · runtime: ${runtime} · ${await db.friends.count()} rows`;
+    $('env').textContent = await envLabel();
+    $('env').className = 'badge badge--good';
+    $('run').disabled = false;
+    $('reset').disabled = false;
+    show('empty', {
+      title: 'Nothing run yet',
+      body: 'Pick an example or write your own query, then press Run query. Rows that '
+        + 'share a shape come back as a table; anything else as JSON.',
+    });
     window.__SANDBOX_READY__ = true;     // the smoke test waits on this
   } catch (err) {
-    $('env').textContent = `failed to open: ${err.message}`;
+    // Not a generic failure: the overwhelmingly likely cause is a browser with no
+    // OPFS at all (Safari private browsing), which is the user's environment
+    // rather than their mistake, and it has an actual answer.
+    $('env').textContent = 'unavailable';
+    $('env').className = 'badge badge--bad';
+    show('error', {
+      tone: 'error',
+      title: 'Could not open a database here',
+      body: `${err.message} — this usually means the browser exposes no storage to this `
+        + 'page, which private-browsing windows in Safari do. granth falls back to '
+        + 'IndexedDB and then to memory, so a normal window should work.',
+    });
     window.__SANDBOX_ERROR__ = String(err.message);
   }
 })();

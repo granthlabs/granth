@@ -1,15 +1,100 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><title>granth — examples</title>
-<link rel="stylesheet" href="./style.css"></head><body><main>
-<h1>granth examples</h1>
-<p class="sub">The same database and the same queries in each — only the binding differs.</p>
-<ul>
-  <li><span class="t"><a href="./vanilla.html">Vanilla JS</a> — <code>subscribe()</code> straight into the DOM</span></li>
-  <li><span class="t"><a href="./react.html">React</a> — <code>granth-react</code>, SSR-safe</span></li>
-  <li><span class="t"><a href="./vue.html">Vue</a> — <code>granth-vue</code> composable</span></li>
-  <li><span class="t"><a href="./svelte.html">Svelte</a> — the store contract, no adapter</span></li>
-  <li><span class="t"><a href="./solid.html">Solid</a> — <code>createResource</code> off the same subscription</span></li>
-  <li><span class="t"><a href="./no-worker.html">No Worker</a> — inline runtime on IndexedDB</span></li>
-</ul>
-<div class="meta">Angular needs no adapter either — see the Frameworks guide.</div>
-<div class="meta"><a href="../sandbox.html">Open the query sandbox</a> — write real queries against a real database.</div>
-</main></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Framework examples — granthdb</title>
+<meta name="description" content="The same SQLite-backed todo list in six frameworks. Only the binding differs.">
+<link rel="stylesheet" href="./style.css">
+<style>
+  .picks { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--g-space-3); grid-template-columns: repeat(auto-fit, minmax(248px, 1fr)); }
+  .picks li { display: block; padding: 0; border: 0; }
+  /* A whole card is the target, not just the word — Fitts, and it stops the
+     six-item list reading as six tiny links. */
+  .pick {
+    display: block;
+    height: 100%;
+    padding: var(--g-space-4);
+    background: var(--g-bg-soft);
+    border: 1px solid var(--g-line-soft);
+    border-radius: var(--g-radius-lg);
+    text-decoration: none;
+    transition: border-color var(--g-fast), background var(--g-fast);
+  }
+  .pick:hover { background: var(--g-bg-panel); border-color: var(--g-line); }
+  .pick__name { display: block; font-size: var(--g-text-base); font-weight: 600; color: var(--g-text); margin-bottom: var(--g-space-1); }
+  .pick__desc { display: block; font-size: var(--g-text-sm); color: var(--g-text-2); line-height: 1.55; }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <a class="topbar__brand" href="../sandbox.html">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <ellipse cx="12" cy="6" rx="8" ry="3" /><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6" /><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" />
+    </svg>
+    granthdb
+  </a>
+  <nav class="topbar__nav">
+    <a href="../sandbox.html">Sandbox</a>
+    <a href="./" aria-current="page">Examples</a>
+    <a href="../">Verify</a>
+    <a href="../../Tutorial.html">Docs</a>
+    <a href="https://github.com/sundarshahi/granth">GitHub</a>
+  </nav>
+</header>
+<div class="page">
+  <div class="page__head">
+    <h1>Framework examples</h1>
+    <p>
+      The same todo list, the same database and the same queries in every one — only the
+      binding differs. Each runs a real SQLite database in your browser; nothing is uploaded.
+    </p>
+  </div>
+
+  <ul class="picks">
+    <li>
+      <a class="pick" href="./vanilla.html">
+        <span class="pick__name">Vanilla JS</span>
+        <span class="pick__desc">liveQuery().subscribe() straight into the DOM — no framework, no adapter.</span>
+      </a>
+    </li>
+    <li>
+      <a class="pick" href="./react.html">
+        <span class="pick__name">React</span>
+        <span class="pick__desc">granth-react’s useLiveQuery, backed by useSyncExternalStore. SSR-safe.</span>
+      </a>
+    </li>
+    <li>
+      <a class="pick" href="./vue.html">
+        <span class="pick__name">Vue</span>
+        <span class="pick__desc">A composable from granth-vue returning a plain ref.</span>
+      </a>
+    </li>
+    <li>
+      <a class="pick" href="./svelte.html">
+        <span class="pick__name">Svelte</span>
+        <span class="pick__desc">subscribe() already satisfies the store contract, so $query just works.</span>
+      </a>
+    </li>
+    <li>
+      <a class="pick" href="./solid.html">
+        <span class="pick__name">Solid</span>
+        <span class="pick__desc">createResource fed by the same subscription.</span>
+      </a>
+    </li>
+    <li>
+      <a class="pick" href="./no-worker.html">
+        <span class="pick__name">No Worker</span>
+        <span class="pick__desc">The inline runtime on IndexedDB: SQL on the main thread, for strict CSP and SSR.</span>
+      </a>
+    </li>
+  </ul>
+
+  <p class="hint" style="margin-top: var(--g-space-6)">
+    Angular needs no adapter either — <code>subscribe()</code> satisfies the store contract, so
+    the async pipe works directly. See the <a href="../../Frameworks.html">Frameworks guide</a>.
+    Prefer to write your own query? Open the <a href="../sandbox.html">sandbox</a>.
+  </p>
+</div>
+</body>
+</html>

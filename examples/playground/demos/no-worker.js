@@ -37,7 +37,7 @@ document.getElementById('f').addEventListener('submit', async (e) => {
 });
 
 db.liveQuery(() => db.todos.orderBy('created').toArray()).subscribe((todos) => {
-  list.innerHTML = todos.length ? '' : '<li class="empty">Nothing yet.</li>';
+  list.innerHTML = todos.length ? '' : '<li class="empty">No todos yet — add one above and the list updates itself.</li>';
   for (const t of todos) {
     const li = document.createElement('li');
     li.className = t.done ? 'done' : '';

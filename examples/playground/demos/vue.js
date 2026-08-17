@@ -25,7 +25,7 @@ createApp({
           h('button', { class: 'primary' }, 'Add'),
         ]),
         h('ul', [
-          todos.value.length === 0 ? h('li', { class: 'empty' }, 'Nothing yet.') : null,
+          todos.value.length === 0 ? h('li', { class: 'empty' }, 'No todos yet — add one above and the list updates itself.') : null,
           ...todos.value.map((t) =>
             h('li', { key: t.id, class: t.done ? 'done' : '' }, [
               h('input', { type: 'checkbox', checked: t.done, onChange: () => toggle(t.id) }),
