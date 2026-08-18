@@ -59,7 +59,7 @@ including durability across a full page reload.
 **The API is matched against the real `dexie` package by a generated audit**
 (`compat-audit.mjs`), which runs in CI and fails if we regress or if Dexie grows a member
 we do not cover. Current coverage: **WhereClause 18/18, Table 27/28, Collection 26/28,
-Dexie 20/26** — every gap is an explicit, documented waiver.
+Dexie 21/26** — every gap is an explicit, documented waiver.
 
 Two Dexie behaviours are easy to get subtly wrong, so they are asserted, not assumed:
 `sortBy()` resolves to a sorted **array** (not a Collection), and `keys()` returns the
@@ -135,7 +135,7 @@ vary ±3× with load.
 
 | Operation | Time | Rate |
 |---|---:|---:|
-| `bulkAdd` 5,000 docs (one transaction) | 295 ms | ~17,000 rows/s |
+| `bulkAdd` 5,000 docs (chunked multi-row) | 28 ms | ~180,000 rows/s |
 | `add` one at a time (durable commit each) | ~13 ms each | ~75 rows/s |
 | `count()` whole table | 0.5 ms | |
 | indexed `where(cat).equals(...)` | 2.5 ms | |
@@ -253,6 +253,24 @@ npm run dev           # then, in the browser:
 #   /compat.html?phase=fresh -> ?phase=reload   IndexedDB fallback + Dexie migration
 #   /bench.html                              benchmark
 ```
+
+## Try it without installing
+
+- **[Sandbox](https://sundarshahi.github.io/granth/play/sandbox)** — real queries, real database
+- **[Examples](https://sundarshahi.github.io/granth/play/demos/)** — the same app in six frameworks
+- **[Verify](https://sundarshahi.github.io/granth/play/)** — run the browser suite in your own browser
+
+## Contributing
+
+Bug reports and pull requests are welcome — see
+[CONTRIBUTING.md](https://github.com/sundarshahi/granth/blob/main/CONTRIBUTING.md) for setup,
+how the layered test suites work, and what a change needs before merge.
+
+## Security
+
+Found a vulnerability? Please do not open a public issue — see
+[SECURITY.md](https://github.com/sundarshahi/granth/blob/main/SECURITY.md) for private reporting
+and the threat model (what a browser-local database can and cannot protect).
 
 ## License
 

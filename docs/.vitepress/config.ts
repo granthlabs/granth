@@ -71,6 +71,13 @@ export default defineConfig({
   lastUpdated: true,
   base: '/granth/',
   head: [
+    // FIRST, before any stylesheet. `appearance: force-dark` is applied by
+    // VitePress's own CSS, which is an external file — so until it arrived the
+    // browser painted its default WHITE canvas, and every navigation flashed.
+    // The meta makes the UA canvas dark immediately; the inline background makes
+    // it the brand dark, so there is no black-to-navy step either.
+    ['meta', { name: 'color-scheme', content: 'dark' }],
+    ['style', {}, 'html{background:#14161c;background:oklch(16.5% 0.014 260);color-scheme:dark}'],
     ['meta', { name: 'theme-color', content: '#3b5b7a' }],
     ['meta', { property: 'og:title', content: 'granth — SQLite in the browser' }],
     ['meta', { property: 'og:description', content: 'A Dexie-compatible API over SQLite/WASM on OPFS. Real indexes, a real query planner, off the main thread.' }],

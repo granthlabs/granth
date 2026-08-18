@@ -47,3 +47,7 @@ jobs:
       # asset URLs, the new Worker(new URL(...)) rewrite, and sqlite-wasm's .wasm
       # fetch. This drives the artifact a visitor actually loads.
       - run: node examples/playground/hosted-play-test.mjs
+      # A dark site whose background arrives in an EXTERNAL stylesheet paints a
+      # white canvas first, so every cross-document hop flashes. This asserts the
+      # canvas is already right before any CSS exists.
+      - run: node examples/playground/flash-probe.mjs

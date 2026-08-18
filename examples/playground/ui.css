@@ -11,6 +11,26 @@
 
 @import '../../docs/.vitepress/theme/tokens.css';
 
+/**
+ * Cross-document view transitions.
+ *
+ * The docs site and these pages are separate documents, so every hop between
+ * them is a full navigation — an abrupt cut even once the white flash is gone.
+ * This opts the whole origin into a short cross-fade instead. Browsers without
+ * it simply navigate as before, so it costs nothing to the rest.
+ *
+ * Inside a no-preference query: a page transition is decoration, and someone who
+ * has asked for less motion should get the instant cut.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition { navigation: auto; }
+
+  ::view-transition-old(root) { animation: g-fade-out 90ms ease both; }
+  ::view-transition-new(root) { animation: g-fade-in 140ms ease both; }
+}
+@keyframes g-fade-out { to { opacity: 0; } }
+@keyframes g-fade-in { from { opacity: 0; } }
+
 *, *::before, *::after { box-sizing: border-box; }
 
 /* The `hidden` attribute is only `display: none` at UA-stylesheet strength, so

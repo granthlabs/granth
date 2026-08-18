@@ -16,6 +16,24 @@
 
 @import './tokens.css';
 
+/**
+ * Cross-document view transitions — the same opt-in the /play/ pages carry, so a
+ * hop in either direction cross-fades instead of cutting. VitePress routes its
+ * OWN pages client-side; this is only for the navigations that leave the SPA
+ * (Sandbox, Examples, Verify) and the ones that come back.
+ *
+ * Behind a no-preference query: a page transition is decoration, and anyone who
+ * has asked for less motion should get the instant cut.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition { navigation: auto; }
+
+  ::view-transition-old(root) { animation: g-fade-out 90ms ease both; }
+  ::view-transition-new(root) { animation: g-fade-in 140ms ease both; }
+}
+@keyframes g-fade-out { to { opacity: 0; } }
+@keyframes g-fade-in { from { opacity: 0; } }
+
 :root {
   /* The granth ramp now lives in tokens.css, shared with the hosted sandbox and
      demos under /play/ so there is one definition of the design rather than

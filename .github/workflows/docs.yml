@@ -25,6 +25,10 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: node examples/playground/link-check.mjs
       - run: node examples/playground/hosted-play-test.mjs
+      # A dark site whose background arrives in an EXTERNAL stylesheet paints a
+      # white canvas first, so every cross-document hop flashes. This asserts the
+      # canvas is already right before any CSS exists.
+      - run: node examples/playground/flash-probe.mjs
       # enablement:true lets the action turn Pages on itself; without it the run
       # fails with "Get Pages site failed" until someone flips the setting by hand.
       - uses: actions/configure-pages@v5
