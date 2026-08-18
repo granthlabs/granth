@@ -117,14 +117,32 @@ rejecting.
   now names the table, the key and the fix instead of surfacing as
   `datatype mismatch`.
 
-## Unverified — neither confirmed nor dismissed
+## Confirmed and fixed: the slow-leader double-apply
 
-`NoLeaderError` says "safe to retry", but a **slow** (not dead) leader — a frozen
-background tab keeps its Web Lock, so no re-election happens — may process the
-call after the caller timed out, applying the write twice. A probe did not
-reproduce it: both clients shared the fake `LockManager`, so the follower elected
-itself and never took the follower path. It needs a harness that pins one client
-as leader while stalling its worker.
+`NoLeaderError` documented itself as "safe to retry", reasoning that a call nobody
+acknowledged was a call nobody owned. That reasoning holds when there is genuinely no
+leader. It did **not** hold for a leader that was merely slow: a frozen background tab
+keeps its Web Lock, so nothing re-elects, and the browser QUEUES channel messages for it
+rather than dropping them. The caller timed out, retried exactly as the error told it to,
+and the thawing leader then ran both copies.
+
+The earlier probe failed to reproduce this for a harness reason worth recording: both
+clients shared one fake `LockManager`, so the follower elected **itself** and never took
+the follower path at all. `packages/opfs-leader/test-slow-leader.mjs` pins the leader by
+having it hold the lock forever and stalls only its channel delivery — which is what a
+frozen tab actually is — and asserts up front that the follower really is routing through
+the leader, so it cannot pass for the wrong reason again. It reported the write applied
+**2×** before the fix and **1×** after.
+
+**Fix:** every call carries a deadline, and a leader that reads a call after the caller
+stopped waiting refuses to run it and replies with the same retryable error. The leader's
+cutoff is set slightly earlier than the caller's so an accepted call always has room for
+its ACK to arrive — otherwise the two decisions race and a call could be accepted while
+being reported un-accepted. The caller also yields one task before declaring a timeout, so
+an ACK already queued behind the timer is not missed when the tab itself was frozen.
+
+A briefly-stalled leader still serves its calls normally; the fence only refuses calls
+nobody is waiting for any more.
 
 ## What the fixes could have broken, and how that is guarded
 

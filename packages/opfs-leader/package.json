@@ -27,7 +27,7 @@
   ],
   "scripts": {
     "build": "tsc -b",
-    "test": "node test-selfcheck.mjs"
+    "test": "node test-selfcheck.mjs && node test-slow-leader.mjs"
   },
   "engines": {
     "node": ">=18"

@@ -46,7 +46,11 @@ export interface LeaderClient {
 type ChannelMessage =
   | { kind: 'whois'; from: string }
   | { kind: 'elected'; from: string }
-  | { kind: 'call'; callId: string; method: string; args: unknown[]; from: string }
+  // `deadline` is when the caller stops waiting (epoch ms). A leader that reads
+  // a call after that must NOT run it — see the fencing note in the listener.
+  // Optional so a tab running an older build still interoperates; a missing
+  // deadline simply means no fencing, which is the old behaviour.
+  | { kind: 'call'; callId: string; method: string; args: unknown[]; from: string; deadline?: number }
   | { kind: 'ack'; callId: string; to: string }
   | { kind: 'result'; callId: string; to: string; value?: unknown; error?: SerializedError };
 
@@ -70,7 +74,19 @@ export class LeaderLostError extends Error {
   }
 }
 
-/** Thrown when no leader answered in time. Safe to retry: nobody accepted it. */
+/**
+ * Thrown when no leader accepted a call in time. **Safe to retry.**
+ *
+ * That guarantee is not merely the absence of an ACK — an ACK can be missing
+ * simply because the leader was too slow to send one. A frozen background tab
+ * keeps its Web Lock, so no re-election happens, and the browser QUEUES channel
+ * messages for it rather than dropping them. The obvious reading ("no ACK, so
+ * nothing ran") was therefore wrong: the tab would thaw and run a call the
+ * caller had already given up on and retried, applying the write twice.
+ *
+ * What makes the guarantee true is the DEADLINE carried on every call: a leader
+ * that reads a call after the caller stopped waiting refuses to run it.
+ */
 export class NoLeaderError extends Error {
   override readonly name = 'NoLeaderError';
   readonly method: string;
@@ -135,6 +151,14 @@ export function createLeaderClient({
 }: LeaderClientOptions): LeaderClient {
   const tabId =
     globalThis.crypto?.randomUUID?.() ?? `t${Date.now()}${Math.random().toString(36).slice(2)}`;
+
+  /**
+   * How much earlier the leader stops accepting a call than the caller stops
+   * waiting for it — room for one ACK to cross the channel. A quarter of the
+   * timeout, capped, so a 100 ms timeout in a test still leaves a usable window
+   * and a 5 s one does not give away seconds.
+   */
+  const ackGrace = Math.min(50, Math.max(10, Math.floor(timeoutMs / 4)));
 
   let isLeader = false;
   let dbWorker: Worker | null = null;
@@ -255,6 +279,27 @@ export function createLeaderClient({
     }
 
     if (msg.kind === 'call' && isLeader) {
+      // FENCE an expired call.
+      //
+      // This is what makes NoLeaderError's "safe to retry" true. A frozen tab
+      // keeps its Web Lock, so nothing re-elects, and the browser queues these
+      // messages instead of dropping them — so without this check a thawing
+      // leader happily runs a call the caller gave up on and already retried,
+      // and the write lands twice. Reproduced in test-slow-leader.mjs.
+      //
+      // Refusing is unambiguously correct here: nobody is waiting for the
+      // answer any more. We reply anyway, so a caller that has NOT yet timed out
+      // (its clock ran slightly ahead) fails fast with the same retryable error
+      // rather than waiting out the full timeout.
+      if (msg.deadline != null && Date.now() >= msg.deadline) {
+        channel.postMessage({
+          kind: 'result',
+          callId: msg.callId,
+          to: msg.from,
+          error: { message: new NoLeaderError(msg.method).message, name: 'NoLeaderError' },
+        } satisfies ChannelMessage);
+        return;
+      }
       // ACK first: tells the caller "I own this now, do not retry it elsewhere".
       channel.postMessage({ kind: 'ack', callId: msg.callId, to: msg.from } satisfies ChannelMessage);
       const result = await runOnWorker(msg.callId, msg.method, msg.args);
@@ -327,6 +372,12 @@ export function createLeaderClient({
     }
 
     const callId = `${tabId}:${seq++}`;
+    // The leader's cutoff is deliberately EARLIER than ours by `ackGrace`, so
+    // any call it does accept has that long for its ACK to reach us before we
+    // would give up. Without the gap the two decisions race at the same instant
+    // and a call could be accepted and reported un-accepted. The caller's total
+    // wait is unchanged at `timeoutMs`.
+    const deadline = Date.now() + timeoutMs - ackGrace;
     return new Promise<T>((resolve, reject) => {
       const entry: PendingCall = {
         resolve: resolve as (value: never) => void,
@@ -335,11 +386,24 @@ export function createLeaderClient({
         acked: false,
       };
       entry.timer = setTimeout(() => {
-        // Never ACKed => no leader took ownership => nothing ran. Safe to retry.
-        // Also forget the leader: nobody answered, so the one we believed in is
-        // gone and the next call must wait for a real election instead of
-        // broadcasting into a gap where no tab is listening.
-        if (!entry.acked) { forgetLeader(); settle(callId, { error: new NoLeaderError(method) }); }
+        if (entry.acked) return;
+        // Yield one macrotask before declaring nothing ran.
+        //
+        // The ACK and this timer are both tasks on OUR queue. If this tab was
+        // itself frozen, both come due at once and the order is not guaranteed —
+        // so a timer that fires first would report "never accepted" with the ACK
+        // sitting right behind it. One turn lets any queued ACK be processed.
+        setTimeout(() => {
+          if (entry.acked) return;
+          // Never ACKed AND the leader is fenced from running it late (see the
+          // deadline check in the channel listener), so nothing ran: retry is safe.
+          //
+          // Also forget the leader: nobody answered, so the one we believed in is
+          // gone and the next call must wait for a real election instead of
+          // broadcasting into a gap where no tab is listening.
+          forgetLeader();
+          settle(callId, { error: new NoLeaderError(method) });
+        }, 0);
       }, timeoutMs);
       pending.set(callId, entry);
       channel.postMessage({
@@ -348,6 +412,7 @@ export function createLeaderClient({
         method,
         args,
         from: tabId,
+        deadline,
       } satisfies ChannelMessage);
     });
   }

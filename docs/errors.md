@@ -14,6 +14,16 @@ running a newer build. Reload.
 No tab acknowledged the call within `timeoutMs`, so **nothing ran**. Retrying cannot
 double-write.
 
+That is guaranteed by more than the missing acknowledgement. A leader can also fail to
+acknowledge simply because it is *slow* — a frozen background tab keeps its Web Lock, so
+nothing re-elects, and the browser queues messages for it rather than dropping them. So
+every call carries a **deadline**, and a leader that reads one after the caller stopped
+waiting refuses to run it. Without that fence, a thawing tab would run a call you had
+already given up on and retried, and the write would land twice.
+
+The leader's cutoff is deliberately slightly earlier than yours, leaving room for its
+acknowledgement to reach you — so a call it accepts is never reported as un-accepted.
+
 ## `LeaderLostError` — do NOT blindly retry
 
 The leader acknowledged the call and then died. The commit state is **unknown**.

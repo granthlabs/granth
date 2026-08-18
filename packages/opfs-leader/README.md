@@ -61,7 +61,7 @@ serveInWorker({
 try {
   await db.call('insert', row);
 } catch (e) {
-  if (e instanceof NoLeaderError)   // nobody ACKed — nothing ran. Safe to retry.
+  if (e instanceof NoLeaderError)   // nothing ran (the leader fences expired calls). Safe to retry.
   if (e instanceof LeaderLostError) // ACKed, then the leader died. UNKNOWN commit state.
 }
 ```
