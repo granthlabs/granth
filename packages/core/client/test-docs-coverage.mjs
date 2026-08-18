@@ -10,7 +10,7 @@
  * waiver is a decision on the record; silence is not.
  */
 
-import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
@@ -18,7 +18,7 @@ import * as main from 'granthdb';
 import { createEngine, rpcHandlers } from 'granth-engine';
 import { inlineRuntime } from 'granth-runtime-inline';
 
-const DOCS = join(dirname(fileURLToPath(import.meta.url)), '../../../docs');
+const SNAPSHOT = join(dirname(fileURLToPath(import.meta.url)), 'docs-surface.json');
 
 /** name -> why it is not in the docs. */
 const WAIVED = {
@@ -64,34 +64,34 @@ const surface = {
 };
 
 /**
- * The docs live in the SITE repo now, so this gate reads them over HTTPS.
+ * The docs live in the SITE repo since the split, but this gate stays HERE:
+ * its whole value is failing BEFORE a release, and an undocumented member first
+ * caught by the site's CI would already be on npm.
  *
- * It has to stay HERE, in the library repo, because its whole value is failing
- * BEFORE a release: an undocumented public member caught by the site's CI would
- * already be published. The cost of the repo split is this network read; a local
- * ../docs is still preferred when present, so the check works offline in a
- * checkout that has both.
+ * It reads a COMMITTED snapshot of the identifiers those docs mention, not the
+ * docs themselves. Fetching them per run was the obvious way to keep the gate
+ * here, and it was wrong twice over: the suite failed with no network, and an
+ * edit in another repository could turn this one's CI red without a line of code
+ * changing. It cost one false failure during a release before that was noticed.
+ *
+ * Refresh it deliberately, after documenting something upstream:
+ *
+ *     npm run docs:refresh
+ *
+ * The snapshot going stale therefore fails CLOSED — a newly documented member
+ * reads as undocumented until the snapshot is refreshed, which is a visible
+ * chore, rather than a newly UNdocumented member reading as fine.
  */
-const DOCS_RAW = 'https://raw.githubusercontent.com/granthlabs/granthlabs.github.io/main/docs/';
-
-async function loadDocs() {
-  if (existsSync(DOCS)) {
-    return readdirSync(DOCS).filter((f) => f.endsWith('.md'))
-      .map((f) => readFileSync(join(DOCS, f), 'utf8')).join('\n');
-  }
-  const listing = await fetch('https://api.github.com/repos/granthlabs/granthlabs.github.io/contents/docs');
-  if (!listing.ok) throw new Error(`docs-coverage: cannot list the docs repo (${listing.status})`);
-  const files = (await listing.json()).filter((f) => f.name.endsWith('.md'));
-  if (!files.length) throw new Error('docs-coverage: the docs repo returned no markdown');
-  const bodies = await Promise.all(files.map((f) => fetch(DOCS_RAW + f.name).then((r) => r.text())));
-  return bodies.join('\n');
+if (!existsSync(SNAPSHOT)) {
+  console.error(`docs-coverage: ${SNAPSHOT} is missing. Run: npm run docs:refresh`);
+  process.exit(1);
 }
-
-const docs = await loadDocs();
+const snapshot = JSON.parse(readFileSync(SNAPSHOT, 'utf8'));
+const documented = new Set(snapshot.names);
 
 let missing = 0;
 for (const [group, names] of Object.entries(surface)) {
-  const undocumented = names.filter((n) => !new RegExp(`\\b${n.replace(/\$/g, '\\$')}\\b`).test(docs));
+  const undocumented = names.filter((n) => !documented.has(n));
   console.log(`${group.padEnd(12)} ${names.length - undocumented.length}/${names.length}`);
   if (undocumented.length) {
     missing += undocumented.length;
@@ -100,7 +100,12 @@ for (const [group, names] of Object.entries(surface)) {
 }
 
 if (process.argv.includes('--assert') && missing) {
-  console.error(`\n${missing} public API members are not mentioned anywhere in docs/.`);
+  console.error(
+    `\n${missing} public API member(s) are not mentioned anywhere in the docs.\n` +
+      `Snapshot: ${snapshot.files.length} files from ${snapshot.source}` +
+      `${snapshot.sha ? ` @ ${snapshot.sha.slice(0, 7)}` : ''}.\n` +
+      `If you already documented these upstream, refresh it: npm run docs:refresh`
+  );
   process.exit(1);
 }
 console.log(missing ? `\n${missing} undocumented` : '\nfull API coverage');

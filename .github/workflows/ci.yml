@@ -18,7 +18,13 @@ jobs:
       # compat audit cannot catch a method that exists and returns the wrong
       # thing — which is how 19 defects, one of them a row-destroying delete,
       # stayed invisible to a fully green suite.
-      - run: npm test
+      # Every outbound call is blocked, so the suite cannot quietly grow a network
+      # dependency again. The docs-coverage gate used to fetch the site repo on
+      # each run: it failed with no network, and an edit in another repository
+      # could redden this CI without a line changing here. Blocking beats
+      # unplugging — a test that retried or swallowed the error would survive a
+      # no-wifi check and still be coupled.
+      - run: NODE_OPTIONS="--import file://$PWD/scripts/no-network.mjs" npm test
       # The Node suites cannot see OPFS, the opfs-sahpool VFS, dedicated Workers
       # or Web Locks. Without this job a change can be green in Node and broken
       # in every browser — which has happened.

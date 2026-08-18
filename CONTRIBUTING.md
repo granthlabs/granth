@@ -89,19 +89,32 @@ non-obvious choices, usually the bug that forced them. Prefer "the correlated fo
 base table, measured 295 ms vs 2.4 ms" over "use an IN subquery".
 
 **5. Documentation, if you changed the API.** `test-docs-coverage.mjs` fails the build when a
-public member is not mentioned anywhere in `docs/`.
+public member is not mentioned anywhere in the docs — see *Touching the UI or the docs site*
+below for where those live and the one command that syncs them.
 
 ## Touching the UI or the docs site
 
-The site and the hosted sandbox share one token file,
-`docs/.vitepress/theme/tokens.css`. Take colours, spacing, type sizes and radii from there —
-nothing should hardcode a value at the call site. That file exists because there used to be
-three copies of the design and two were always drifting.
+The site itself lives in [granthlabs/granthlabs.github.io](https://github.com/granthlabs/granthlabs.github.io).
+What stays here is the playground the browser tests drive: take colours, spacing, type sizes
+and radii from `examples/playground/tokens.css` — nothing should hardcode a value at the call
+site. That file exists because there used to be three copies of the design and two were always
+drifting. The site repo keeps a matching copy and its `drift-check.mjs` fails if they diverge.
 
 Anything user-facing also needs its empty, loading and error states, keyboard operation, and a
-check at phone width. `flash-probe.mjs` and `link-check.mjs` cover the traps that are invisible
-locally: a white flash before CSS loads, and links that work on a root-served dev server but
-404 under the site's `/granth/` base.
+check at phone width.
+
+**Documenting a new public method.** The reference pages live in the site repo, but the gate
+that catches an undocumented member stays here — catching it in the site's CI would be after
+the release. `test-docs-coverage.mjs` checks the API against a committed snapshot of the names
+those pages mention, so it needs no network. After documenting something upstream:
+
+```bash
+npm run docs:refresh
+```
+
+That is the only command here that talks to the network. `npm test` must never do so, and CI
+enforces that by running the suite with every outbound call blocked
+(`scripts/no-network.mjs`).
 
 ## Reporting a bug
 
