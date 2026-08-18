@@ -61,6 +61,50 @@ const dedupeKey = (v) =>
     x instanceof Map ? { '@m': [...x] } : x instanceof Set ? { '@s': [...x] } : x
   );
 
+/**
+ * Retry a call that provably never ran.
+ *
+ * `NoLeaderError` means no tab took ownership, so nothing executed — and that is
+ * now enforced rather than merely believed: a leader fences any call whose caller
+ * has already given up, so a frozen tab cannot thaw and run it late. Retrying
+ * automatically before that fence existed would have converted an occasional
+ * hiccup into a systematic double-write, which is why this was left as a note on
+ * the concurrency suite ("open() is idempotent, so the library could retry it
+ * itself") instead of being done.
+ *
+ * `LeaderLostError` is deliberately NOT retried: the leader acknowledged the call
+ * and then died, so the commit state is unknowable. Retrying it silently is
+ * precisely the corruption the two error types exist to keep apart.
+ *
+ * Bounded, because a genuinely leaderless database — every tab closing — must
+ * surface rather than spin. The delay matters: a NoLeaderError also makes the
+ * client forget the leader it believed in, so the next attempt waits for a real
+ * election instead of broadcasting into a gap where nobody is listening.
+ */
+const RETRY_ATTEMPTS = 3;
+const RETRY_DELAY_MS = 60;
+
+async function retryWhenNothingRan(run, { idempotent = false } = {}) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await run();
+    } catch (err) {
+      // Matched by NAME, not instanceof: an error crossing postMessage is
+      // flattened to {message, name} and loses its prototype, so the worker
+      // runtime would never satisfy instanceof while the inline one would.
+      const name = (err as Error | undefined)?.name;
+      // `idempotent` widens this to LeaderLostError — "it may or may not have
+      // committed" stops mattering when running it twice is indistinguishable
+      // from running it once. Only open() claims that, and it earns it: migrate()
+      // is gated on PRAGMA user_version and applies its DDL in one transaction,
+      // so it either happened or did not, and repeating it is a no-op.
+      const retryable = name === 'NoLeaderError' || (idempotent && name === 'LeaderLostError');
+      if (!retryable || attempt >= RETRY_ATTEMPTS) throw err;
+      await new Promise((r) => setTimeout(r, RETRY_DELAY_MS * attempt));
+    }
+  }
+}
+
 /** Dexie's bulk return contract: the last key, or all of them with {allKeys: true}. */
 const pickKeys = (keys, options) =>
   options?.allKeys ? keys : keys[keys.length - 1];
@@ -686,7 +730,12 @@ export class Granth {
     const run = () => this._conn.call(method, ...ctx.args);
     let result;
     try {
-      result = this._inTx ? await run() : await this._conn.withLock('shared', run);
+      // The retry wraps the LOCK too, not just the call: a NoLeaderError makes
+      // the client forget its leader, so the next attempt has to re-acquire
+      // through the same path rather than reuse a stale one.
+      result = await retryWhenNothingRan(() =>
+        this._inTx ? run() : this._conn.withLock('shared', run)
+      );
     } catch (err) {
       throw reviveError(err);
     }
@@ -815,7 +864,13 @@ export class Granth {
   // out of an otherwise-awaitable API.
   async open() {
     this._ensure();
-    this._opened ??= this._conn.call('open', this._versions).then(
+    // open() is idempotent — migrate() is a no-op on an already-current file — so
+    // it is the safest thing in the API to retry, and the one the concurrency
+    // suite kept having to retry by hand two or three times per run.
+    this._opened ??= retryWhenNothingRan(
+      () => this._conn.call('open', this._versions),
+      { idempotent: true }
+    ).then(
       (r) => { this._isOpen = true; this.verno = r.version; this._fire('ready', this); return r; },
       (err) => { this._hasFailed = true; this._opened = null; throw err; }
     );

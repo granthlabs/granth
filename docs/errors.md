@@ -24,9 +24,18 @@ already given up on and retried, and the write would land twice.
 The leader's cutoff is deliberately slightly earlier than yours, leaving room for its
 acknowledgement to reach you — so a call it accepts is never reported as un-accepted.
 
+**granth already retries this for you**, up to three attempts with a short backoff, so you
+should rarely see it. It surfaces when there is genuinely no leader left — every tab closing,
+for instance — which is a real failure rather than a hiccup.
+
 ## `LeaderLostError` — do NOT blindly retry
 
 The leader acknowledged the call and then died. The commit state is **unknown**.
+
+This one is never retried automatically, with a single exception: **`open()`**. Re-running
+`open()` is indistinguishable from running it once — migration is gated on `PRAGMA
+user_version` and applies its DDL in one transaction — so an app starting while another tab is
+closing recovers instead of failing at launch. Every other call is yours to decide about.
 
 ```js
 try {

@@ -49,11 +49,13 @@ const newTab = async () => {
   await page.goto(base);
   await page.waitForFunction(() => window.__stress !== undefined, null, { timeout: 60_000 });
 
-  // FINDING: open() is idempotent (migration is gated on PRAGMA user_version),
-  // but a LeaderLostError is never retried automatically — the ACK-before-run
-  // rule treats every ACKed call as possibly-committed. Correct for writes,
-  // needlessly hostile for open(): an app that starts while another tab is
-  // closing gets a hard startup error. Every consumer has to write this loop.
+  // This loop is now a BACKSTOP, not a workaround. The library retries both
+  // errors for open() itself — NoLeaderError because nothing ran, and
+  // LeaderLostError because re-running open() is indistinguishable from running
+  // it once (migration is gated on PRAGMA user_version and applies its DDL in one
+  // transaction). It was a real finding: every consumer used to have to write
+  // this. Kept so the suite still reports if the library's own retries are not
+  // enough under load.
   for (let attempt = 0; ; attempt++) {
     try {
       await page.evaluate(() => window.__stress.open());
