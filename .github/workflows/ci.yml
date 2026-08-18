@@ -70,3 +70,8 @@ jobs:
       # white canvas first, so every cross-document hop flashes. This asserts the
       # canvas is already right before any CSS exists.
       - run: node examples/playground/flash-probe.mjs
+      # Fetching these returns 200 and they were still broken: VitePress routes
+      # same-origin clicks client-side, so a link into /play/ (not one of its
+      # routes) got swapped for its own 404 without the file ever being
+      # requested. Only a CLICK reveals it.
+      - run: node examples/playground/spa-exit-test.mjs

@@ -95,8 +95,8 @@ await db.friends.where('age').above(30).toArray();
 | | |
 |---|---|
 | [Tutorial](./tutorial) | The full walkthrough, start to finish |
-| [Sandbox](/play/sandbox) | Write real queries against a real database, no install |
-| [Showcase](/play/showcase/) | A 5,000-row app you can poke at |
+| <a href="/play/sandbox" target="_self">Sandbox</a> | Write real queries against a real database, no install |
+| <a href="/play/showcase/" target="_self">Showcase</a> | A 5,000-row app you can poke at |
 | [Frameworks](./frameworks) | React, Vue, Svelte, Angular, Solid |
 | [TanStack Query, RxJS, Zustand](./state-libraries) | Using it with the state library you already have |
 | [Replacing localStorage](./replacing-web-storage) | Moving tokens and app state off web storage |

@@ -30,6 +30,11 @@ jobs:
       # then hung — paying twice for the same evidence, on the job whose whole
       # value is being fast and dependable.
       - run: node examples/playground/link-check.mjs
+      # Cheap (no browser install beyond what link-check needs) and it guards the
+      # landing page's primary call to action, which 404'd for every human while
+      # every fetch-based check said 200.
+      - run: npx playwright install --with-deps chromium
+      - run: node examples/playground/spa-exit-test.mjs
       # enablement:true lets the action turn Pages on itself; without it the run
       # fails with "Get Pages site failed" until someone flips the setting by hand.
       - uses: actions/configure-pages@v5

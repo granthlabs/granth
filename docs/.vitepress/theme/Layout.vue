@@ -230,7 +230,7 @@ async function copy() {
                 </svg>
                 Get started
               </a>
-              <a class="ghero__secondary" :href="withBase('/play/sandbox.html')">
+              <a class="ghero__secondary" target="_self" :href="withBase('/play/sandbox')">
                 <span class="ghero__play" aria-hidden="true" />
                 Try it in your browser
               </a>
@@ -325,7 +325,7 @@ async function copy() {
           </header>
 
           <div class="built__grid">
-            <a class="built__shot" :href="withBase('/play/showcase/')" aria-label="Open the Signals app">
+            <a class="built__shot" target="_self" :href="withBase('/play/showcase/')" aria-label="Open the Signals app">
               <span class="built__chrome" aria-hidden="true">
                 <i /><i /><i />
                 <em>granthlabs.github.io/play/showcase</em>
@@ -346,7 +346,7 @@ async function copy() {
           </div>
 
           <div class="built__actions">
-            <a class="ghero__cta" :href="withBase('/play/showcase/')">Open the app</a>
+            <a class="ghero__cta" target="_self" :href="withBase('/play/showcase/')">Open the app</a>
             <a class="ghero__secondary" href="https://github.com/granthlabs/granthlabs.github.io/tree/main/examples/playground/showcase">
               Read its source
             </a>

@@ -13,8 +13,8 @@ thread, safe across tabs, with an IndexedDB fallback where OPFS is unavailable.
 - **[Getting started](./getting-started)** — pick your framework and go
 - [Tutorial](./tutorial) — install, schema, first query, live updates
 - [Migrating from Dexie or IndexedDB](./migrating-from-dexie) — codemod, data import, every behavioural difference
-- [Sandbox](/play/sandbox) — write real queries with nothing installed
-- [Showcase](/play/showcase/) — a 5,000-row app to poke at
+- <a href="/play/sandbox" target="_self">Sandbox</a> — write real queries with nothing installed
+- <a href="/play/showcase/" target="_self">Showcase</a> — a 5,000-row app to poke at
 
 ## Guides
 
