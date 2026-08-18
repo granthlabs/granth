@@ -37,11 +37,6 @@ jobs:
       # Six frameworks, one check each: mount, type a todo, assert it appears. A
       # demo that renders an empty shell photographs fine and is useless.
       - run: node examples/playground/demos-test.mjs
-      # A REAL app over 5,000 rows: filter on one index while ordering by
-      # another, multiEntry facets, deep paging, a transaction across two tables,
-      # and the data still there after a full reload. The demos prove a binding
-      # mounts; this proves the library survives being used.
-      - run: node examples/playground/showcase-test.mjs
       - run: npm run docs:build
       # The site is served under /granth/, so a bare /Tutorial href works on a
       # root-served dev server and 404s in production. That asymmetry lets broken
@@ -52,6 +47,11 @@ jobs:
       # asset URLs, the new Worker(new URL(...)) rewrite, and sqlite-wasm's .wasm
       # fetch. This drives the artifact a visitor actually loads.
       - run: node examples/playground/hosted-play-test.mjs
+      # A REAL app over 5,000 rows: filter on one index while ordering by
+      # another, multiEntry facets, deep paging, a transaction across two tables,
+      # and the data still there after a full reload. The demos prove a binding
+      # mounts; this proves the library survives being used.
+      - run: node examples/playground/showcase-test.mjs
       # A dark site whose background arrives in an EXTERNAL stylesheet paints a
       # white canvas first, so every cross-document hop flashes. This asserts the
       # canvas is already right before any CSS exists.
