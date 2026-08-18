@@ -206,6 +206,24 @@ deliberately **not** in `npm test`: 100,000 rows is too slow to pay for on every
 commit. Run it before a release, or after touching the query compiler or the
 bulk paths.
 
+## Still untested: real Safari
+
+Everything labelled "WebKit" in CI is Playwright's WebKit build. It is close to
+Safari and it is the best thing a headless runner can do, but it is not Apple's
+shipping browser — different OPFS quotas, different eviction, features that lag
+or lead by months. Every Safari claim rests on that substitution.
+
+`examples/playground/safari-test.mjs` drives the real thing over WebDriver (no
+new dependency — raw `fetch` against `safaridriver`). It cannot run unattended:
+Safari refuses every session until Remote Automation is switched on, and the
+switch needs a human at the keyboard.
+
+    Safari > Settings > Advanced > "Show features for web developers"
+    then Develop > "Allow Remote Automation"
+
+Until someone does that and the runner reports green, "works in Safari" is
+inference from a similar engine, not a measurement.
+
 ## What the fixes could have broken, and how that is guarded
 
 The parity suite carries explicit regression cases for the ways these changes
