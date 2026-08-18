@@ -21,14 +21,15 @@ jobs:
       # with no /play/ at all, or fails resolving `granthdb`.
       - run: npm run build
       - run: npm run docs:build
-      # A deploy that ships a broken sandbox is worse than not shipping one.
-      - run: npx playwright install --with-deps chromium
+      # link-check is pure Node and takes seconds, so the deploy still refuses to
+      # ship broken links or a dead redirect.
+      #
+      # The BROWSER checks (hosted-play-test, flash-probe) deliberately do NOT run
+      # here. CI runs them on this same commit, and `playwright install
+      # --with-deps` turned a two-minute deploy into an eighteen-minute one that
+      # then hung — paying twice for the same evidence, on the job whose whole
+      # value is being fast and dependable.
       - run: node examples/playground/link-check.mjs
-      - run: node examples/playground/hosted-play-test.mjs
-      # A dark site whose background arrives in an EXTERNAL stylesheet paints a
-      # white canvas first, so every cross-document hop flashes. This asserts the
-      # canvas is already right before any CSS exists.
-      - run: node examples/playground/flash-probe.mjs
       # enablement:true lets the action turn Pages on itself; without it the run
       # fails with "Get Pages site failed" until someone flips the setting by hand.
       - uses: actions/configure-pages@v5
