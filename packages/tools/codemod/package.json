@@ -1,6 +1,6 @@
 {
   "name": "granth-codemod",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "type": "module",
   "license": "MIT",
   "description": "Automated Dexie -> granth source migration. Rewrites what is safe, reports what is not.",

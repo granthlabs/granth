@@ -28,14 +28,14 @@
     "vue": "^3.5.13"
   },
   "devDependencies": {
-    "@sveltejs/vite-plugin-svelte": "^3.1.2",
+    "@sveltejs/vite-plugin-svelte": "^4.0.4",
     "@tanstack/query-core": "^5.101.4",
     "@vitejs/plugin-react": "^4.3.4",
     "@vitejs/plugin-vue": "^5.2.1",
     "playwright": "^1.62.1",
     "rxjs": "^7.8.2",
     "solid-js": "^1.9.14",
-    "svelte": "^4.2.20",
+    "svelte": "^5.56.9",
     "vite": "^5.4.0",
     "vite-plugin-solid": "^2.11.14",
     "zustand": "^5.0.15"
