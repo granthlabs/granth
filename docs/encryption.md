@@ -6,7 +6,7 @@ cache someone's notes, messages, health records or client data locally, that is
 worth fixing.
 
 This page ships a working addon that does it. The full source is
-[`examples/playground/demos/encrypted-fields.js`](https://github.com/sundarshahi/granth/blob/main/examples/playground/demos/encrypted-fields.js),
+[`examples/playground/demos/encrypted-fields.js`](https://github.com/granthlabs/granthlabs.github.io/blob/main/examples/playground/demos/encrypted-fields.js),
 and its test asserts the plaintext is genuinely absent from storage rather than
 taking the claim on trust.
 

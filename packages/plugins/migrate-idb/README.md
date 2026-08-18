@@ -1,6 +1,6 @@
 # granth-migrate-idb
 
-Migrate an existing IndexedDB or Dexie database into [granth](https://github.com/sundarshahi/granth).
+Migrate an existing IndexedDB or Dexie database into [granth](https://github.com/granthlabs/granthlabs.github.io).
 
 ```js
 import { suggestSchema, importFromIndexedDB } from 'granth-migrate-idb';
@@ -20,7 +20,7 @@ source — verify first.
 npm install granth-migrate-idb
 ```
 
-Full documentation: **https://sundarshahi.github.io/granth**
+Full documentation: **https://granthlabs.github.io**
 
 ## License
 

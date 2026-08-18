@@ -5,7 +5,7 @@
 **Please do not open a public issue.**
 
 Use GitHub's private reporting: go to the
-[Security tab](https://github.com/sundarshahi/granth/security/advisories/new) and choose
+[Security tab](https://github.com/granthlabs/granthlabs.github.io/security/advisories/new) and choose
 **Report a vulnerability**. That thread is visible only to you and the maintainer.
 
 If that form is unavailable to you, email **shahithakurisundar@gmail.com** with `granth security`
@@ -73,7 +73,7 @@ in this project can even be.
 
 ## What encryption at rest does and does not do
 
-The [encryption addon](https://sundarshahi.github.io/granth/encryption) encrypts field values
+The [encryption addon](https://granthlabs.github.io/encryption) encrypts field values
 with AES-GCM via the Web Crypto API, using a key derived with PBKDF2 and held **non-extractable**
 so it cannot be read back out of the page.
 

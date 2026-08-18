@@ -74,7 +74,10 @@ export default defineConfig({
   // half-tuned light mode is worse than none.
   appearance: 'force-dark',
   lastUpdated: true,
-  base: '/granth/',
+  // The repo is granthlabs/granthlabs.github.io — an ORG SITE, so Pages serves
+  // it from the root and there is no path prefix to get wrong. Kept as a flag so
+  // a future custom domain or a move back under a path is one variable.
+  base: process.env.DOCS_BASE ?? '/',
   head: [
     // FIRST, before any stylesheet. `appearance: force-dark` is applied by
     // VitePress's own CSS, which is an external file — so until it arrived the
@@ -99,7 +102,7 @@ export default defineConfig({
       { text: 'Sandbox', link: '/play/sandbox', target: '_self' },
       { text: 'Examples', link: '/play/demos/', target: '_self' },
       { text: 'Verify', link: '/play/', target: '_self' },
-      { text: 'GitHub', link: 'https://github.com/sundarshahi/granth' },
+      { text: 'GitHub', link: 'https://github.com/granthlabs/granthlabs.github.io' },
     ],
     sidebar: [
       {
@@ -143,10 +146,10 @@ export default defineConfig({
         ],
       },
     ],
-    socialLinks: [{ icon: 'github', link: 'https://github.com/sundarshahi/granth' }],
+    socialLinks: [{ icon: 'github', link: 'https://github.com/granthlabs/granthlabs.github.io' }],
     search: { provider: 'local' },
     editLink: {
-      pattern: 'https://github.com/sundarshahi/granth/edit/main/docs/:path',
+      pattern: 'https://github.com/granthlabs/granthlabs.github.io/edit/main/docs/:path',
       text: 'Edit this page on GitHub',
     },
   },

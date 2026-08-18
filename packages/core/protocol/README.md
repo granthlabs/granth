@@ -1,6 +1,6 @@
 # granth-protocol
 
-Plugin contracts for [granth](https://github.com/sundarshahi/granth).
+Plugin contracts for [granth](https://github.com/granthlabs/granthlabs.github.io).
 
 Types only — zero runtime, zero dependencies. Storage backends, runtimes and bindings implement
 these so they never have to import each other or the client.
@@ -18,7 +18,7 @@ executes), and addons registered with `db.use()`.
 npm install granth-protocol
 ```
 
-Full documentation: **https://sundarshahi.github.io/granth**
+Full documentation: **https://granthlabs.github.io**
 
 ## License
 

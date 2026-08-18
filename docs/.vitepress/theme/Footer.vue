@@ -42,8 +42,8 @@ const columns = [
   {
     heading: 'Project',
     links: [
-      { text: 'GitHub', href: 'https://github.com/sundarshahi/granth' },
-      { text: 'Issues', href: 'https://github.com/sundarshahi/granth/issues' },
+      { text: 'GitHub', href: 'https://github.com/granthlabs/granthlabs.github.io' },
+      { text: 'Issues', href: 'https://github.com/granthlabs/granthlabs.github.io/issues' },
       { text: 'Plugins', href: '/plugins' },
       { text: 'Storage', href: '/storage' },
       { text: 'Errors', href: '/errors' },

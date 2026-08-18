@@ -9,7 +9,7 @@ plain observable is not: TanStack Query owns its own cache and wants to be *told
 to refetch, and Zustand wants a setter called.
 
 Every example on this page is executed by
-[`test-integrations.mjs`](https://github.com/sundarshahi/granth/blob/main/examples/playground/test-integrations.mjs)
+[`test-integrations.mjs`](https://github.com/granthlabs/granthlabs.github.io/blob/main/examples/playground/test-integrations.mjs)
 against the real `rxjs`, `zustand` and `@tanstack/query-core` packages. A claim
 nobody ran is just a comment.
 

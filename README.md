@@ -12,7 +12,7 @@ await db.friends.add({ name: 'Ada', age: 36 });
 const grownUps = await db.friends.where('age').above(30).toArray();
 ```
 
-**[Try it in your browser →](https://sundarshahi.github.io/granth/play/sandbox)** — a real
+**[Try it in your browser →](https://granthlabs.github.io/play/sandbox)** — a real
 database, no install.
 
 ---
@@ -107,7 +107,7 @@ const stop = db.liveQuery(() => db.friends.where('age').above(30).toArray())
 stop();
 ```
 
-→ Full walkthrough: **[Tutorial](https://sundarshahi.github.io/granth/tutorial)**
+→ Full walkthrough: **[Tutorial](https://granthlabs.github.io/tutorial)**
 
 ## Schema syntax
 
@@ -137,8 +137,8 @@ Fields you never search by do not need to be listed — they are still stored.
 Creating a `Granth` touches no browser API, so it is safe at module scope during
 server-side rendering.
 
-→ **[Frameworks guide](https://sundarshahi.github.io/granth/frameworks)** ·
-**[TanStack Query, RxJS, Zustand](https://sundarshahi.github.io/granth/state-libraries)**
+→ **[Frameworks guide](https://granthlabs.github.io/frameworks)** ·
+**[TanStack Query, RxJS, Zustand](https://granthlabs.github.io/state-libraries)**
 
 ## Coming from Dexie
 
@@ -174,7 +174,7 @@ differential test runs the same script against both and compares the answers:
 Each gap is a documented waiver — middleware, `idbdb`, PSD zones — things with no meaning once
 the store is not IndexedDB.
 
-→ **[Migrating from Dexie](https://sundarshahi.github.io/granth/migrating-from-dexie)**
+→ **[Migrating from Dexie](https://granthlabs.github.io/migrating-from-dexie)**
 
 ## Why SQLite instead of IndexedDB
 
@@ -248,17 +248,17 @@ db.use(addon)   everything else           hooks; returns a disposer
 
 It runs **without a Worker** too, for strict CSP, SSR, Node and tests.
 
-→ **[Storage](https://sundarshahi.github.io/granth/storage)** ·
-**[Runtimes](https://sundarshahi.github.io/granth/runtimes)** ·
-**[Plugins](https://sundarshahi.github.io/granth/plugins)**
+→ **[Storage](https://granthlabs.github.io/storage)** ·
+**[Runtimes](https://granthlabs.github.io/runtimes)** ·
+**[Plugins](https://granthlabs.github.io/plugins)**
 
 ## Try it and see it
 
 | | |
 |---|---|
-| **[Sandbox](https://sundarshahi.github.io/granth/play/sandbox)** | Write real queries against a real database |
-| **[Examples](https://sundarshahi.github.io/granth/play/demos/)** | The same app in six frameworks |
-| **[Verify](https://sundarshahi.github.io/granth/play/)** | Run the full browser test suite in *your* browser |
+| **[Sandbox](https://granthlabs.github.io/play/sandbox)** | Write real queries against a real database |
+| **[Examples](https://granthlabs.github.io/play/demos/)** | The same app in six frameworks |
+| **[Verify](https://granthlabs.github.io/play/)** | Run the full browser test suite in *your* browser |
 
 Locally:
 
@@ -269,25 +269,25 @@ npm run dev     # then open /sandbox or /demos/
 
 ## Documentation
 
-**https://sundarshahi.github.io/granth**
+**https://granthlabs.github.io**
 
-- [Tutorial](https://sundarshahi.github.io/granth/tutorial) ·
-  [Migrating from Dexie](https://sundarshahi.github.io/granth/migrating-from-dexie) ·
-  [Frameworks](https://sundarshahi.github.io/granth/frameworks)
-- [Replacing localStorage](https://sundarshahi.github.io/granth/replacing-web-storage) ·
-  [Cache-first apps](https://sundarshahi.github.io/granth/cache-first-apps) ·
-  [Encryption at rest](https://sundarshahi.github.io/granth/encryption)
-- [Storage](https://sundarshahi.github.io/granth/storage) ·
-  [Runtimes](https://sundarshahi.github.io/granth/runtimes) ·
-  [Plugins](https://sundarshahi.github.io/granth/plugins) ·
-  [Security & performance](https://sundarshahi.github.io/granth/security-and-performance)
-- API: [Granth](https://sundarshahi.github.io/granth/granth) ·
-  [Table](https://sundarshahi.github.io/granth/table) ·
-  [Collection](https://sundarshahi.github.io/granth/collection) ·
-  [WhereClause](https://sundarshahi.github.io/granth/where-clause) ·
-  [Transaction](https://sundarshahi.github.io/granth/transaction) ·
-  [liveQuery](https://sundarshahi.github.io/granth/live-query) ·
-  [Errors](https://sundarshahi.github.io/granth/errors)
+- [Tutorial](https://granthlabs.github.io/tutorial) ·
+  [Migrating from Dexie](https://granthlabs.github.io/migrating-from-dexie) ·
+  [Frameworks](https://granthlabs.github.io/frameworks)
+- [Replacing localStorage](https://granthlabs.github.io/replacing-web-storage) ·
+  [Cache-first apps](https://granthlabs.github.io/cache-first-apps) ·
+  [Encryption at rest](https://granthlabs.github.io/encryption)
+- [Storage](https://granthlabs.github.io/storage) ·
+  [Runtimes](https://granthlabs.github.io/runtimes) ·
+  [Plugins](https://granthlabs.github.io/plugins) ·
+  [Security & performance](https://granthlabs.github.io/security-and-performance)
+- API: [Granth](https://granthlabs.github.io/granth) ·
+  [Table](https://granthlabs.github.io/table) ·
+  [Collection](https://granthlabs.github.io/collection) ·
+  [WhereClause](https://granthlabs.github.io/where-clause) ·
+  [Transaction](https://granthlabs.github.io/transaction) ·
+  [liveQuery](https://granthlabs.github.io/live-query) ·
+  [Errors](https://granthlabs.github.io/errors)
 
 ## Packages
 
@@ -326,7 +326,7 @@ Found a vulnerability? **Please do not open a public issue.** See
 
 For the security properties of the library itself — what is and is not protected, what
 encryption at rest does and does not cover — see
-[Security & performance](https://sundarshahi.github.io/granth/security-and-performance).
+[Security & performance](https://granthlabs.github.io/security-and-performance).
 
 ## Name
 

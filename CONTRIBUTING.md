@@ -8,7 +8,7 @@ loses a row is worth more attention than a missing feature.
 You need **Node 22 or newer** (the test suites use the built-in `node:sqlite`).
 
 ```bash
-git clone https://github.com/sundarshahi/granth
+git clone https://github.com/granthlabs/granthlabs.github.io
 cd granth
 npm install
 npm test
@@ -111,7 +111,7 @@ The most useful report is one someone else can run. Please include:
 - Your schema string — most query bugs turn on the exact index declaration.
 - Browser and version, and whether it reproduces in a normal window as well as a private one
   (Safari private browsing has no OPFS at all, which changes the storage backend).
-- Whether it reproduces in the [sandbox](https://sundarshahi.github.io/granth/play/sandbox) —
+- Whether it reproduces in the [sandbox](https://granthlabs.github.io/play/sandbox) —
   if it does, that is a complete reproduction on its own.
 
 If it is a **security** issue, do not open a public issue — see [SECURITY.md](./SECURITY.md).

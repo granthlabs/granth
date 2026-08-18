@@ -1,6 +1,6 @@
 # granth-storage-opfs
 
-OPFS storage backend for [granth](https://github.com/sundarshahi/granth).
+OPFS storage backend for [granth](https://github.com/granthlabs/granthlabs.github.io).
 
 Uses the `opfs-sahpool` VFS: the fastest OPFS backend and the only one that needs **no COOP/COEP**
 headers. Writes land in place, so there is nothing to checkpoint. Requires a dedicated Worker —
@@ -17,7 +17,7 @@ startGranthWorker({ sqlite3InitModule, storage: [opfsStorage()] });
 npm install granth-storage-opfs
 ```
 
-Full documentation: **https://sundarshahi.github.io/granth**
+Full documentation: **https://granthlabs.github.io**
 
 ## License
 

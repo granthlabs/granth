@@ -30,12 +30,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/sundarshahi/granth.git",
+    "url": "git+https://github.com/granthlabs/granthlabs.github.io.git",
     "directory": "packages/runtime/worker"
   },
-  "homepage": "https://github.com/sundarshahi/granth/tree/main/packages/runtime/worker#readme",
+  "homepage": "https://github.com/granthlabs/granthlabs.github.io/tree/main/packages/runtime/worker#readme",
   "bugs": {
-    "url": "https://github.com/sundarshahi/granth/issues"
+    "url": "https://github.com/granthlabs/granthlabs.github.io/issues"
   },
   "publishConfig": {
     "access": "public"

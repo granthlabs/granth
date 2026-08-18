@@ -1,6 +1,6 @@
 # granth-react
 
-React bindings for [granth](https://github.com/sundarshahi/granth).
+React bindings for [granth](https://github.com/granthlabs/granthlabs.github.io).
 
 ```jsx
 import { useLiveQuery, useIsSupported } from 'granth-react';
@@ -17,7 +17,7 @@ hydration mismatch. `react` is an optional peer dependency.
 npm install granth-react
 ```
 
-Full documentation: **https://sundarshahi.github.io/granth**
+Full documentation: **https://granthlabs.github.io**
 
 ## License
 

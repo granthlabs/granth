@@ -107,7 +107,7 @@ export async function run(argv: string[]): Promise<number> {
       (dry ? C.dim('  (dry run — nothing written)') : '')
   );
   if (changedCount) {
-    console.log(C.dim('Then bring your data across: https://github.com/sundarshahi/granth/blob/main/docs/MigratingFromDexie.md'));
+    console.log(C.dim('Then bring your data across: https://github.com/granthlabs/granthlabs.github.io/blob/main/docs/MigratingFromDexie.md'));
   }
   return 0;
 }

@@ -1,6 +1,6 @@
 # granth-runtime-worker
 
-The default runtime for [granth](https://github.com/sundarshahi/granth).
+The default runtime for [granth](https://github.com/granthlabs/granthlabs.github.io).
 
 Runs SQL in a dedicated Worker owned by exactly one tab, elected via Web Locks by `opfs-leader`.
 Every other tab routes its calls to that tab.
@@ -15,7 +15,7 @@ fix, not a mitigation.
 npm install granth-runtime-worker
 ```
 
-Full documentation: **https://sundarshahi.github.io/granth**
+Full documentation: **https://granthlabs.github.io**
 
 ## License
 

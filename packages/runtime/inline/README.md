@@ -1,6 +1,6 @@
 # granth-runtime-inline
 
-No-Worker runtime for [granth](https://github.com/sundarshahi/granth).
+No-Worker runtime for [granth](https://github.com/granthlabs/granthlabs.github.io).
 
 Runs the database on the calling thread, for strict CSP without `worker-src`, embedded contexts,
 SSR, Node and tests.
@@ -15,7 +15,7 @@ so a slow query blocks rendering. Cross-tab change notification still works.
 npm install granth-runtime-inline
 ```
 
-Full documentation: **https://sundarshahi.github.io/granth**
+Full documentation: **https://granthlabs.github.io**
 
 ## License
 

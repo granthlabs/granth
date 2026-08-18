@@ -1,6 +1,6 @@
 # granth-storage-indexeddb
 
-IndexedDB storage backend for [granth](https://github.com/sundarshahi/granth).
+IndexedDB storage backend for [granth](https://github.com/granthlabs/granthlabs.github.io).
 
 The fallback that keeps apps working where OPFS does not exist — most importantly **Safari private
 browsing, which exposes none at all**.
@@ -15,7 +15,7 @@ durability differs. Checkpoints are debounced and whole-file, so cost is O(datab
 npm install granth-storage-indexeddb
 ```
 
-Full documentation: **https://sundarshahi.github.io/granth**
+Full documentation: **https://granthlabs.github.io**
 
 ## License
 

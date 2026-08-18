@@ -256,20 +256,20 @@ npm run dev           # then, in the browser:
 
 ## Try it without installing
 
-- **[Sandbox](https://sundarshahi.github.io/granth/play/sandbox)** — real queries, real database
-- **[Examples](https://sundarshahi.github.io/granth/play/demos/)** — the same app in six frameworks
-- **[Verify](https://sundarshahi.github.io/granth/play/)** — run the browser suite in your own browser
+- **[Sandbox](https://granthlabs.github.io/play/sandbox)** — real queries, real database
+- **[Examples](https://granthlabs.github.io/play/demos/)** — the same app in six frameworks
+- **[Verify](https://granthlabs.github.io/play/)** — run the browser suite in your own browser
 
 ## Contributing
 
 Bug reports and pull requests are welcome — see
-[CONTRIBUTING.md](https://github.com/sundarshahi/granth/blob/main/CONTRIBUTING.md) for setup,
+[CONTRIBUTING.md](https://github.com/granthlabs/granthlabs.github.io/blob/main/CONTRIBUTING.md) for setup,
 how the layered test suites work, and what a change needs before merge.
 
 ## Security
 
 Found a vulnerability? Please do not open a public issue — see
-[SECURITY.md](https://github.com/sundarshahi/granth/blob/main/SECURITY.md) for private reporting
+[SECURITY.md](https://github.com/granthlabs/granthlabs.github.io/blob/main/SECURITY.md) for private reporting
 and the threat model (what a browser-local database can and cannot protect).
 
 ## License

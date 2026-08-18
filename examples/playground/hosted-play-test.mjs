@@ -21,7 +21,9 @@ import { dirname, join, extname } from 'node:path';
 import { chromium } from 'playwright';
 
 const DIST = join(dirname(fileURLToPath(import.meta.url)), '../../docs/.vitepress/dist');
-const BASE = '/granth/';
+// The site is an ORG SITE now (granthlabs/granthlabs.github.io), served from
+// the root. One constant so a future move is one edit.
+const BASE = process.env.DOCS_BASE ?? '/';
 
 if (!existsSync(join(DIST, 'play'))) {
   console.error('hosted-play: no build found. Run `npm run docs:build` first.');

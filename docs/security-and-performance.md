@@ -6,7 +6,7 @@ rather than a feature, it says so.
 ## Performance
 
 Measured in Chrome on an M-series Mac over 5,000 documents (~1.6 MB), via
-[`examples/playground/bench.html`](https://github.com/sundarshahi/granth/blob/main/examples/playground/bench.html).
+[`examples/playground/bench.html`](https://github.com/granthlabs/granthlabs.github.io/blob/main/examples/playground/bench.html).
 Run it yourself — these are one machine's numbers and query times vary ±3× with load.
 
 | Operation | Time | Rate |

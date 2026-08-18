@@ -21,7 +21,9 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 
 const DIST = join(dirname(fileURLToPath(import.meta.url)), '../../docs/.vitepress/dist');
-const BASE = '/granth/';
+// The site is an ORG SITE now (granthlabs/granthlabs.github.io), served from
+// the root. One constant so a future move is one edit.
+const BASE = process.env.DOCS_BASE ?? '/';
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.wasm': 'application/wasm',
   '.svg': 'image/svg+xml', '.json': 'application/json', '.woff2': 'font/woff2', '.png': 'image/png' };
 

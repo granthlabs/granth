@@ -40,7 +40,9 @@ export default defineConfig(({ command }) => ({
   // copy lands under the docs site's own base. Getting this wrong is invisible
   // locally and 404s everything in production — the same trap link-check exists
   // for on the docs side.
-  base: command === 'build' ? '/granth/play/' : '/',
+  // Mirrors the docs base — see docs/.vitepress/config.ts. Both must agree, so
+  // both read the same variable.
+  base: command === 'build' ? `${process.env.DOCS_BASE ?? '/'}play/` : '/',
 
   // solid() must precede react(): both claim .jsx, and whichever runs first wins.
   // Scoped by directory so each only compiles its own demo.

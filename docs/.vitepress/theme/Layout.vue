@@ -328,7 +328,7 @@ async function copy() {
             <a class="built__shot" :href="withBase('/play/showcase/')" aria-label="Open the Signals app">
               <span class="built__chrome" aria-hidden="true">
                 <i /><i /><i />
-                <em>sundarshahi.github.io/granth/play/showcase</em>
+                <em>granthlabs.github.io/play/showcase</em>
               </span>
               <img :src="withBase('/showcase.png')" alt="Signals: status facets with live counts beside a filterable table of issues, showing query timings" loading="lazy" />
             </a>
@@ -347,7 +347,7 @@ async function copy() {
 
           <div class="built__actions">
             <a class="ghero__cta" :href="withBase('/play/showcase/')">Open the app</a>
-            <a class="ghero__secondary" href="https://github.com/sundarshahi/granth/tree/main/examples/playground/showcase">
+            <a class="ghero__secondary" href="https://github.com/granthlabs/granthlabs.github.io/tree/main/examples/playground/showcase">
               Read its source
             </a>
           </div>

@@ -1,6 +1,6 @@
 # granth-vue
 
-Vue bindings for [granth](https://github.com/sundarshahi/granth).
+Vue bindings for [granth](https://github.com/granthlabs/granthlabs.github.io).
 
 ```js
 import { useLiveQuery } from 'granth-vue';
@@ -16,7 +16,7 @@ Unsubscribes automatically with the component's effect scope. `vue` is an option
 npm install granth-vue
 ```
 
-Full documentation: **https://sundarshahi.github.io/granth**
+Full documentation: **https://granthlabs.github.io**
 
 ## License
 
