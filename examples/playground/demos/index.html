@@ -9,7 +9,19 @@
 <meta name="description" content="The same SQLite-backed todo list in six frameworks. Only the binding differs.">
 <link rel="stylesheet" href="./style.css">
 <style>
-  .picks { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--g-space-3); grid-template-columns: repeat(auto-fit, minmax(248px, 1fr)); }
+  .picks { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--g-space-3);
+    grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  @media (max-width: 900px) { .picks { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 560px) { .picks { grid-template-columns: minmax(0, 1fr); } }
+  /* Brand marks, matching the picker on /getting-started. Brand hex is a
+     constant rather than a design choice, so it is named here and nowhere else. */
+  .pick__logo { display: flex; margin-bottom: var(--g-space-3); }
+  .pick__logo--react    { color: #61DAFB; }
+  .pick__logo--vue      { color: #42B883; }
+  .pick__logo--svelte   { color: #FF3E00; }
+  .pick__logo--js       { color: #F7DF1E; }
+  .pick__logo--solid    { color: #4F88C6; }
+  .pick__logo--noworker { color: var(--g-text-3); }
   .picks li { display: block; padding: 0; border: 0; }
   /* A whole card is the target, not just the word — Fitts, and it stops the
      six-item list reading as six tiny links. */
@@ -39,6 +51,7 @@
   <nav class="topbar__nav">
     <a href="../sandbox">Sandbox</a>
     <a href="./" aria-current="page">Examples</a>
+    <a href="../showcase/">Showcase</a>
     <a href="../">Verify</a>
     <a href="../../tutorial">Docs</a>
     <a href="https://github.com/granthlabs/granth">GitHub</a>
@@ -56,36 +69,42 @@
   <ul class="picks">
     <li>
       <a class="pick" href="./vanilla">
+        <span class="pick__logo pick__logo--js"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="3" fill="currentColor"/><path d="M13.2 18.9c.45.74.9 1.15 1.72 1.33 1.1.14 2.2-.24 1.96-1.41-.25-.96-2.25-1.19-3.61-2.2-1.38-.93-1.71-3.18-.57-4.47.39-.48 1.03-.84 1.71-1l.7-.09c1.37-.03 2.2.33 2.84 1.03.18.18.31.36.58.78-.72.45-.72.45-1.75 1.13-.23-.48-.59-.78-.98-.9-.6-.18-1.36.01-1.51.66-.06.2-.05.38.04.7.24.56 1.06.8 1.8 1.15 2.11.86 2.82 1.78 3 2.87.16.95-.05 1.56-.08 1.65-.78 2.67-5.13 2.76-6.87 1-.36-.42-.6-.63-.81-1.11l1.83-1.05Zm-6.9.15c.02 0 .06.09.13.2.23.39.43.66.83.86.39.12 1.24.2 1.57-.48.2-.35.14-1.48.14-2.71 0-1.94.01-3.87.01-5.81h2.25v6.23c0 1.28.11 2.42-.4 3.35-.35.72-1.03 1.19-1.81 1.41-1.2.28-2.35.11-3.21-.4-.57-.34-1.02-.88-1.32-1.51l1.81-1.14Z" fill="#000" opacity=".85"/></svg></span>
         <span class="pick__name">Vanilla JS</span>
         <span class="pick__desc">liveQuery().subscribe() straight into the DOM — no framework, no adapter.</span>
       </a>
     </li>
     <li>
       <a class="pick" href="./react">
+        <span class="pick__logo pick__logo--react"><svg width="26" height="26" viewBox="-11.5 -10.23 23 20.46" fill="none" aria-hidden="true"><circle r="2.05" fill="currentColor"/><g stroke="currentColor" stroke-width="1"><ellipse rx="11" ry="4.2"/><ellipse rx="11" ry="4.2" transform="rotate(60)"/><ellipse rx="11" ry="4.2" transform="rotate(120)"/></g></svg></span>
         <span class="pick__name">React</span>
         <span class="pick__desc">granth-react’s useLiveQuery, backed by useSyncExternalStore. SSR-safe.</span>
       </a>
     </li>
     <li>
       <a class="pick" href="./vue">
+        <span class="pick__logo pick__logo--vue"><svg width="26" height="26" viewBox="0 0 256 221" fill="currentColor" aria-hidden="true"><path d="M204.8 0H256L128 220.8 0 0h97.92L128 51.2 157.44 0h47.36Z"/><path d="M0 0h51.2L128 132.48 204.48 0H256L128 220.8 0 0Z" opacity=".5"/></svg></span>
         <span class="pick__name">Vue</span>
         <span class="pick__desc">A composable from granth-vue returning a plain ref.</span>
       </a>
     </li>
     <li>
       <a class="pick" href="./svelte">
+        <span class="pick__logo pick__logo--svelte"><svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10.354 21.125a4.44 4.44 0 0 1-4.765-1.767 4.109 4.109 0 0 1-.703-3.107 3.898 3.898 0 0 1 .134-.522l.105-.321.287.21a7.21 7.21 0 0 0 2.186 1.092l.208.063-.02.208a1.253 1.253 0 0 0 .226.83 1.337 1.337 0 0 0 1.435.533 1.231 1.231 0 0 0 .343-.15l5.59-3.562a1.164 1.164 0 0 0 .524-.778 1.242 1.242 0 0 0-.211-.937 1.338 1.338 0 0 0-1.435-.533 1.235 1.235 0 0 0-.343.15l-2.133 1.36a4.078 4.078 0 0 1-1.135.499 4.44 4.44 0 0 1-4.765-1.766 4.108 4.108 0 0 1-.702-3.108 3.855 3.855 0 0 1 1.742-2.582l5.589-3.563a4.072 4.072 0 0 1 1.135-.499 4.44 4.44 0 0 1 4.765 1.767 4.109 4.109 0 0 1 .703 3.107 3.943 3.943 0 0 1-.134.522l-.105.321-.286-.21a7.204 7.204 0 0 0-2.187-1.093l-.208-.063.02-.207a1.255 1.255 0 0 0-.226-.831 1.337 1.337 0 0 0-1.435-.532 1.231 1.231 0 0 0-.343.15L7.11 9.883a1.162 1.162 0 0 0-.524.778 1.242 1.242 0 0 0 .211.937 1.338 1.338 0 0 0 1.435.533 1.235 1.235 0 0 0 .344-.151l2.132-1.36a4.067 4.067 0 0 1 1.135-.498 4.44 4.44 0 0 1 4.765 1.766 4.108 4.108 0 0 1 .702 3.108 3.857 3.857 0 0 1-1.742 2.583l-5.589 3.562a4.072 4.072 0 0 1-1.135.499m10.358-17.95C18.484-.015 14.082-.96 10.9 1.068L5.31 4.63a6.412 6.412 0 0 0-2.896 4.295 6.753 6.753 0 0 0 .666 4.336 6.43 6.43 0 0 0-.96 2.396 6.833 6.833 0 0 0 1.168 5.167c2.229 3.19 6.63 4.135 9.812 2.108l5.59-3.562a6.41 6.41 0 0 0 2.896-4.295 6.756 6.756 0 0 0-.666-4.336 6.429 6.429 0 0 0 .96-2.396 6.831 6.831 0 0 0-1.167-5.168Z"/></svg></span>
         <span class="pick__name">Svelte</span>
         <span class="pick__desc">subscribe() already satisfies the store contract, so $query just works.</span>
       </a>
     </li>
     <li>
       <a class="pick" href="./solid">
+        <span class="pick__logo pick__logo--solid"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="6" fill="currentColor"/><text x="12" y="17" text-anchor="middle" font-size="14" font-weight="700" font-family="inherit" fill="#0b1220">S</text></svg></span>
         <span class="pick__name">Solid</span>
         <span class="pick__desc">createResource fed by the same subscription.</span>
       </a>
     </li>
     <li>
       <a class="pick" href="./no-worker">
+        <span class="pick__logo pick__logo--noworker"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 1.5v3M15 1.5v3M9 19.5v3M15 19.5v3M1.5 9h3M1.5 15h3M19.5 9h3M19.5 15h3"/></svg></span>
         <span class="pick__name">No Worker</span>
         <span class="pick__desc">The inline runtime on IndexedDB: SQL on the main thread, for strict CSP and SSR.</span>
       </a>

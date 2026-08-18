@@ -46,6 +46,34 @@
   pre.out.ok { border-color: var(--g-good-soft); background: var(--g-good-soft); }
   /* An empty <pre> is not a result — hide it rather than showing a blank slab. */
   pre.out:empty { display: none; }
+
+  /* Shown only while the idle/empty state is on screen. `[hidden]` alone is
+     not enough on .state, which sets display:flex — ui.css carries the
+     !important override that makes hidden actually hide. */
+  #schema { display: none; }
+  #state:not([hidden]) ~ #schema { display: block; }
+  .schema { margin-top: var(--g-space-5); text-align: left; width: 100%; }
+  .schema__label {
+    display: block; font: 600 var(--g-text-xs)/1.6 var(--g-font);
+    letter-spacing: .08em; text-transform: uppercase; color: var(--g-text-3);
+    margin-bottom: var(--g-space-2);
+  }
+  .schema dl { margin: 0; display: grid; gap: var(--g-space-2); }
+  .schema dl > div {
+    display: grid; grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+    gap: var(--g-space-3); align-items: baseline;
+    padding: var(--g-space-2) var(--g-space-3);
+    border: 1px solid var(--g-line-soft); border-radius: var(--g-radius);
+    background: var(--g-bg-sunk);
+  }
+  .schema dt { font: 600 var(--g-text-sm)/1.5 var(--g-mono); color: var(--g-text); }
+  .schema dd { margin: 0; min-width: 0; }
+  .schema dd code, .schema__hint code {
+    font: var(--g-text-xs)/1.6 var(--g-mono); color: var(--g-text-2);
+    background: none; padding: 0;
+  }
+  .schema__hint { margin: var(--g-space-3) 0 0; font-size: var(--g-text-xs); color: var(--g-text-3); line-height: 1.6; }
+  @media (max-width: 560px) { .schema dl > div { grid-template-columns: minmax(0, 1fr); gap: var(--g-space-1); } }
 </style>
 </head>
 <body>
@@ -60,6 +88,7 @@
   <nav class="topbar__nav">
     <a href="./sandbox" aria-current="page">Sandbox</a>
     <a href="./demos/">Examples</a>
+    <a href="./showcase/">Showcase</a>
     <a href="./">Verify</a>
     <a href="../tutorial">Docs</a>
     <a href="https://github.com/granthlabs/granth">GitHub</a>
@@ -104,8 +133,8 @@
       </div>
 
       <div class="card__foot">
-        Whatever you <code>return</code> is shown alongside. Tables:
-        <code>db.friends</code>, <code>db.notes</code>.
+        Whatever you <code>return</code> is shown alongside — an array of rows becomes a
+        table, anything else becomes JSON.
       </div>
     </section>
 
@@ -125,6 +154,25 @@
           <p class="state__body">
             Pick an example or write your own query, then press <strong>Run query</strong>.
             Rows that share a shape come back as a table; anything else as JSON.
+          </p>
+        </div>
+        <!-- The schema, because "write your own query" is not a real invitation if
+             you cannot see what to query. It was one line of small print in the card
+             footer; while the pane is idle it is the thing you actually need.
+
+             A SIBLING of #state rather than a child: show() rebuilds that node's
+             innerHTML on every state change, so anything static inside it is erased
+             the first time the pane renders. Out here, CSS alone ties it to the idle
+             state and the JS never has to know it exists. -->
+        <div class="schema" id="schema">
+          <span class="schema__label">Tables in this database</span>
+          <dl>
+            <div><dt>db.friends</dt><dd><code>++id, name, age, city, *tags, [name+age]</code></dd></div>
+            <div><dt>db.notes</dt><dd><code>++id, friendId, created</code></dd></div>
+          </dl>
+          <p class="schema__hint">
+            <code>*tags</code> matches any element of the array;
+            <code>[name+age]</code> is one index over both fields.
           </p>
         </div>
         <pre class="out" id="out" tabindex="0" aria-live="polite"></pre>

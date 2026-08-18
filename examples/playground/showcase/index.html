@@ -40,8 +40,30 @@
   .toolbar .field { width: auto; }
   #search { flex: 1 1 200px; }
 
-  td.t { white-space: normal; min-width: 260px; }
+  td.t { white-space: normal; min-width: 200px; }
   td.labels { white-space: nowrap; }
+
+  /* Seven columns did not fit beside the facet rail, so Comments and Updated sat
+     outside the scroll area — including Updated, which is the DEFAULT SORT KEY.
+     A table whose sort column is off-screen cannot show you that sorting worked.
+     Assignee and Labels drop out first as the width tightens; both remain
+     reachable as filters in the rail, so nothing becomes unusable, and the
+     columns carrying the measured numbers stay visible. */
+  @media (max-width: 1260px) {
+    /* Buy the last ~50px from padding before dropping a column: six columns x two
+       sides x 4px is enough to bring `Updated` — the sort key — fully on screen. */
+    .data th, .data td { padding-left: var(--g-space-2); padding-right: var(--g-space-2); }
+    td.t { min-width: 170px; }
+  }
+  @media (max-width: 1180px) {
+    .data th:nth-child(4), .data td:nth-child(4) { display: none; }   /* Assignee */
+  }
+  @media (max-width: 1000px) {
+    .data th:nth-child(5), .data td:nth-child(5) { display: none; }   /* Labels */
+  }
+  @media (max-width: 780px) {
+    .data th:nth-child(3), .data td:nth-child(3) { display: none; }   /* Priority */
+  }
   .pill, .prio { display: inline-block; padding: 1px var(--g-space-2); border-radius: var(--g-radius-pill); font-size: var(--g-text-xs); font-weight: 600; }
   .pill--open { background: var(--g-accent-soft); color: var(--g-accent); }
   .pill--in-progress { background: var(--g-warn-soft); color: var(--g-warn); }
@@ -77,7 +99,7 @@
   </nav>
 </header>
 
-<div class="page">
+<div class="page page--wide">
   <div class="page__head">
     <h1>Signals</h1>
     <p>

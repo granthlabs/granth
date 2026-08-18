@@ -97,6 +97,10 @@ button, [role='button'], select, input, textarea, a.btn { min-height: 36px; }
 
 .page { max-width: 1180px; margin: 0 auto; padding: var(--g-space-6) var(--g-space-5) var(--g-space-8); }
 .page--narrow { max-width: 660px; }
+/* Application views, not prose. 1180px is a reading measure; a seven-column data
+   table beside a facet rail does not fit in it, so the showcase clipped its last
+   two columns — including the one it sorts by — at EVERY viewport width. */
+.page--wide { max-width: 1400px; }
 
 /* Heading and its subtitle belong together, so the gap BELOW the pair is much
    larger than the gap inside it. This is the spacing rule that fixes most
