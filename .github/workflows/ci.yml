@@ -43,6 +43,11 @@ jobs:
       # must actually run. This already caught a demo querying an index the
       # sandbox schema never declared.
       - run: node examples/playground/sandbox-test.mjs
+      # A REAL Dexie application migrated end to end: 2,700 rows, an explicit
+      # string primary key, a unique index, a compound index and a multiEntry
+      # array — then every query asked of BOTH databases and the answers diffed.
+      # The old check migrated two rows, which is a smoke test, not a migration.
+      - run: node examples/playground/migration-test.mjs
       # Six frameworks, one check each: mount, type a todo, assert it appears. A
       # demo that renders an empty shell photographs fine and is useless.
       - run: node examples/playground/demos-test.mjs

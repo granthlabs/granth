@@ -731,55 +731,125 @@
 
 /* ---------------------------------------------- built-on-granth showcase */
 
-/* Sits between the benefits grid and the footer, so it gets the SUNK surface —
-   a change of background is what separates two full-width bands without adding
-   another border. */
-.showcase-strip {
-  background: var(--g-bg-sunk);
+/*
+ * A darker band than the benefits grid above it, with one soft accent bloom —
+ * enough to read as its own chapter without another border. The screenshot sits
+ * in a faux browser frame so it reads as a running app rather than a picture.
+ */
+.built {
+  position: relative;
+  overflow: hidden;
+  background: oklch(13% 0.012 260);
   border-top: 1px solid var(--g-line-soft);
   padding: var(--g-space-8) var(--g-space-5);
 }
-.showcase-strip__inner { max-width: 1152px; margin: 0 auto; }
-.showcase-strip__head { max-width: 62ch; margin-bottom: var(--g-space-6); }
-.showcase-strip__lead {
-  margin: var(--g-space-3) 0 0;
+.built__glow {
+  position: absolute;
+  inset: -30% 40% 40% -10%;
+  pointer-events: none;
+  background: radial-gradient(closest-side, oklch(76% 0.135 255 / 0.12), transparent 70%);
+}
+.built__inner { position: relative; max-width: 1152px; margin: 0 auto; }
+
+.built__head { max-width: 60ch; margin-bottom: var(--g-space-7); }
+.built__eyebrow {
+  margin: 0 0 var(--g-space-3);
+  font-size: var(--g-text-xs);
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--g-accent);
+}
+.built__title {
+  margin: 0;
+  font-size: var(--g-text-3xl);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  font-weight: 600;
+  color: var(--g-text);
+}
+.built__lead {
+  margin: var(--g-space-4) 0 0;
+  font-size: var(--g-text-lg);
+  line-height: 1.6;
   color: var(--g-text-2);
-  font-size: var(--g-text-base);
-  line-height: 1.65;
 }
 
-/* The screenshot leads, so it takes the larger column and the points read
-   beside it rather than under it. */
-.showcase-strip__grid {
+.built__grid {
   display: grid;
-  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
-  gap: var(--g-space-6);
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: var(--g-space-7);
   align-items: start;
 }
-@media (max-width: 900px) { .showcase-strip__grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 980px) { .built__grid { grid-template-columns: minmax(0, 1fr); gap: var(--g-space-6); } }
 
-.showcase-strip__shot {
+/* Faux browser chrome: the frame is what makes a flat PNG read as software. */
+.built__shot {
   display: block;
   border: 1px solid var(--g-line);
-  border-radius: var(--g-radius-lg);
+  border-radius: var(--g-radius-xl);
   overflow: hidden;
   background: var(--g-bg);
-  box-shadow: var(--g-shadow-md);
-  transition: border-color var(--g-fast), transform var(--g-fast);
+  box-shadow: var(--g-shadow-lg);
+  transition: border-color var(--g-fast), transform var(--g-slow);
 }
-.showcase-strip__shot:hover { border-color: var(--g-accent-dim); transform: translateY(-2px); }
-.showcase-strip__shot img { display: block; width: 100%; height: auto; }
-
-.showcase-strip__points { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--g-space-4); }
-.showcase-strip__points li { display: grid; gap: 2px; }
-/* Hierarchy from weight and colour, not size: the claim is bright and semibold,
-   the evidence one step down the grey ramp. */
-.showcase-strip__points strong { font-size: var(--g-text-base); font-weight: 600; color: var(--g-text); }
-.showcase-strip__points span { font-size: var(--g-text-sm); color: var(--g-text-3); line-height: 1.55; }
-
-.showcase-strip__actions {
+.built__shot:hover { border-color: var(--g-accent-dim); transform: translateY(-3px); }
+.built__chrome {
   display: flex;
-  gap: var(--g-space-3);
-  flex-wrap: wrap;
-  margin-top: var(--g-space-6);
+  align-items: center;
+  gap: 7px;
+  padding: 10px 14px;
+  background: oklch(18% 0.014 260);
+  border-bottom: 1px solid var(--g-line-soft);
+}
+.built__chrome i { width: 10px; height: 10px; border-radius: 50%; background: var(--g-line); flex: none; }
+.built__chrome em {
+  margin-left: var(--g-space-3);
+  font: var(--g-text-xs) / 1 var(--g-mono);
+  font-style: normal;
+  color: var(--g-text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.built__shot img { display: block; width: 100%; height: auto; }
+
+/* Numbered steps. The number is the anchor, so it gets a fixed column and the
+   text aligns to it rather than to the bullet. */
+.built__steps { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--g-space-5); counter-reset: step; }
+.built__steps li { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: var(--g-space-4); align-items: start; }
+.built__n {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--g-accent-soft);
+  color: var(--g-accent);
+  font: 700 var(--g-text-sm) / 1 var(--g-font);
+}
+.built__steps h3 {
+  margin: 6px 0 var(--g-space-2);
+  font-size: var(--g-text-base);
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--g-text);
+}
+.built__steps p { margin: 0 0 var(--g-space-3); font-size: var(--g-text-sm); line-height: 1.6; color: var(--g-text-2); }
+.built__steps code {
+  display: inline-block;
+  padding: 4px 9px;
+  border: 1px solid var(--g-line-soft);
+  border-radius: var(--g-radius);
+  background: var(--g-bg-sunk);
+  font: var(--g-text-xs) / 1.5 var(--g-mono);
+  color: var(--g-accent);
+}
+
+.built__actions { display: flex; gap: var(--g-space-4); flex-wrap: wrap; align-items: center; margin-top: var(--g-space-7); }
+
+@media (max-width: 720px) {
+  .built { padding: var(--g-space-7) var(--g-space-4); }
+  .built__title { font-size: var(--g-text-2xl); }
+  .built__lead { font-size: var(--g-text-base); }
 }

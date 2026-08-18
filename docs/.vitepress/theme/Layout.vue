@@ -90,6 +90,33 @@ const currentLines = computed(() => current.value.code.split('\n'));
 
 const isHighlighted = (n) => current.value.hl?.some(([a, b]) => n >= a && n <= b) ?? false;
 
+/**
+ * Each step names a query the showcase app genuinely runs, with the call that
+ * makes it — so the section is a tour of real behaviour rather than adjectives.
+ */
+const showcaseSteps = [
+  {
+    title: 'Filter on one index, order by another',
+    body: '1,199 open issues, newest first, in a single pass. A cursor-based store has to pick one index and walk the rest by hand.',
+    code: "where('status').equals('open').orderBy('updated')",
+  },
+  {
+    title: 'Facets straight from the database',
+    body: 'Counts per status and per label, recomputed on every write instead of tallied in memory.',
+    code: "where('labels').equals('perf').count()",
+  },
+  {
+    title: 'Deep paging that stays put',
+    body: 'Page 40 of 200 returns the rows it should. Ordering is pinned to the bound index, so the answer does not drift.',
+    code: '.offset(975).limit(25).toArray()',
+  },
+  {
+    title: 'Cross-tab, with one writer',
+    body: 'Open it twice and triage in either. One tab owns the database; the others route their queries to it and update.',
+    code: 'db.onChange(() => render())',
+  },
+];
+
 const benefits = [
   {
     icon: 'layers',
@@ -279,49 +306,46 @@ async function copy() {
       <!--
         Built ON granth, not a feature list.
 
-        A screenshot of a real app carries more than any benchmark table: it is
-        5,000 rows, filtered on one index and ordered by another, running in the
-        visitor's own browser. The suite that drives it runs in CI, so this claim
+        Numbered steps against the screenshot, the way a product tour reads: each
+        point names a query the app actually makes, so the claim and the evidence
+        are the same object. The suite that drives this app runs in CI, so it
         cannot quietly stop being true.
       -->
-      <section class="showcase-strip">
-        <div class="showcase-strip__inner">
-          <header class="showcase-strip__head">
-            <p class="benefits__eyebrow">Built on granthdb</p>
-            <h2 class="benefits__title">Signals — 5,000 issues, no server</h2>
-            <p class="showcase-strip__lead">
-              An issue tracker running entirely in a browser tab. It filters on one index while
-              ordering by another, facets on an array field, and pages deep into the results —
-              the queries a cursor-based store cannot do in one pass. Nothing is uploaded, and
-              the data is still there after a reload.
+      <section class="built">
+        <div class="built__glow" aria-hidden="true" />
+        <div class="built__inner">
+          <header class="built__head">
+            <p class="built__eyebrow">Built on granthdb</p>
+            <h2 class="built__title">Signals</h2>
+            <p class="built__lead">
+              A complete issue tracker — 5,000 rows, faceted search, deep paging and cross-tab
+              updates — with <strong>no backend, no sync service and no build step</strong>.
+              Everything below runs in the browser tab you open it in.
             </p>
           </header>
 
-          <div class="showcase-strip__grid">
-            <a class="showcase-strip__shot" :href="withBase('/play/showcase/')">
-              <img :src="withBase('/showcase.png')" alt="The Signals issue tracker: status facets with counts, a filterable table of issues, and query timings" loading="lazy" />
+          <div class="built__grid">
+            <a class="built__shot" :href="withBase('/play/showcase/')" aria-label="Open the Signals app">
+              <span class="built__chrome" aria-hidden="true">
+                <i /><i /><i />
+                <em>sundarshahi.github.io/granth/play/showcase</em>
+              </span>
+              <img :src="withBase('/showcase.png')" alt="Signals: status facets with live counts beside a filterable table of issues, showing query timings" loading="lazy" />
             </a>
-            <ul class="showcase-strip__points">
-              <li>
-                <strong>Filter on one index, order by another</strong>
-                <span>1,199 open issues, newest first — one pass, no cursor walk.</span>
+
+            <ol class="built__steps">
+              <li v-for="(s, i) in showcaseSteps" :key="s.title">
+                <span class="built__n" aria-hidden="true">{{ i + 1 }}</span>
+                <div>
+                  <h3>{{ s.title }}</h3>
+                  <p>{{ s.body }}</p>
+                  <code>{{ s.code }}</code>
+                </div>
               </li>
-              <li>
-                <strong>Facets straight from the database</strong>
-                <span>Counts per status and per label, recomputed on every write.</span>
-              </li>
-              <li>
-                <strong>Deep paging that stays stable</strong>
-                <span>Page 40 of 200 returns the rows it should, every time.</span>
-              </li>
-              <li>
-                <strong>Cross-tab out of the box</strong>
-                <span>Open it twice; a write in one tab lands in the other.</span>
-              </li>
-            </ul>
+            </ol>
           </div>
 
-          <div class="showcase-strip__actions">
+          <div class="built__actions">
             <a class="ghero__cta" :href="withBase('/play/showcase/')">Open the app</a>
             <a class="ghero__secondary" href="https://github.com/sundarshahi/granth/tree/main/examples/playground/showcase">
               Read its source

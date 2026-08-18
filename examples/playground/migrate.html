@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<style>html{background:#14161c;background:oklch(16.5% 0.014 260);color-scheme:dark}</style>
+<title>Dexie → granth migration harness</title>
+<link rel="stylesheet" href="./ui.css">
+<style>
+  #out { list-style: none; margin: 0; padding: 0; }
+  #out li { display: grid; grid-template-columns: 44px minmax(0,1fr); gap: var(--g-space-3); align-items: baseline;
+    padding: var(--g-space-2) var(--g-space-1); border-top: 1px solid var(--g-line-soft); font-size: var(--g-text-sm); }
+  #out li:first-child { border-top: 0; }
+  #out .tag { font: 700 var(--g-text-xs)/1.7 var(--g-mono); }
+  #out li.ok .tag { color: var(--g-good); }
+  #out li.fail .tag { color: var(--g-bad); }
+  #out li.fail { color: var(--g-bad); }
+</style>
+</head>
+<body>
+<div class="page page--narrow">
+  <div class="page__head">
+    <h1>Dexie → granth migration</h1>
+    <p>Seeds a realistic Dexie application, migrates it, then runs the same queries against
+       both and diffs the answers. Driven by <code>migration-test.mjs</code>.</p>
+  </div>
+  <section class="card">
+    <div class="card__head">
+      <h2 class="card__title">Result</h2>
+      <span class="meta" id="summary" style="margin-left:auto">running…</span>
+    </div>
+    <div class="card__body"><ul id="out"></ul></div>
+  </section>
+</div>
+<script type="module" src="./migrate.js"></script>
+</body>
+</html>
