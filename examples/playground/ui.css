@@ -9,7 +9,7 @@
  * too — no colour, size, space or radius is invented at a call site.
  */
 
-@import '../../docs/.vitepress/theme/tokens.css';
+@import './tokens.css';
 
 /**
  * Cross-document view transitions.

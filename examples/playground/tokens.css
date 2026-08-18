@@ -1,0 +1,88 @@
+/**
+ * granthdb design tokens — the single source for the docs site AND the hosted
+ * sandbox, demos and verification pages under /play/.
+ *
+ * WHY THIS FILE EXISTS: the sandbox re-declared its own near-identical hex
+ * palette and the framework demos were a LIGHT theme, so clicking "Examples"
+ * from a dark docs page dropped you onto a white screen. Three definitions of
+ * one design meant two of them were always drifting. Anything visual now comes
+ * from here; nothing downstream hardcodes a colour, size, space or radius.
+ *
+ * Ramps are authored in OKLCH: HSL lightness is not perceived lightness, which
+ * is why hand-tuned HSL ramps drift. OKLCH L is perceptual, so a ramp stepped
+ * evenly in L looks evenly stepped.
+ */
+
+:root {
+  /* Surfaces: near-black with a blue cast, so the accent sits IN the palette
+     rather than on top of a neutral grey. Four steps, each a clear jump. */
+  --g-bg:        oklch(16.5% 0.014 260);
+  --g-bg-soft:   oklch(20% 0.017 260);
+  --g-bg-panel:  oklch(23% 0.019 260);
+  --g-bg-sunk:   oklch(13.5% 0.012 260);
+  --g-line:      oklch(30% 0.02 260);
+  --g-line-soft: oklch(26% 0.018 260);
+
+  /* Accent, lifted for a dark surface: a mid-chroma blue that reads correctly on
+     white goes muddy here, so lightness rises and chroma eases back. */
+  --g-accent:      oklch(76% 0.135 255);
+  --g-accent-dim:  oklch(62% 0.15 255);
+  --g-accent-deep: oklch(52% 0.17 255);
+  --g-accent-soft: oklch(76% 0.135 255 / 0.13);
+
+  /* Status hues by CONVENTION, not by claimed emotional effect. Lightness is
+     held near the accent's so no one status shouts louder than another, and each
+     carries a matching tint for fills. Never used alone — every status in the UI
+     pairs the colour with a glyph or a number, because colour is not a label. */
+  --g-good:      oklch(78% 0.15 155);
+  --g-good-soft: oklch(78% 0.15 155 / 0.14);
+  --g-bad:       oklch(70% 0.17 25);
+  --g-bad-soft:  oklch(70% 0.17 25 / 0.15);
+  --g-warn:      oklch(82% 0.14 85);
+  --g-warn-soft: oklch(82% 0.14 85 / 0.14);
+
+  --g-text:   oklch(95% 0.008 260);
+  --g-text-2: oklch(78% 0.012 260);
+  --g-text-3: oklch(62% 0.014 260);
+
+  /* Type scale, hand-picked and non-linear — no two adjacent steps within 25%. */
+  --g-text-xs: 12px;
+  --g-text-sm: 14px;
+  --g-text-base: 16px;
+  --g-text-lg: 19px;
+  --g-text-xl: 24px;
+  --g-text-2xl: 32px;
+  --g-text-3xl: 42px;
+
+  /* Spacing, same rule as type: a fixed non-linear scale so no call site invents
+     a value. Group spacing is the most common layout defect — more space AROUND
+     a group than WITHIN it — and that is only checkable against named steps. */
+  --g-space-1: 4px;
+  --g-space-2: 8px;
+  --g-space-3: 12px;
+  --g-space-4: 16px;
+  --g-space-5: 24px;
+  --g-space-6: 32px;
+  --g-space-7: 48px;
+  --g-space-8: 64px;
+
+  /* On a dark surface a cast shadow barely reads, so elevation is carried by a
+     lighter surface plus a hairline — with the shadow only for contact. */
+  --g-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --g-shadow-md: 0 2px 4px rgb(0 0 0 / 0.4), 0 8px 20px rgb(0 0 0 / 0.28);
+  --g-shadow-lg: 0 4px 8px rgb(0 0 0 / 0.45), 0 20px 44px rgb(0 0 0 / 0.4);
+
+  --g-radius: 8px;
+  --g-radius-lg: 12px;
+  --g-radius-xl: 16px;
+  --g-radius-pill: 999px;
+
+  --g-font: 'Inter var', 'Inter', ui-sans-serif, system-ui, -apple-system,
+    'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --g-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, 'SF Mono',
+    Menlo, Consolas, monospace;
+
+  /* One duration scale. Everything respects prefers-reduced-motion in ui.css. */
+  --g-fast: 120ms;
+  --g-slow: 240ms;
+}
