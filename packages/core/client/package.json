@@ -1,6 +1,6 @@
 {
   "name": "granthdb",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "SQLite in the browser with a Dexie-compatible API. OPFS-backed, runs in a Web Worker, safe across tabs, with an IndexedDB fallback.",
   "type": "module",
   "license": "MIT",
