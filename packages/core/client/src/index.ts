@@ -728,16 +728,36 @@ export class Granth {
       if (short !== undefined) return short;   // a hook answered; skip the round trip
     }
     const run = () => this._conn.call(method, ...ctx.args);
-    let result;
-    try {
+    const attempt = () =>
       // The retry wraps the LOCK too, not just the call: a NoLeaderError makes
       // the client forget its leader, so the next attempt has to re-acquire
       // through the same path rather than reuse a stale one.
-      result = await retryWhenNothingRan(() =>
-        this._inTx ? run() : this._conn.withLock('shared', run)
-      );
+      retryWhenNothingRan(() => (this._inTx ? run() : this._conn.withLock('shared', run)));
+
+    let result;
+    try {
+      result = await attempt();
     } catch (err) {
-      throw reviveError(err);
+      // "Declared: (none)" means the WORKER has no schema — it is a freshly
+      // elected leader that has not run migrate() yet, not a bad query.
+      //
+      // Schema lives in the leader's engine, not in the file. The tab that wins
+      // an election drops its own cached open() so its next call re-migrates,
+      // but a FOLLOWER holding a resolved open() from the previous leader will
+      // happily send a data call to the new one first, and arrive before it has
+      // re-opened. Re-opening here closes that window; open() is idempotent, so
+      // doing it again costs nothing. Once only, so a genuinely undeclared table
+      // still fails loudly instead of looping.
+      if (this._inTx || !/Declared: \(none\)/.test(String((err as Error | undefined)?.message ?? ''))) {
+        throw reviveError(err);
+      }
+      this._opened = null;
+      await this.open();
+      try {
+        result = await attempt();
+      } catch (again) {
+        throw reviveError(again);
+      }
     }
     for (const fn of this._after) {
       const replaced = await fn(ctx, result);

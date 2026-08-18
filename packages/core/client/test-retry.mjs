@@ -118,6 +118,70 @@ const schema = { friends: '++id, name' };
     `${r.ran().filter((s) => s.method === 'open').length} execution(s)`);
 }
 
+// 3c — A FRESHLY ELECTED leader has no schema until it runs migrate(). Schema
+//      lives in the leader's engine, not in the file, so a follower holding a
+//      resolved open() can send a data call to the new leader before it has
+//      re-opened and get "Declared: (none)". That is recoverable — re-open and
+//      retry — not a bad query. Timing-dependent in the wild (it only showed up
+//      on a slow CI runner), so it is forced deterministically here.
+{
+  let served = 0;
+  const plugin = {
+    name: 'schemaless-once',
+    isAvailable: () => true,
+    connect() {
+      let opened = 0;
+      return {
+        async call(method) {
+          if (method === 'open') { opened++; return { version: 1, from: 0, migrated: true, schema: {} }; }
+          // The first data call lands on a leader that has not migrated yet.
+          if (++served === 1) throw new Error('granth: no table "friends". Declared: (none)');
+          return 1;
+        },
+        get opened() { return opened; },
+        async withLock(_m, fn) { return fn(); },
+        onRemoteChange() { return () => {}; },
+        onLeadershipChange() { return () => {}; },
+        broadcastChange() {},
+        close() {},
+      };
+    },
+  };
+  const db = new Granth('schemaless', { runtime: plugin });
+  db.version(1).stores(schema);
+  let err = null;
+  await db.friends.add({ name: 'ada' }).catch((e) => { err = e; });
+  check('a data call against a schema-less leader re-opens and succeeds', !err,
+    err ? `${err.name}: ${err.message}` : '');
+  check('and it did not silently swallow a genuine schema error',
+    served === 2, `${served} data call(s)`);
+}
+
+// 3d — but a table that genuinely is not declared must still fail loudly.
+{
+  const plugin = {
+    name: 'always-schemaless',
+    isAvailable: () => true,
+    connect: () => ({
+      async call(method) {
+        if (method === 'open') return { version: 1, from: 0, migrated: true, schema: {} };
+        throw new Error('granth: no table "friends". Declared: (none)');
+      },
+      async withLock(_m, fn) { return fn(); },
+      onRemoteChange() { return () => {}; },
+      onLeadershipChange() { return () => {}; },
+      broadcastChange() {},
+      close() {},
+    }),
+  };
+  const db = new Granth('always-schemaless', { runtime: plugin });
+  db.version(1).stores(schema);
+  let err = null;
+  await db.friends.add({ name: 'ada' }).catch((e) => { err = e; });
+  check('a persistently undeclared table still fails loudly', /Declared: \(none\)/.test(String(err?.message)),
+    err ? err.message.slice(0, 60) : 'no error — it looped or swallowed');
+}
+
 // 4 — retries are BOUNDED. A tab closing for good must surface, not spin.
 {
   const r = flakyRuntime({ failWith: new NoLeaderError('add'), times: 99, when: (m) => m === 'add' });
