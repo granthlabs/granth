@@ -24,6 +24,7 @@ const page = (p) => resolve(here, p);
  */
 const HOSTED = {
   verify: page('index.html'),
+  showcase: page('showcase/index.html'),
   sandbox: page('sandbox.html'),
   demos: page('demos/index.html'),
   vanilla: page('demos/vanilla.html'),

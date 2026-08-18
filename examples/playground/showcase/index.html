@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<style>html{background:#14161c;background:oklch(16.5% 0.014 260);color-scheme:dark}</style>
+<title>Signals — an app built on granthdb</title>
+<meta name="description" content="A real issue tracker over 5,000 rows, running entirely in your browser on SQLite.">
+<link rel="stylesheet" href="../ui.css">
+<style>
+  .app { display: grid; grid-template-columns: 216px minmax(0, 1fr); gap: var(--g-space-5); align-items: start; }
+  @media (max-width: 900px) { .app { grid-template-columns: minmax(0, 1fr); } }
+
+  .side { display: flex; flex-direction: column; gap: var(--g-space-5); }
+  .side__group > .label { margin-bottom: var(--g-space-2); }
+
+  .facet, .tag {
+    font: 500 var(--g-text-sm)/1.4 var(--g-font);
+    border: 1px solid var(--g-line-soft);
+    background: var(--g-bg-soft);
+    color: var(--g-text-2);
+    border-radius: var(--g-radius);
+    cursor: pointer;
+    transition: background var(--g-fast), color var(--g-fast), border-color var(--g-fast);
+  }
+  .facet {
+    display: flex; justify-content: space-between; gap: var(--g-space-3);
+    width: 100%; padding: var(--g-space-2) var(--g-space-3); margin-bottom: var(--g-space-1);
+  }
+  .facet:hover { background: var(--g-bg-panel); color: var(--g-text); }
+  .facet.is-on { background: var(--g-accent-soft); border-color: var(--g-accent-soft); color: var(--g-accent); font-weight: 600; }
+  .facet__n { font: var(--g-text-xs)/1.6 var(--g-mono); opacity: 0.85; }
+
+  .tag { padding: 2px var(--g-space-2); font-size: var(--g-text-xs); min-height: 0; }
+  .tag:hover { background: var(--g-accent-soft); color: var(--g-accent); border-color: var(--g-accent-soft); }
+  #labels { display: flex; flex-wrap: wrap; gap: var(--g-space-1); }
+
+  .toolbar { display: flex; gap: var(--g-space-2); flex-wrap: wrap; align-items: center; margin-bottom: var(--g-space-4); }
+  .toolbar .field { width: auto; }
+  #search { flex: 1 1 200px; }
+
+  td.t { white-space: normal; min-width: 260px; }
+  td.labels { white-space: nowrap; }
+  .pill, .prio { display: inline-block; padding: 1px var(--g-space-2); border-radius: var(--g-radius-pill); font-size: var(--g-text-xs); font-weight: 600; }
+  .pill--open { background: var(--g-accent-soft); color: var(--g-accent); }
+  .pill--in-progress { background: var(--g-warn-soft); color: var(--g-warn); }
+  .pill--blocked { background: var(--g-bad-soft); color: var(--g-bad); }
+  .pill--done { background: var(--g-good-soft); color: var(--g-good); }
+  /* Priority is a RANK, so it reads as one: p0 loudest, p3 quietest. Colour is
+     never the only signal — the label itself says which. */
+  .prio--p0 { color: var(--g-bad); font-weight: 700; }
+  .prio--p1 { color: var(--g-warn); }
+  .prio--p2, .prio--p3 { color: var(--g-text-3); }
+
+  .pager { display: flex; align-items: center; gap: var(--g-space-3); margin-top: var(--g-space-4); }
+  .pager .hint { margin-left: auto; }
+  #active-label { cursor: pointer; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <a class="topbar__brand" href="../sandbox">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <ellipse cx="12" cy="6" rx="8" ry="3" /><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6" /><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" />
+    </svg>
+    granthdb
+  </a>
+  <nav class="topbar__nav">
+    <a href="../sandbox">Sandbox</a>
+    <a href="../demos/">Examples</a>
+    <a href="./" aria-current="page">Showcase</a>
+    <a href="../">Verify</a>
+    <a href="../../tutorial">Docs</a>
+    <a href="https://github.com/sundarshahi/granth">GitHub</a>
+  </nav>
+</header>
+
+<div class="page">
+  <div class="page__head">
+    <h1>Signals</h1>
+    <p>
+      An issue tracker over <strong>5,000 rows</strong>, running entirely in this tab on SQLite.
+      Filter by one index and sort by another, facet on array fields, page deep into the
+      results — every number below is measured from the query that just ran.
+    </p>
+  </div>
+
+  <div class="card" style="margin-bottom: var(--g-space-5)">
+    <div class="card__head">
+      <h2 class="card__title">Live database</h2>
+      <span class="badge badge--idle" id="env">Opening…</span>
+      <span class="meta" id="status" style="margin-left:auto"></span>
+    </div>
+  </div>
+
+  <div class="app">
+    <aside class="side">
+      <div class="side__group">
+        <span class="label">Status</span>
+        <div id="facets"></div>
+      </div>
+      <div class="side__group">
+        <span class="label">Labels</span>
+        <div id="labels"></div>
+      </div>
+      <div class="side__group">
+        <span class="label">Try it</span>
+        <button class="btn btn--ghost" id="triage" type="button" style="width:100%">Triage 5 open issues</button>
+        <button class="btn btn--ghost" id="reseed" type="button" style="width:100%; margin-top: var(--g-space-2)">Reseed 5,000</button>
+      </div>
+    </aside>
+
+    <section class="card">
+      <div class="card__head">
+        <h2 class="card__title">Issues</h2>
+        <span class="meta" id="timing" style="margin-left:auto"></span>
+      </div>
+      <div class="card__body">
+        <div class="toolbar">
+          <input class="field" id="search" type="search" placeholder="Search titles…" aria-label="Search issue titles">
+          <select class="field" id="priority" aria-label="Priority"></select>
+          <select class="field" id="assignee" aria-label="Assignee"></select>
+          <select class="field" id="sort" aria-label="Sort by">
+            <option value="updated">Sort: updated</option>
+            <option value="title">Sort: title</option>
+            <option value="comments">Sort: comments</option>
+          </select>
+          <button class="btn btn--ghost" id="dir" type="button">Newest first</button>
+          <button class="badge badge--info" id="active-label" type="button" hidden></button>
+        </div>
+
+        <div class="state" id="empty" hidden>
+          <span class="state__title" id="empty-title"></span>
+          <p class="state__body" id="empty-body"></p>
+        </div>
+
+        <div class="table-wrap" id="table-wrap">
+          <table class="data">
+            <thead><tr>
+              <th>Title</th><th>Status</th><th>Priority</th><th>Assignee</th>
+              <th>Labels</th><th class="num">Comments</th><th class="num">Updated</th>
+            </tr></thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+
+        <div class="pager">
+          <button class="btn btn--ghost" id="prev" type="button">Previous</button>
+          <button class="btn btn--ghost" id="next" type="button">Next</button>
+          <span class="hint" id="page-label"></span>
+        </div>
+      </div>
+      <div class="card__foot">
+        Open this page in a second tab and press <strong>Triage</strong> — both update, because
+        one tab owns the database and the others route their queries to it.
+      </div>
+    </section>
+  </div>
+</div>
+
+<script type="module" src="./app.js"></script>
+</body>
+</html>

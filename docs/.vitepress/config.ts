@@ -64,6 +64,11 @@ export default defineConfig({
   description: 'SQLite in the browser with a Dexie-compatible API. OPFS-backed, runs in a Web Worker, safe across tabs.',
   lang: 'en-GB',
   cleanUrls: true,
+  // /play/ is built by Vite into the same output, so VitePress does not know
+  // those routes and calls every link to them dead. Scoped to that prefix rather
+  // than disabling the check — link-check.mjs then verifies these for real,
+  // against the built files, which is the check that actually matters.
+  ignoreDeadLinks: [/^\/play\//],
   // Dark only. A single surface to design against means the palette, the code
   // panels and the section patterns are all tuned once instead of twice — and a
   // half-tuned light mode is worse than none.
@@ -86,7 +91,8 @@ export default defineConfig({
     logo: '/logo.svg',
     siteTitle: 'granthdb',
     nav: [
-      { text: 'Guide', link: '/tutorial' },
+      { text: 'Guide', link: '/getting-started' },
+      { text: 'Docs', link: '/docs' },
       { text: 'API', link: '/granth' },
       { text: 'Use cases', link: '/replacing-web-storage' },
       { text: 'Migrate', link: '/migrating-from-dexie' },
@@ -99,6 +105,8 @@ export default defineConfig({
       {
         text: 'Getting started',
         items: [
+          { text: 'Start here', link: '/getting-started' },
+          { text: 'All documentation', link: '/docs' },
           { text: 'Tutorial', link: '/tutorial' },
           { text: 'Migrating from Dexie', link: '/migrating-from-dexie' },
           { text: 'Frameworks', link: '/frameworks' },

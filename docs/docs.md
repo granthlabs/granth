@@ -1,18 +1,35 @@
-# granth — API Reference
+---
+title: Documentation
+---
 
-SQLite in the browser with a **Dexie-compatible API**. OPFS-backed, one worker, safe across
-tabs, with an IndexedDB fallback.
+# granthdb documentation
 
-One page per class, plus guides for the parts that are structural rather than
-API-shaped — storage, runtimes and plugins. Coming from another IndexedDB
-wrapper? Start with [Migrating from Dexie](./migrating-from-dexie), which lists
-every behavioural difference.
+**granthdb** is SQLite compiled to WebAssembly, running inside the browser tab, behind a
+Dexie-compatible API. Real indexes, a real query planner and real transactions — off the main
+thread, safe across tabs, with an IndexedDB fallback where OPFS is unavailable.
 
-## Getting started
+## New here?
 
-- [Tutorial](./tutorial) — install, schema, first query
-- [Migrating from Dexie or IndexedDB](./migrating-from-dexie) — compatibility matrix + data import
-- [Storage: OPFS and the IndexedDB fallback](./storage) — durability, quotas, eviction
+- **[Getting started](./getting-started)** — pick your framework and go
+- [Tutorial](./tutorial) — install, schema, first query, live updates
+- [Migrating from Dexie or IndexedDB](./migrating-from-dexie) — codemod, data import, every behavioural difference
+- [Sandbox](/play/sandbox) — write real queries with nothing installed
+- [Showcase](/play/showcase/) — a 5,000-row app to poke at
+
+## Guides
+
+- [Frameworks](./frameworks) — React, Vue, Svelte, Angular, Solid
+- [TanStack Query, RxJS, Zustand](./state-libraries) — with the state library you already use
+- [Replacing localStorage and sessionStorage](./replacing-web-storage) — moving tokens and app state off web storage
+- [Cache-first apps](./cache-first-apps) — the Notion-style local read model
+- [Encryption at rest](./encryption) — what it protects and what it cannot
+
+## Architecture
+
+- [Storage](./storage) — OPFS, the IndexedDB fallback, durability, quotas, eviction
+- [Runtimes](./runtimes) — worker vs inline (no Worker at all)
+- [Plugins](./plugins) — the three extension points and the package map
+- [Security & performance](./security-and-performance) — measured numbers and the threat model
 
 ## API Reference
 

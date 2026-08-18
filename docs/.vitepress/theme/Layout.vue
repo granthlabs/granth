@@ -275,6 +275,60 @@ async function copy() {
           </div>
         </div>
       </section>
+
+      <!--
+        Built ON granth, not a feature list.
+
+        A screenshot of a real app carries more than any benchmark table: it is
+        5,000 rows, filtered on one index and ordered by another, running in the
+        visitor's own browser. The suite that drives it runs in CI, so this claim
+        cannot quietly stop being true.
+      -->
+      <section class="showcase-strip">
+        <div class="showcase-strip__inner">
+          <header class="showcase-strip__head">
+            <p class="benefits__eyebrow">Built on granthdb</p>
+            <h2 class="benefits__title">Signals — 5,000 issues, no server</h2>
+            <p class="showcase-strip__lead">
+              An issue tracker running entirely in a browser tab. It filters on one index while
+              ordering by another, facets on an array field, and pages deep into the results —
+              the queries a cursor-based store cannot do in one pass. Nothing is uploaded, and
+              the data is still there after a reload.
+            </p>
+          </header>
+
+          <div class="showcase-strip__grid">
+            <a class="showcase-strip__shot" :href="withBase('/play/showcase/')">
+              <img :src="withBase('/showcase.png')" alt="The Signals issue tracker: status facets with counts, a filterable table of issues, and query timings" loading="lazy" />
+            </a>
+            <ul class="showcase-strip__points">
+              <li>
+                <strong>Filter on one index, order by another</strong>
+                <span>1,199 open issues, newest first — one pass, no cursor walk.</span>
+              </li>
+              <li>
+                <strong>Facets straight from the database</strong>
+                <span>Counts per status and per label, recomputed on every write.</span>
+              </li>
+              <li>
+                <strong>Deep paging that stays stable</strong>
+                <span>Page 40 of 200 returns the rows it should, every time.</span>
+              </li>
+              <li>
+                <strong>Cross-tab out of the box</strong>
+                <span>Open it twice; a write in one tab lands in the other.</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="showcase-strip__actions">
+            <a class="ghero__cta" :href="withBase('/play/showcase/')">Open the app</a>
+            <a class="ghero__secondary" href="https://github.com/sundarshahi/granth/tree/main/examples/playground/showcase">
+              Read its source
+            </a>
+          </div>
+        </div>
+      </section>
     </template>
 
     <template #layout-bottom>

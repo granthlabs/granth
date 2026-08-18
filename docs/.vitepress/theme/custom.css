@@ -728,3 +728,58 @@
   .home-body h2 { margin-top: 48px; }
   .gfoot__inner { padding: 56px 20px 28px; }
 }
+
+/* ---------------------------------------------- built-on-granth showcase */
+
+/* Sits between the benefits grid and the footer, so it gets the SUNK surface —
+   a change of background is what separates two full-width bands without adding
+   another border. */
+.showcase-strip {
+  background: var(--g-bg-sunk);
+  border-top: 1px solid var(--g-line-soft);
+  padding: var(--g-space-8) var(--g-space-5);
+}
+.showcase-strip__inner { max-width: 1152px; margin: 0 auto; }
+.showcase-strip__head { max-width: 62ch; margin-bottom: var(--g-space-6); }
+.showcase-strip__lead {
+  margin: var(--g-space-3) 0 0;
+  color: var(--g-text-2);
+  font-size: var(--g-text-base);
+  line-height: 1.65;
+}
+
+/* The screenshot leads, so it takes the larger column and the points read
+   beside it rather than under it. */
+.showcase-strip__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: var(--g-space-6);
+  align-items: start;
+}
+@media (max-width: 900px) { .showcase-strip__grid { grid-template-columns: minmax(0, 1fr); } }
+
+.showcase-strip__shot {
+  display: block;
+  border: 1px solid var(--g-line);
+  border-radius: var(--g-radius-lg);
+  overflow: hidden;
+  background: var(--g-bg);
+  box-shadow: var(--g-shadow-md);
+  transition: border-color var(--g-fast), transform var(--g-fast);
+}
+.showcase-strip__shot:hover { border-color: var(--g-accent-dim); transform: translateY(-2px); }
+.showcase-strip__shot img { display: block; width: 100%; height: auto; }
+
+.showcase-strip__points { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--g-space-4); }
+.showcase-strip__points li { display: grid; gap: 2px; }
+/* Hierarchy from weight and colour, not size: the claim is bright and semibold,
+   the evidence one step down the grey ramp. */
+.showcase-strip__points strong { font-size: var(--g-text-base); font-weight: 600; color: var(--g-text); }
+.showcase-strip__points span { font-size: var(--g-text-sm); color: var(--g-text-3); line-height: 1.55; }
+
+.showcase-strip__actions {
+  display: flex;
+  gap: var(--g-space-3);
+  flex-wrap: wrap;
+  margin-top: var(--g-space-6);
+}
