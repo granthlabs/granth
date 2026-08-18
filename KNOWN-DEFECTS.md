@@ -218,8 +218,12 @@ new dependency — raw `fetch` against `safaridriver`). It cannot run unattended
 Safari refuses every session until Remote Automation is switched on, and the
 switch needs a human at the keyboard.
 
-    Safari > Settings > Advanced > "Show features for web developers"
-    then Develop > "Allow Remote Automation"
+    Safari > Settings > Advanced > tick "Show features for web developers"
+    then the "Developer" tab that appears > tick "Allow remote automation"
+
+(No admin password is needed for that route. `sudo safaridriver --enable` does
+the same thing from a terminal and does ask for one, which is why it is not run
+from the script. On Safari 16 and earlier the switch lived in the Develop MENU.)
 
 Until someone does that and the runner reports green, "works in Safari" is
 inference from a similar engine, not a measurement.

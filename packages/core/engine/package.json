@@ -1,6 +1,6 @@
 {
   "name": "granth-engine",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "The granth storage engine: schema, query planner and SQL compiler. Environment-agnostic.",
   "type": "module",
   "license": "MIT",
@@ -38,6 +38,6 @@
   },
   "author": "sundarshahi <shahithakurisundar@gmail.com>",
   "dependencies": {
-    "granth-protocol": "^0.2.5"
+    "granth-protocol": "^0.2.6"
   }
 }

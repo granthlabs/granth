@@ -13,10 +13,17 @@
  *
  *   node examples/playground/safari-test.mjs
  *
- * ONE-TIME SETUP, and it needs a human: Safari > Settings > Advanced > "Show
- * features for web developers", then Develop > "Allow Remote Automation".
- * `safaridriver --enable` does the same thing but prompts for an admin password.
- * Without it every session fails with a clear message, which this reports as-is.
+ * ONE-TIME SETUP, and it needs a human at the keyboard — but not an admin
+ * password, as long as you use the GUI:
+ *
+ *   1. Safari > Settings > Advanced > tick "Show features for web developers"
+ *   2. a "Developer" tab appears in Settings > tick "Allow remote automation"
+ *
+ * On Safari 16 and earlier that second switch lived in the Develop MENU instead.
+ * `sudo safaridriver --enable` does the same thing from a terminal and does ask
+ * for a password, which is why it is not run from here.
+ *
+ * Without it every session is refused; this reports Safari's own message as-is.
  */
 import { createServer } from 'vite';
 import { spawn } from 'node:child_process';
@@ -66,9 +73,11 @@ try {
   session = await wd('POST', '/session', { capabilities: { alwaysMatch: { browserName: 'safari' } } });
 } catch (err) {
   console.error(`\nReal Safari could not be driven:\n  ${err.message}\n`);
-  console.error('Enable it once, by hand — it needs a password, so it cannot be scripted here:');
-  console.error('  Safari > Settings > Advanced > "Show features for web developers"');
-  console.error('  then Develop > "Allow Remote Automation"\n');
+  console.error('Enable it once, by hand. No password needed via the GUI:');
+  console.error('  1. Safari > Settings > Advanced > tick "Show features for web developers"');
+  console.error('  2. a "Developer" tab appears in Settings > tick "Allow remote automation"');
+  console.error('     (Safari 16 and earlier: the Develop MENU > "Allow Remote Automation")');
+  console.error('\nThen re-run this. Quit and reopen Safari first if it was already running.\n');
   await shutdown();
   process.exit(2);
 }

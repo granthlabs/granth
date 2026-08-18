@@ -42,7 +42,7 @@ Works in Chrome 108+, Safari 16.4+, Firefox 111+, over HTTPS or `localhost`.
 The suite runs on Chromium, Firefox and WebKit in CI — WebKit meaning Playwright's build,
 which is close to Apple's browser but is not it. Real Safari has a runner
 (`examples/playground/safari-test.mjs`) that is not part of any automated run, because
-driving it needs Remote Automation enabled by hand. Where OPFS is unavailable — Safari
+driving it needs Remote Automation ticked by hand in Safari's settings. Where OPFS is unavailable — Safari
 private browsing, for instance — it falls back to IndexedDB automatically, and the same
 suite passes on that path.
 No special server headers, no bundler plugins, no build step.
@@ -218,11 +218,29 @@ times vary ±3× with load.
 **The one rule: batch your writes.** `bulkAdd` is ~200× the throughput of adding rows one at a
 time, because each individual write is its own durable commit.
 
+### At 100,000 rows
+
+5,000 is small enough that almost anything looks fine, so
+[`scale.html`](./examples/playground/scale.html) runs the same shapes an order of magnitude
+further. An indexed lookup stays flat while a full scan grows with the table — which is the
+property worth checking, more than any single number.
+
+| Operation | Time |
+|---|---:|
+| `bulkAdd` 100,000 docs | 4.0 s (~25,000 rows/s) |
+| indexed `where().equals()` | 2 ms |
+| `orderBy().offset(90000).limit(20)` | 4 ms |
+| multiEntry `where('tags').equals()` | 9 ms |
+| full scan, 100,000 docs | 397 ms |
+| `bulkGet` 5,000 keys | 27 ms |
+| delete 10,000 rows | 2.2 s |
+
 ## How it works
 
 Documents are stored as JSON in a `_doc` column. Every index you declare becomes a **virtual
 generated column** plus a real SQLite index, so SQLite does the actual index work. Arrays
-(`*tags`) get a shadow table kept in step by triggers, and `update()` is a JSON merge patch.
+(`*tags`) get a shadow table — filled by a trigger, emptied by the write paths, because SQLite
+will not use an index inside a trigger body — and `update()` is a JSON merge patch.
 
 Your app builds **plain-data query plans**; the worker turns them into SQL. No SQL strings, no
 functions and no `eval` ever cross between them.
