@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<style>html{background:#14161c;background:oklch(16.5% 0.014 260);color-scheme:dark}</style>
+<title>Ledger — an app built on granthdb</title>
+<meta name="description" content="12,000 transactions, atomic transfers and live balances, running entirely in your browser on SQLite.">
+<link rel="stylesheet" href="../ui.css">
+<style>
+  .app { display: grid; grid-template-columns: 216px minmax(0, 1fr); gap: var(--g-space-5); align-items: start; }
+  @media (max-width: 900px) { .app { grid-template-columns: minmax(0, 1fr); } }
+  .side { display: flex; flex-direction: column; gap: var(--g-space-5); }
+  .facet {
+    display: flex; justify-content: space-between; gap: var(--g-space-3); width: 100%;
+    padding: var(--g-space-2) var(--g-space-3); margin-bottom: var(--g-space-1);
+    font: 500 var(--g-text-sm)/1.4 var(--g-font);
+    border: 1px solid var(--g-line-soft); background: var(--g-bg-soft);
+    color: var(--g-text-2); border-radius: var(--g-radius); cursor: pointer;
+    transition: background var(--g-fast), color var(--g-fast), border-color var(--g-fast);
+  }
+  .facet:hover { background: var(--g-bg-panel); color: var(--g-text); }
+  .facet.is-on { background: var(--g-accent-soft); border-color: var(--g-accent-soft); color: var(--g-accent); font-weight: 600; }
+  .facet__n { font: var(--g-text-xs)/1.6 var(--g-mono); }
+
+  .toolbar { display: flex; gap: var(--g-space-2); flex-wrap: wrap; align-items: flex-end; margin-bottom: var(--g-space-4); }
+  .toolbar .field { width: auto; }
+  .field-group { display: flex; flex-direction: column; gap: var(--g-space-1); }
+
+  /* Money is a RANK as well as a number: in and out have to be separable without
+     reading the sign, and colour is never the only signal — the minus stays. */
+  .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--g-space-3); margin-bottom: var(--g-space-4); }
+  .stat { padding: var(--g-space-3) var(--g-space-4); border: 1px solid var(--g-line-soft); border-radius: var(--g-radius-lg); background: var(--g-bg-sunk); }
+  .stat__l { display: block; font: 600 var(--g-text-xs)/1.6 var(--g-font); letter-spacing: .08em; text-transform: uppercase; color: var(--g-text-3); }
+  .stat__n { display: block; margin-top: 2px; font: 700 var(--g-text-lg)/1.2 var(--g-mono); color: var(--g-text); }
+  .in  { color: var(--g-good); }
+  .out { color: var(--g-text-2); }
+  td.num.in { color: var(--g-good); }
+  td.num.out { color: var(--g-text-2); }
+  .chip { display: inline-block; padding: 1px var(--g-space-2); border-radius: var(--g-radius-pill); font-size: var(--g-text-xs); background: var(--g-bg-panel); color: var(--g-text-3); }
+  td.mono { font-family: var(--g-mono); }
+  .pager { display: flex; align-items: center; gap: var(--g-space-3); margin-top: var(--g-space-4); }
+  .pager .hint { margin-left: auto; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <a class="topbar__brand" href="../sandbox">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <ellipse cx="12" cy="6" rx="8" ry="3" /><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6" /><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" />
+    </svg>
+    granthdb
+  </a>
+  <nav class="topbar__nav">
+    <a href="../sandbox">Sandbox</a>
+    <a href="../demos/">Examples</a>
+    <a href="../showcase/">Showcase</a>
+    <a href="./" aria-current="page">Ledger</a>
+    <a href="../">Verify</a>
+    <a href="../../tutorial">Docs</a>
+    <a href="https://github.com/granthlabs/granth">GitHub</a>
+  </nav>
+</header>
+
+<div class="page page--wide">
+  <div class="page__head">
+    <h1>Ledger</h1>
+    <p>
+      Three years of transactions — <strong>12,000 rows</strong> — with balances recomputed from
+      the rows rather than stored beside them, date ranges served by a compound index, and
+      transfers that write two entries in one transaction.
+    </p>
+  </div>
+
+  <div class="card" style="margin-bottom: var(--g-space-5)">
+    <div class="card__head">
+      <h2 class="card__title">Live database</h2>
+      <span class="badge badge--idle" id="env">Opening…</span>
+      <span class="meta" id="note" style="margin-left:auto"></span>
+    </div>
+  </div>
+
+  <div class="app">
+    <aside class="side">
+      <div>
+        <span class="label">Accounts</span>
+        <div id="balances"></div>
+      </div>
+      <div>
+        <span class="label">Try it</span>
+        <button class="btn btn--ghost" id="transfer" type="button" style="width:100%">Move £50 to savings</button>
+        <button class="btn btn--ghost" id="reseed" type="button" style="width:100%; margin-top: var(--g-space-2)">Reseed 12,000</button>
+      </div>
+    </aside>
+
+    <section class="card">
+      <div class="card__head">
+        <h2 class="card__title">Entries</h2>
+        <span class="meta" id="timing" style="margin-left:auto"></span>
+      </div>
+      <div class="card__body">
+        <div class="stats">
+          <div class="stat"><span class="stat__l">In</span><span class="stat__n in" id="t-in">—</span></div>
+          <div class="stat"><span class="stat__l">Out</span><span class="stat__n out" id="t-out">—</span></div>
+          <div class="stat"><span class="stat__l">Net</span><span class="stat__n" id="t-net">—</span></div>
+        </div>
+
+        <div class="toolbar">
+          <span class="field-group"><label class="label" for="from">From</label><input class="field" id="from" type="date"></span>
+          <span class="field-group"><label class="label" for="to">To</label><input class="field" id="to" type="date"></span>
+          <span class="field-group"><label class="label" for="category">Category</label><select class="field" id="category"></select></span>
+        </div>
+
+        <div class="state" id="empty" hidden>
+          <span class="state__title">Nothing in this range</span>
+          <p class="state__body">Widen the dates, or clear the category filter.</p>
+        </div>
+
+        <div class="table-wrap" id="table-wrap">
+          <table class="data">
+            <thead><tr><th>Date</th><th>Payee</th><th>Category</th><th>Account</th><th class="num">Amount</th></tr></thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+
+        <div class="pager">
+          <button class="btn btn--ghost" id="prev" type="button">Previous</button>
+          <button class="btn btn--ghost" id="next" type="button">Next</button>
+          <span class="hint" id="page-label"></span>
+        </div>
+      </div>
+      <div class="card__foot">
+        Amounts are integer pence, never floats — a ledger that is a penny out is a broken ledger.
+      </div>
+    </section>
+  </div>
+</div>
+
+<script type="module" src="./app.js"></script>
+</body>
+</html>
