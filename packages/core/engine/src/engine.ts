@@ -204,6 +204,89 @@ export function createEngine(adapter: Adapter) {
     return { key: k, body: JSON.stringify(encode(rest)) };
   };
 
+  /**
+   * Drop the shadow rows belonging to whichever parent rows `where` selects.
+   *
+   * This deliberately does NOT live in an AFTER DELETE / AFTER UPDATE trigger,
+   * which is the obvious place for it. SQLite does not use an index for the
+   * WHERE clause of a DELETE inside a trigger body — it rewinds and scans the
+   * whole table (and rejects INDEXED BY there, because no index is being
+   * chosen). That made every written row cost a full scan of the shadow table:
+   * clearing 100,000 rows took 168 SECONDS, versus 332 ms for the same table
+   * without a multiEntry index. Out here the planner uses the index normally
+   * and the same work takes ~11 ms.
+   *
+   * Matched against the shadow's own "k" column, NOT via a subquery over the
+   * parent table: `WHERE k IN (SELECT id FROM t WHERE id = ?)` makes SQLite scan
+   * the shadow table once per call, which reintroduces the very cost this
+   * exists to remove. A literal `k = ?` (or `k IN (?,?,…)`) seeks the index.
+   *
+   * Callers must run this BEFORE the parent write, while the shadow rows are
+   * still the old ones, and inside the same transaction — a purge that outlives
+   * a failed delete would hide documents that are still there.
+   */
+  function purgeShadowKeys(s: StoreDef, keys: unknown[]): void {
+    if (!keys.length) return;
+    const where = keys.length === 1 ? `= ?` : `IN (${keys.map(() => '?').join(', ')})`;
+    for (const ix of s.indexes) {
+      if (!ix.multi) continue;
+      adapter.run(`DELETE FROM ${q(shadowTable(s, ix))} WHERE "k" ${where}`, keys);
+    }
+  }
+
+  /** Every shadow row for the store. */
+  function purgeShadowsAll(s: StoreDef): void {
+    for (const ix of s.indexes) {
+      if (!ix.multi) continue;
+      adapter.run(`DELETE FROM ${q(shadowTable(s, ix))}`, []);
+    }
+  }
+
+  /**
+   * Purge for a query plan. Here the subquery IS right: one statement covers
+   * every matching row, so the shadow is walked once rather than once per row.
+   */
+  function purgeShadowsForPlan(s: StoreDef, plan: QueryPlan): void {
+    if (!s.indexes.some((ix) => ix.multi)) return;
+    const inner = compile(s, plan, 'keys');
+    for (const ix of s.indexes) {
+      if (!ix.multi) continue;
+      adapter.run(`DELETE FROM ${q(shadowTable(s, ix))} WHERE "k" IN (${inner.sql})`, inner.params);
+    }
+  }
+
+  const hasMulti = (s: StoreDef): boolean => s.indexes.some((ix) => ix.multi);
+
+  /**
+   * Replace trigger-based shadow maintenance in databases that already exist.
+   *
+   * Files written by an earlier version still carry the `$ad` trigger and an
+   * `$au` that begins with a DELETE — the scanning shape. `CREATE TRIGGER IF NOT
+   * EXISTS` will not replace them, so without this the fix only ever reaches new
+   * databases, which is the worst case: the users with the most data keep the
+   * slowest path. Runs on every open; the detection is one sqlite_master read
+   * and it does nothing at all once there is no `$ad` left.
+   */
+  function retireShadowTriggers(defs: Record<string, StoreDef>): void {
+    const present = new Set(
+      adapter
+        .all(`SELECT name FROM sqlite_master WHERE type = 'trigger'`)
+        .map((r) => String(r['name']))
+    );
+    const sql: string[] = [];
+    for (const s of Object.values(defs)) {
+      for (const ix of s.indexes) {
+        if (!ix.multi) continue;
+        const sh = shadowTable(s, ix);
+        if (!present.has(`${sh}$ad`)) continue; // already on the new shape
+        sql.push(`DROP TRIGGER IF EXISTS ${q(`${sh}$ad`)}`, `DROP TRIGGER IF EXISTS ${q(`${sh}$au`)}`);
+        // Everything here is IF NOT EXISTS, so only the dropped $au comes back.
+        sql.push(...createIndexSql(s, ix));
+      }
+    }
+    for (const stmt of sql) adapter.exec(stmt);
+  }
+
   function insert(table: string, doc: unknown, mode: 'add' | 'put'): unknown {
     const s = store(table);
     const { key, body } = split(s, doc);
@@ -218,17 +301,26 @@ export function createEngine(adapter: Adapter) {
     // The explicit upsert also fixes multiEntry drift: REPLACE's internal delete
     // does not fire AFTER DELETE triggers unless recursive_triggers is on, so the
     // old shadow rows survived and queries returned documents that no longer had
-    // the tag. DO UPDATE fires AFTER UPDATE, which maintains the shadow correctly.
+    // the tag. DO UPDATE fires AFTER UPDATE, which refills the shadow.
     const onConflict = ` ON CONFLICT(${pk}) DO UPDATE SET "_doc" = excluded."_doc"`;
-    const info =
-      key === undefined
-        // No key supplied: auto-increment, so there is nothing to conflict on.
-        ? adapter.run(`INSERT INTO ${t}("_doc") VALUES (?)`, [body])
-        : adapter.run(
-            `INSERT INTO ${t}(${pk}, "_doc") VALUES (?, ?)${mode === 'put' ? onConflict : ''}`,
-            [key, body]
-          );
-    return key === undefined ? Number(info.lastInsertRowid) : key;
+    const write = (): unknown => {
+      // A put over an existing key REPLACES its array, so the old entries have
+      // to go first; the AFTER UPDATE trigger only adds. An `add` cannot
+      // overwrite anything, and an auto-increment key cannot collide.
+      if (mode === 'put' && key !== undefined && hasMulti(s)) {
+        purgeShadowKeys(s, [key]);
+      }
+      const info =
+        key === undefined
+          // No key supplied: auto-increment, so there is nothing to conflict on.
+          ? adapter.run(`INSERT INTO ${t}("_doc") VALUES (?)`, [body])
+          : adapter.run(
+              `INSERT INTO ${t}(${pk}, "_doc") VALUES (?, ?)${mode === 'put' ? onConflict : ''}`,
+              [key, body]
+            );
+      return key === undefined ? Number(info.lastInsertRowid) : key;
+    };
+    return mode === 'put' && key !== undefined && hasMulti(s) ? inTransaction(write) : write();
   }
 
   const CHUNK = 200;
@@ -256,6 +348,10 @@ export function createEngine(adapter: Adapter) {
         if (allKeyed) {
           const values = chunk.map(() => '(?, ?)').join(', ');
           const params = chunk.flatMap((x) => [x.key, x.body]);
+          // Same reason as insert(): put replaces the array, the trigger only adds.
+          if (mode === 'put' && hasMulti(s)) {
+            purgeShadowKeys(s, chunk.map((x) => x.key));
+          }
           adapter.run(
             `INSERT INTO ${t}(${pk}, "_doc") VALUES ${values}${mode === 'put' ? onConflict : ''}`,
             params
@@ -309,6 +405,7 @@ export function createEngine(adapter: Adapter) {
               `db.version(${target + 1}).stores({ ... }).`
           );
         }
+        retireShadowTriggers(next);
         stores = next;
         return { version: found, from: found, migrated: false };
       }
@@ -377,8 +474,24 @@ export function createEngine(adapter: Adapter) {
         try { adapter.exec('ROLLBACK'); } catch { /* already rolled back */ }
         throw err;
       }
+      retireShadowTriggers(next);
       stores = next;
       return { version: target, from: found, migrated: true, statements: sql.length };
+    },
+
+    /**
+     * Bytes the database occupies, asked of SQLite rather than of the backend,
+     * so it answers the same way on OPFS, IndexedDB and memory alike.
+     *
+     * This counts pages the file HOLDS, which includes free pages left behind
+     * by deletes — the same number the filesystem would report, and not the
+     * same as the size of the live data.
+     */
+    size(): number {
+      const r = adapter.all(
+        `SELECT (SELECT * FROM pragma_page_count()) * (SELECT * FROM pragma_page_size()) AS bytes`
+      )[0];
+      return Number(r?.['bytes'] ?? 0);
     },
 
     schema: () =>
@@ -485,12 +598,16 @@ export function createEngine(adapter: Adapter) {
       // Two bodies, deliberately: on INSERT the changes ARE the document, so
       // `undefined` keeps its sentinel; on UPDATE they are a patch, where
       // undefined means "remove this property".
-      adapter.run(
-        `INSERT INTO ${q(table)}(${q(s.primKey.name)}, "_doc") VALUES (?, ?) ` +
-          `ON CONFLICT(${q(s.primKey.name)}) DO UPDATE SET "_doc" = json_patch("_doc", ?)`,
-        [k, JSON.stringify(encode(expanded)), JSON.stringify(encodePatch(expanded))]
-      );
-      return key;
+      const write = (): unknown => {
+        if (hasMulti(s)) purgeShadowKeys(s, [k]);
+        adapter.run(
+          `INSERT INTO ${q(table)}(${q(s.primKey.name)}, "_doc") VALUES (?, ?) ` +
+            `ON CONFLICT(${q(s.primKey.name)}) DO UPDATE SET "_doc" = json_patch("_doc", ?)`,
+          [k, JSON.stringify(encode(expanded)), JSON.stringify(encodePatch(expanded))]
+        );
+        return key;
+      };
+      return hasMulti(s) ? inTransaction(write) : write();
     },
 
     bulkUpdate: (table: string, ops: Array<{ key: unknown; changes: Doc }>) =>
@@ -501,25 +618,36 @@ export function createEngine(adapter: Adapter) {
       const k = keyParam(s, key);
       if (k === KEY_MISS) return 0;
       const { [s.primKey.name]: _ignored, ...rest } = changes;
-      const info = adapter.run(
-        `UPDATE ${q(table)} SET "_doc" = json_patch("_doc", ?) WHERE ${q(s.primKey.name)} = ?`,
-        [JSON.stringify(encodePatch(expandPaths(rest))), k]
-      );
-      return info.changes;
+      const run = (): number => {
+        if (hasMulti(s)) purgeShadowKeys(s, [k]);
+        return adapter.run(
+          `UPDATE ${q(table)} SET "_doc" = json_patch("_doc", ?) WHERE ${q(s.primKey.name)} = ?`,
+          [JSON.stringify(encodePatch(expandPaths(rest))), k]
+        ).changes;
+      };
+      return hasMulti(s) ? inTransaction(run) : run();
     },
 
     delete(table: string, key: unknown): number {
       const s = store(table);
       const k = keyParam(s, key);
       if (k === KEY_MISS) return 0;
-      return adapter.run(`DELETE FROM ${q(table)} WHERE ${q(s.primKey.name)} = ?`, [k]).changes;
+      const run = (): number => {
+        if (hasMulti(s)) purgeShadowKeys(s, [k]);
+        return adapter.run(`DELETE FROM ${q(table)} WHERE ${q(s.primKey.name)} = ?`, [k]).changes;
+      };
+      return hasMulti(s) ? inTransaction(run) : run();
     },
 
     bulkDelete: (table: string, keys: unknown[]) => api.batch(keys.map((k) => ({ op: 'delete', table, args: [k] }))),
 
     clear(table: string): number {
-      store(table);
-      return adapter.run(`DELETE FROM ${q(table)}`, []).changes;
+      const s = store(table);
+      const run = (): number => {
+        if (hasMulti(s)) purgeShadowsAll(s);
+        return adapter.run(`DELETE FROM ${q(table)}`, []).changes;
+      };
+      return hasMulti(s) ? inTransaction(run) : run();
     },
 
     query(table: string, plan: QueryPlan, mode: QueryMode = 'docs'): unknown {
@@ -538,13 +666,23 @@ export function createEngine(adapter: Adapter) {
     },
 
     deleteWhere(table: string, plan: QueryPlan): number {
-      const { sql, params } = compileDelete(store(table), plan);
-      return adapter.run(sql, params).changes;
+      const s = store(table);
+      const run = (): number => {
+        purgeShadowsForPlan(s, plan);
+        const { sql, params } = compileDelete(s, plan);
+        return adapter.run(sql, params).changes;
+      };
+      return hasMulti(s) ? inTransaction(run) : run();
     },
 
     modifyWhere(table: string, plan: QueryPlan, changes: object): number {
-      const { sql, params } = compileModify(store(table), plan, changes);
-      return adapter.run(sql, params).changes;
+      const s = store(table);
+      const run = (): number => {
+        purgeShadowsForPlan(s, plan);
+        const { sql, params } = compileModify(s, plan, changes);
+        return adapter.run(sql, params).changes;
+      };
+      return hasMulti(s) ? inTransaction(run) : run();
     },
 
     /**
@@ -679,6 +817,7 @@ export function rpcHandlers(
     },
     get: (t: string, k: unknown) => reap(() => E().get(t, k)),
     bulkGet: (t: string, keys: unknown[]) => reap(() => E().bulkGet(t, keys)),
+    size: () => E().size(),
     exportTable: (t: string) => E().exportTable(t),
     importTable: (t: string, rows: Array<{ k: unknown; d: unknown }>) => E().importTable(t, rows),
     upsert: (t: string, k: unknown, c: Doc) => reap(() => E().upsert(t, k, c)),

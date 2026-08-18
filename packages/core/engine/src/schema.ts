@@ -138,12 +138,22 @@ export function createIndexSql(store: StoreDef, ix: IndexDef): string[] {
       `FROM json_each(${row}."_doc", '${jsonPath(ix.keyPaths[0] as string)}') je ` +
       // json_each on a scalar yields one row; only arrays are a multiEntry index.
       `WHERE json_type(${row}."_doc", '${jsonPath(ix.keyPaths[0] as string)}') = 'array'`;
+    // Filling the shadow table stays in triggers: an INSERT..SELECT json_each()
+    // has no WHERE to plan, so it costs what it should.
+    //
+    // Emptying it does NOT. SQLite will not use an index for the WHERE clause of
+    // a DELETE inside a trigger body — it rewinds and scans the whole table, and
+    // it rejects INDEXED BY there for the same reason: no index is being chosen.
+    // As `AFTER DELETE ... DELETE FROM shadow WHERE k = old.id` that cost a full
+    // scan of the shadow table for EVERY row written. Measured: clearing 100,000
+    // rows took 168 SECONDS, against 332 ms for the same table with the
+    // multiEntry index removed. Purging is done set-based in the engine's write
+    // paths instead, where the planner does use the index. See purgeShadows().
     return [
       `CREATE TABLE IF NOT EXISTS ${q(s)} ("v", "k", PRIMARY KEY("v","k"))`,
       `CREATE INDEX IF NOT EXISTS ${q(s + '$k')} ON ${q(s)}("k")`,
       `CREATE TRIGGER IF NOT EXISTS ${q(s + '$ai')} AFTER INSERT ON ${q(t)} BEGIN ${fill('new')}; END`,
-      `CREATE TRIGGER IF NOT EXISTS ${q(s + '$ad')} AFTER DELETE ON ${q(t)} BEGIN DELETE FROM ${q(s)} WHERE "k" = old.${pk}; END`,
-      `CREATE TRIGGER IF NOT EXISTS ${q(s + '$au')} AFTER UPDATE ON ${q(t)} BEGIN DELETE FROM ${q(s)} WHERE "k" = old.${pk}; ${fill('new')}; END`,
+      `CREATE TRIGGER IF NOT EXISTS ${q(s + '$au')} AFTER UPDATE ON ${q(t)} BEGIN ${fill('new')}; END`,
     ];
   }
   const target = ix.keyPaths.map((kp) => q(kp === store.primKey.name ? kp : col(kp))).join(', ');

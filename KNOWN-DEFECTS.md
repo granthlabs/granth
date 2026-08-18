@@ -144,6 +144,68 @@ an ACK already queued behind the timer is not missed when the tab itself was fro
 A briefly-stalled leader still serves its calls normally; the fence only refuses calls
 nobody is waiting for any more.
 
+## Confirmed and fixed: multiEntry writes cost a full scan, per row
+
+Every published figure was measured at 5,000 rows, which is small enough that
+nothing has to be right. Pushing to 100,000 in a real browser found this:
+deleting 10,000 rows took **41.5 seconds**. The same table with the multiEntry
+index removed did the equivalent work in 332 ms.
+
+A multiEntry index is materialised into a shadow table kept in step by triggers.
+The cost was in the trigger body, and the reason is a SQLite rule rather than a
+mistake in the SQL: **SQLite does not use an index for the WHERE clause of a
+DELETE inside a trigger.** The bytecode is unambiguous — run standalone,
+`DELETE FROM shadow WHERE k = ?` compiles to `SeekGE` on the index; run as
+`AFTER DELETE ... DELETE FROM shadow WHERE k = old.id` it compiles to `Rewind` +
+`Next` over the table, with the index opened only for writing. It is also why
+SQLite *rejects* `INDEXED BY` in a trigger body: there is no index choice to
+constrain. So every row written scanned the whole shadow table, and the cost grew
+linearly with it — measured 423 ms / 1,281 / 3,076 / 7,036 / 14,779 for the same
+5,000 deletes against shadow tables of 5k / 10k / 20k / 40k / 80k rows.
+
+Three fixes that seemed obvious did nothing, and each is worth not retrying:
+adding the index (it already existed and was ignored), making the shadow
+`WITHOUT ROWID` so the key *is* the table, and pushing the search into a
+subquery so the DELETE matches on rowid. All three still produced `Rewind`.
+
+**Fix:** filling the shadow stays in triggers — an `INSERT..SELECT json_each()`
+has no WHERE to plan — but emptying it moved into the engine's write paths as
+one set-based statement, where the planner behaves normally. The `AFTER DELETE`
+trigger is gone and `AFTER UPDATE` only adds.
+
+One detail cost a full debugging cycle: the first version purged with
+`WHERE k IN (SELECT id FROM t WHERE id = ?)`, which reintroduced the same scan —
+per *call* this time rather than per row — and measured no better. Matching the
+shadow's own key directly (`k = ?`, or `k IN (?,?,…)`) is what seeks the index.
+The subquery form is right only where it covers many rows at once.
+
+Measured after, on the same 100,000-row browser database: **41,558 ms → 2,209 ms**
+in Chromium, 75 ms in WebKit.
+
+Existing databases carry the old triggers, and `CREATE TRIGGER IF NOT EXISTS`
+will not replace them — without an explicit retirement step the users with the
+most data would have been the only ones left on the slow path. `migrate()` now
+drops them on open, including when no version change occurs.
+
+**Guard:** `packages/core/client/test-multientry.mjs`, 23 checks. It asserts the
+shadow table exactly equals a rebuild from `_doc` after *every* write path, so a
+path added later that forgets its shadow fails without anyone remembering to
+write a test. For the cost it asserts the shape rather than a millisecond budget:
+writing a fixed number of rows must not get slower as the shadow table grows.
+It failed at 10.4x before the fix and passes flat after; the retirement step was
+separately verified by disabling it and watching the guard go red.
+
+`db.size()` was found by the same run: documented in the README, present on the
+client, and wired to an RPC method no runtime implemented, so it threw every
+time it was called. It is now answered by SQLite itself
+(`pragma_page_count * pragma_page_size`), which works identically on OPFS,
+IndexedDB and memory.
+
+The harness is `examples/playground/scale.js`, run by `scale-test.mjs`. It is
+deliberately **not** in `npm test`: 100,000 rows is too slow to pay for on every
+commit. Run it before a release, or after touching the query compiler or the
+bulk paths.
+
 ## What the fixes could have broken, and how that is guarded
 
 The parity suite carries explicit regression cases for the ways these changes
