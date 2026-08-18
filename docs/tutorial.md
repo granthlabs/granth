@@ -73,7 +73,7 @@ const stop = db.liveQuery(() => db.friends.orderBy('name').toArray())
 ```
 
 It re-runs on changes from **any tab**, and only emits when the result actually differs.
-See [Frameworks](./Frameworks.md) for React/Vue/Angular/Svelte.
+See [Frameworks](./frameworks) for React/Vue/Angular/Svelte.
 
 ## 6. Evolve the schema
 
@@ -103,4 +103,4 @@ startGranthWorker({
 - `await navigator.storage.persist()` — ask not to be evicted.
 - Keep a **rebuild-from-server path**. Browser storage is a cache, not a source of truth.
 - **Batch writes**: `bulkAdd` is ~200× the throughput of one-at-a-time.
-- Read [Storage](./Storage.md) for the eviction and durability rules.
+- Read [Storage](./storage) for the eviction and durability rules.

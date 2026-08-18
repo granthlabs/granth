@@ -162,7 +162,7 @@ const db = new Granth('myapp', { runtime: inlineRuntime({ createHandlers }) });
 ```
 
 SQL then runs on the calling thread and OPFS is unavailable. See
-[Runtimes](./Runtimes.md).
+[Runtimes](./runtimes).
 
 ## Requirements everywhere
 

@@ -49,8 +49,8 @@ store contract. Use `$` directly:
 
 ### React, Vue
 
-First-party bindings: [`granth-react`](/Frameworks#react) and
-[`granth-vue`](/Frameworks#vue).
+First-party bindings: [`granth-react`](/frameworks#react) and
+[`granth-vue`](/frameworks#vue).
 
 ## TanStack Query
 

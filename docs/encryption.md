@@ -25,7 +25,7 @@ it is usable by anything running as your code.
 
 **Do not use it for session tokens.** Those belong in an `httpOnly` cookie that
 JavaScript cannot read at all — see
-[Replacing web storage](/ReplacingWebStorage#where-auth-tokens-belong-read-this-first).
+[Replacing web storage](/replacing-web-storage#where-auth-tokens-belong-read-this-first).
 
 ## Usage
 

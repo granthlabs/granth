@@ -3,7 +3,7 @@
 Returned by `table.where(index)`. Mirrors
 [Dexie's `WhereClause`](https://dexie.org/docs/WhereClause/WhereClause) — **18/18 members covered**.
 
-Every method returns a [`Collection`](./Collection.md).
+Every method returns a [`Collection`](./collection).
 
 ## Equality
 
@@ -69,7 +69,7 @@ The cost is that they cannot use the index. Fine at small scale; store a normali
 lowercase field and query that if it shows up in a profile.
 
 ::: warning Custom adapters
-If you supply your own [`Adapter`](/Storage), implement the optional `createFunction`
+If you supply your own [`Adapter`](/storage), implement the optional `createFunction`
 member — these three operators need it. Without it they fail loudly with
 `no such function: granth_lower` rather than quietly returning too few rows.
 :::

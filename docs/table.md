@@ -20,8 +20,8 @@ One table. Reach it as `db.friends` or `db.table('friends')`.
 | `count()` | `Promise<number>` | |
 | `each(fn)` | `Promise<void>` | |
 | `toMap(keyPath?)` | `Promise<Map>` | Keyed by primary key, or any keyPath |
-| `where(index)` | [`WhereClause`](./WhereClause.md) | |
-| `where({a, b})` | [`Collection`](./Collection.md) | Multi-index equality, AND'ed |
+| `where(index)` | [`WhereClause`](./where-clause) | |
+| `where({a, b})` | [`Collection`](./collection) | Multi-index equality, AND'ed |
 | `orderBy(index)` | `Collection` | |
 | `filter(fn)` | `Collection` | JS predicate, runs client-side |
 | `limit(n)` / `offset(n)` / `reverse()` | `Collection` | |

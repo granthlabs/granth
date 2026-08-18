@@ -17,7 +17,7 @@ const db = new Granth('myapp', {
 | Option | Type | Description |
 |---|---|---|
 | `worker` | `() => Worker` | Shorthand for the default worker runtime. Called only in the tab elected leader. |
-| `runtime` | `RuntimePlugin` | Explicit runtime. Overrides `worker`. See [Runtimes](./Runtimes.md). |
+| `runtime` | `RuntimePlugin` | Explicit runtime. Overrides `worker`. See [Runtimes](./runtimes). |
 | `timeoutMs` | `number` | How long to wait for a leader before failing. Default `5000`. |
 
 You need **either** `worker` or `runtime`. `worker` is the shorthand almost everyone wants:
@@ -60,7 +60,7 @@ db.version(3).stores({ oldTable: null });                          // drops it
 ```
 
 Changing a schema **without** bumping the version throws a clear error rather than being
-silently ignored. Data transforms go in your worker file (see [Storage](./Storage.md)), because
+silently ignored. Data transforms go in your worker file (see [Storage](./storage)), because
 a function cannot cross into a worker:
 
 ```js
@@ -80,11 +80,11 @@ Also available as a property: `db.friends` ≡ `db.table('friends')`.
 
 ### `transaction(...)`
 
-Two forms — see [Transaction](./Transaction.md).
+Two forms — see [Transaction](./transaction).
 
 ### `liveQuery(querier, opts)` → `Observable`
 
-See [liveQuery](./liveQuery.md).
+See [liveQuery](./live-query).
 
 ### `close()`, `delete()` / `deleteDatabase()`
 
@@ -106,7 +106,7 @@ preserves `Date`, `NaN`, `Infinity` and `BigInt` — exporting decoded documents
 would push them back through JSON and lose exactly what the codec exists to
 protect. Indexes are rebuilt on import.
 
-This is what makes "always keep a rebuild path" ([Storage](./Storage.md))
+This is what makes "always keep a rebuild path" ([Storage](./storage))
 actionable rather than advice.
 
 ### `clearAll()` → `Promise<string[]>`
@@ -121,11 +121,11 @@ Bytes the database occupies on disk.
 
 ### `storageKind()` → `Promise<'opfs' | 'indexeddb' | 'memory'>`
 
-Which storage backend actually opened. See [Storage](./Storage.md).
+Which storage backend actually opened. See [Storage](./storage).
 
 ### `runtimeKind()` → `'worker' | 'inline'`
 
-Which runtime connected. See [Runtimes](./Runtimes.md).
+Which runtime connected. See [Runtimes](./runtimes).
 
 ### `use(plugin)` → `PluginHandle`
 
@@ -147,7 +147,7 @@ db.plugins;          // []
 ```
 
 A `before` hook that returns a value short-circuits the call entirely — that is
-how a cache or an encryption addon intercepts. See [Plugins](./Plugins.md).
+how a cache or an encryption addon intercepts. See [Plugins](./plugins).
 
 ### `plugins` → `string[]`
 

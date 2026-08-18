@@ -46,7 +46,7 @@ These are structural differences, not tuning:
   a cursor and counting in JS. `count()` on 5,200 rows is 0.5 ms.
 - **Off the main thread.** Queries run in a dedicated Worker, so a slow scan
   doesn't block rendering. (The inline runtime deliberately gives this up — see
-  [Runtimes](./Runtimes.md).)
+  [Runtimes](./runtimes).)
 - **One round trip for bulk reads.** `bulkGet` is a single `IN` query.
 
 ### What is *not* faster

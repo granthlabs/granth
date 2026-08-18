@@ -51,4 +51,4 @@ interactive form when a later write depends on an earlier read.
 
 If the leader tab dies mid-transaction, SQLite rolls back automatically — the connection died
 with it. If a *follower* tab dies after its call was acknowledged, the commit state is unknown;
-you get a `LeaderLostError`. See [Errors](./Errors.md).
+you get a `LeaderLostError`. See [Errors](./errors).

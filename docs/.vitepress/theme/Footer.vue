@@ -13,30 +13,30 @@ const columns = [
   {
     heading: 'Get started',
     links: [
-      { text: 'Tutorial', href: '/Tutorial' },
-      { text: 'Migrating from Dexie', href: '/MigratingFromDexie' },
-      { text: 'Frameworks', href: '/Frameworks' },
-      { text: 'State libraries', href: '/StateLibraries' },
-      { text: 'Runtimes', href: '/Runtimes' },
+      { text: 'Tutorial', href: '/tutorial' },
+      { text: 'Migrating from Dexie', href: '/migrating-from-dexie' },
+      { text: 'Frameworks', href: '/frameworks' },
+      { text: 'State libraries', href: '/state-libraries' },
+      { text: 'Runtimes', href: '/runtimes' },
     ],
   },
   {
     heading: 'Use cases',
     links: [
-      { text: 'Replacing web storage', href: '/ReplacingWebStorage' },
-      { text: 'Cache-first apps', href: '/CacheFirstApps' },
-      { text: 'Encryption at rest', href: '/Encryption' },
-      { text: 'Security & performance', href: '/SecurityAndPerformance' },
+      { text: 'Replacing web storage', href: '/replacing-web-storage' },
+      { text: 'Cache-first apps', href: '/cache-first-apps' },
+      { text: 'Encryption at rest', href: '/encryption' },
+      { text: 'Security & performance', href: '/security-and-performance' },
     ],
   },
   {
     heading: 'API',
     links: [
-      { text: 'Granth', href: '/Granth' },
-      { text: 'Table', href: '/Table' },
-      { text: 'Collection', href: '/Collection' },
-      { text: 'WhereClause', href: '/WhereClause' },
-      { text: 'liveQuery', href: '/liveQuery' },
+      { text: 'Granth', href: '/granth' },
+      { text: 'Table', href: '/table' },
+      { text: 'Collection', href: '/collection' },
+      { text: 'WhereClause', href: '/where-clause' },
+      { text: 'liveQuery', href: '/live-query' },
     ],
   },
   {
@@ -44,9 +44,9 @@ const columns = [
     links: [
       { text: 'GitHub', href: 'https://github.com/sundarshahi/granth' },
       { text: 'Issues', href: 'https://github.com/sundarshahi/granth/issues' },
-      { text: 'Plugins', href: '/Plugins' },
-      { text: 'Storage', href: '/Storage' },
-      { text: 'Errors', href: '/Errors' },
+      { text: 'Plugins', href: '/plugins' },
+      { text: 'Storage', href: '/storage' },
+      { text: 'Errors', href: '/errors' },
     ],
   },
 ];

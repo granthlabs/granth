@@ -1,8 +1,65 @@
 import { defineConfig } from 'vitepress';
+import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
+
+/**
+ * The pages were `Tutorial.md`, `WhereClause.md`, `MigratingFromDexie.md`, so the
+ * URLs carried capitals — unconventional, case-sensitive on a static host, and
+ * easy to mistype. They are lowercase and kebab-cased now.
+ *
+ * Those old URLs were already live, so they get redirect stubs rather than a
+ * 404. A static host has no redirect rules, hence meta-refresh plus
+ * `rel=canonical`, so a search engine follows the move instead of indexing two
+ * copies of every page.
+ */
+const MOVED: Record<string, string> = {
+  CacheFirstApps: 'cache-first-apps',
+  Collection: 'collection',
+  Encryption: 'encryption',
+  Errors: 'errors',
+  Frameworks: 'frameworks',
+  Granth: 'granth',
+  MigratingFromDexie: 'migrating-from-dexie',
+  Plugins: 'plugins',
+  ReplacingWebStorage: 'replacing-web-storage',
+  Runtimes: 'runtimes',
+  SecurityAndPerformance: 'security-and-performance',
+  StateLibraries: 'state-libraries',
+  Storage: 'storage',
+  Table: 'table',
+  Transaction: 'transaction',
+  Tutorial: 'tutorial',
+  WhereClause: 'where-clause',
+  liveQuery: 'live-query',
+};
 
 // The site is built directly from the docs/ folder, so the published site and
 // the docs you read on GitHub cannot drift apart.
 export default defineConfig({
+  buildEnd(site) {
+    for (const [from, to] of Object.entries(MOVED)) {
+      // A DIRECTORY, not `${from}.html`. macOS is case-insensitive, so writing
+      // `Tutorial.html` overwrote the real `tutorial.html` and every one-word
+      // page became a stub redirecting to itself — while a Linux CI runner,
+      // being case-sensitive, would have built it correctly and deployed happily.
+      // `Tutorial/index.html` collides with nothing on either filesystem.
+      const dir = join(site.outDir, from);
+      if (existsSync(dir)) {
+        throw new Error(`granth docs: redirect stub "${from}" collides with a real build output`);
+      }
+      mkdirSync(dir, { recursive: true });
+      const url = `${site.site.base}${to}`;
+      writeFileSync(
+        join(dir, 'index.html'),
+        `<!doctype html><html lang="en"><head><meta charset="utf-8">` +
+          `<title>Moved — granthdb</title>` +
+          `<link rel="canonical" href="${url}">` +
+          `<meta name="robots" content="noindex">` +
+          `<meta http-equiv="refresh" content="0; url=${url}">` +
+          `</head><body>This page moved to <a href="${url}">${url}</a>.</body></html>\n`
+      );
+    }
+  },
   title: 'granthdb',
   description: 'SQLite in the browser with a Dexie-compatible API. OPFS-backed, runs in a Web Worker, safe across tabs.',
   lang: 'en-GB',
@@ -22,11 +79,11 @@ export default defineConfig({
     logo: '/logo.svg',
     siteTitle: 'granthdb',
     nav: [
-      { text: 'Guide', link: '/Tutorial' },
-      { text: 'API', link: '/Granth' },
-      { text: 'Use cases', link: '/ReplacingWebStorage' },
-      { text: 'Migrate', link: '/MigratingFromDexie' },
-      { text: 'Sandbox', link: '/play/sandbox.html', target: '_self' },
+      { text: 'Guide', link: '/tutorial' },
+      { text: 'API', link: '/granth' },
+      { text: 'Use cases', link: '/replacing-web-storage' },
+      { text: 'Migrate', link: '/migrating-from-dexie' },
+      { text: 'Sandbox', link: '/play/sandbox', target: '_self' },
       { text: 'Examples', link: '/play/demos/', target: '_self' },
       { text: 'Verify', link: '/play/', target: '_self' },
       { text: 'GitHub', link: 'https://github.com/sundarshahi/granth' },
@@ -35,39 +92,39 @@ export default defineConfig({
       {
         text: 'Getting started',
         items: [
-          { text: 'Tutorial', link: '/Tutorial' },
-          { text: 'Migrating from Dexie', link: '/MigratingFromDexie' },
-          { text: 'Frameworks', link: '/Frameworks' },
-          { text: 'TanStack, RxJS, Zustand', link: '/StateLibraries' },
+          { text: 'Tutorial', link: '/tutorial' },
+          { text: 'Migrating from Dexie', link: '/migrating-from-dexie' },
+          { text: 'Frameworks', link: '/frameworks' },
+          { text: 'TanStack, RxJS, Zustand', link: '/state-libraries' },
         ],
       },
       {
         text: 'Use cases',
         items: [
-          { text: 'Replacing web storage', link: '/ReplacingWebStorage' },
-          { text: 'Cache-first apps', link: '/CacheFirstApps' },
-          { text: 'Encryption at rest', link: '/Encryption' },
+          { text: 'Replacing web storage', link: '/replacing-web-storage' },
+          { text: 'Cache-first apps', link: '/cache-first-apps' },
+          { text: 'Encryption at rest', link: '/encryption' },
         ],
       },
       {
         text: 'Architecture',
         items: [
-          { text: 'Storage', link: '/Storage' },
-          { text: 'Runtimes', link: '/Runtimes' },
-          { text: 'Plugins', link: '/Plugins' },
-          { text: 'Security & performance', link: '/SecurityAndPerformance' },
+          { text: 'Storage', link: '/storage' },
+          { text: 'Runtimes', link: '/runtimes' },
+          { text: 'Plugins', link: '/plugins' },
+          { text: 'Security & performance', link: '/security-and-performance' },
         ],
       },
       {
         text: 'API reference',
         items: [
-          { text: 'Granth', link: '/Granth' },
-          { text: 'Table', link: '/Table' },
-          { text: 'Collection', link: '/Collection' },
-          { text: 'WhereClause', link: '/WhereClause' },
-          { text: 'Transaction', link: '/Transaction' },
-          { text: 'liveQuery', link: '/liveQuery' },
-          { text: 'Errors', link: '/Errors' },
+          { text: 'Granth', link: '/granth' },
+          { text: 'Table', link: '/table' },
+          { text: 'Collection', link: '/collection' },
+          { text: 'WhereClause', link: '/where-clause' },
+          { text: 'Transaction', link: '/transaction' },
+          { text: 'liveQuery', link: '/live-query' },
+          { text: 'Errors', link: '/errors' },
         ],
       },
     ],

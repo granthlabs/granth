@@ -7,10 +7,10 @@ hero:
   actions:
     - theme: brand
       text: Get started
-      link: /Tutorial
+      link: /tutorial
     - theme: alt
       text: Migrating from Dexie
-      link: /MigratingFromDexie
+      link: /migrating-from-dexie
     - theme: alt
       text: GitHub
       link: https://github.com/sundarshahi/granth
@@ -59,7 +59,7 @@ on yours.
 ## Honest limits
 
 A local database is a cache with opinions, not a source of truth. Before you
-adopt this, read [Security & performance](/SecurityAndPerformance) — it is
+adopt this, read [Security & performance](/security-and-performance) — it is
 explicit about what this does **not** give you: it is not encrypted at rest, XSS
 on your origin reads everything, Safari evicts script-writable storage after 7
 days of no interaction, and a user can edit their own local file. Always keep a
@@ -73,7 +73,7 @@ npx granth-codemod ./src
 
 It rewrites imports, `new Dexie(...)` and `extends Dexie`, and **reports rather
 than guesses** at anything it cannot safely transform. Then
-[import your existing IndexedDB data](/MigratingFromDexie) — schema inference
+[import your existing IndexedDB data](/migrating-from-dexie) — schema inference
 included, so you are not retyping `stores()` by hand.
 
 </div>

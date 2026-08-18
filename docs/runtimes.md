@@ -61,5 +61,5 @@ const runtime = Granth.isSupported()
 
 ## Writing one
 
-A runtime is five methods — see [Plugins](./Plugins.md) and the `RuntimePlugin`
+A runtime is five methods — see [Plugins](./plugins) and the `RuntimePlugin`
 contract in `granth-protocol`.

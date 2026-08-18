@@ -30,7 +30,7 @@ platform imposes them:
 | A rebuild path | browsers evict storage | `deleteDatabase()` plus your server |
 
 The multi-tab part is not a nicety. Two tabs writing one SQLite file over OPFS
-is a corrupted database, which is why [the leader election](/Runtimes) exists
+is a corrupted database, which is why [the leader election](/runtimes) exists
 rather than being an optional extra.
 
 ## The pattern, concretely
@@ -65,7 +65,7 @@ db.pages.where('workspace').equals(id).orderBy('updated')
   .subscribe(render);
 ```
 
-See [liveQuery](/liveQuery).
+See [liveQuery](/live-query).
 
 ## Do this before you claim it is faster
 
@@ -85,7 +85,7 @@ Notion's own numbers are the argument for measuring rather than assuming:
 ## When this pattern is wrong
 
 - **The data is not yours to cache.** Local storage is not encrypted and the
-  user can read it. See [Encryption](/Encryption).
+  user can read it. See [Encryption](/encryption).
 - **The data changes constantly for everyone.** A live ticker has nothing to
   cache; you are adding a database to display a websocket.
 - **The dataset is tiny.** A few hundred records read once is not worth a WASM
@@ -95,4 +95,4 @@ Notion's own numbers are the argument for measuring rather than assuming:
   side and treat the local copy as a replica.
 
 Sources: Notion's engineering write-up on their WASM SQLite rollout, and the
-measurements in [Security & performance](/SecurityAndPerformance).
+measurements in [Security & performance](/security-and-performance).

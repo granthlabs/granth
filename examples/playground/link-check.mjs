@@ -72,6 +72,49 @@ while (queue.length) {
   }
 }
 
+/**
+ * The pre-rename URLs must still land somewhere real.
+ *
+ * Nothing on the site links to them any more, so the crawl above can never reach
+ * them — an unreachable redirect is exactly the kind of thing that rots
+ * unnoticed. This follows each stub's canonical to a page that actually exists,
+ * which also catches a stub that redirects to ITSELF: on a case-insensitive
+ * filesystem `Tutorial.html` silently overwrote `tutorial.html` and every
+ * one-word page became its own redirect loop.
+ */
+const MOVED = {
+  CacheFirstApps: 'cache-first-apps', Collection: 'collection', Encryption: 'encryption',
+  Errors: 'errors', Frameworks: 'frameworks', Granth: 'granth',
+  MigratingFromDexie: 'migrating-from-dexie', Plugins: 'plugins',
+  ReplacingWebStorage: 'replacing-web-storage', Runtimes: 'runtimes',
+  SecurityAndPerformance: 'security-and-performance', StateLibraries: 'state-libraries',
+  Storage: 'storage', Table: 'table', Transaction: 'transaction', Tutorial: 'tutorial',
+  WhereClause: 'where-clause', liveQuery: 'live-query',
+};
+let redirects = 0;
+for (const [from, to] of Object.entries(MOVED)) {
+  // EXACT paths, not resolveFile(): on a case-insensitive filesystem the
+  // resolver answers `/granth/Tutorial` with the real `tutorial.html` and the
+  // check silently passes on a stub it never read. A case-sensitive host —
+  // which is what actually serves this — would find the stub.
+  const stub = join(DIST, from, 'index.html');
+  const page = join(DIST, `${to}.html`);
+  if (!existsSync(stub)) { broken.push({ path: `${BASE}${from}`, why: 'no redirect stub built' }); continue; }
+  if (!existsSync(page)) { broken.push({ path: `${BASE}${to}`, why: `renamed page missing (from ${from})` }); continue; }
+  const html = readFileSync(stub, 'utf8');
+  const target = html.match(/rel="canonical" href="([^"]+)"/)?.[1];
+  if (target !== `${BASE}${to}`) {
+    broken.push({ path: `${BASE}${from}`, why: `redirects to "${target}", expected "${BASE}${to}"` });
+    continue;
+  }
+  // A stub where a real page belongs means the two collided on disk.
+  if (statSync(page).size < 2000) {
+    broken.push({ path: `${BASE}${to}`, why: `page is only ${statSync(page).size}B — overwritten by its own redirect?` });
+    continue;
+  }
+  redirects++;
+}
+
 server.close();
 
 if (broken.length) {
@@ -79,5 +122,5 @@ if (broken.length) {
   for (const b of broken) console.error(`  ${b.why}  ${b.path}`);
   process.exit(1);
 }
-console.log(`link-check: ${checked} pages, no broken internal links`);
+console.log(`link-check: ${checked} pages, no broken internal links; ${redirects} old URLs redirect correctly`);
 process.exit(0);

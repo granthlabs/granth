@@ -5,28 +5,28 @@ tabs, with an IndexedDB fallback.
 
 One page per class, plus guides for the parts that are structural rather than
 API-shaped — storage, runtimes and plugins. Coming from another IndexedDB
-wrapper? Start with [Migrating from Dexie](./MigratingFromDexie.md), which lists
+wrapper? Start with [Migrating from Dexie](./migrating-from-dexie), which lists
 every behavioural difference.
 
 ## Getting started
 
-- [Tutorial](./Tutorial.md) — install, schema, first query
-- [Migrating from Dexie or IndexedDB](./MigratingFromDexie.md) — compatibility matrix + data import
-- [Storage: OPFS and the IndexedDB fallback](./Storage.md) — durability, quotas, eviction
+- [Tutorial](./tutorial) — install, schema, first query
+- [Migrating from Dexie or IndexedDB](./migrating-from-dexie) — compatibility matrix + data import
+- [Storage: OPFS and the IndexedDB fallback](./storage) — durability, quotas, eviction
 
 ## API Reference
 
 | Class | Purpose |
 |---|---|
-| [Granth](./Granth.md) | The database itself — schema, versions, open/close, transactions |
-| [Table](./Table.md) | One object store: CRUD, bulk operations, hooks |
-| [Collection](./Collection.md) | A pending query result: ordering, paging, iteration, bulk edit |
-| [WhereClause](./WhereClause.md) | The operators you reach through `table.where(index)` |
-| [Transaction](./Transaction.md) | Both transaction forms and their isolation guarantees |
-| [liveQuery](./liveQuery.md) | Reactive queries that re-run on change, across tabs |
-| [Errors](./Errors.md) | Error types and which are safe to retry |
-| [Runtimes](./Runtimes.md) | Worker vs inline (no-Worker) execution |
-| [Plugins](./Plugins.md) | The three extension points, and the package map |
+| [Granth](./granth) | The database itself — schema, versions, open/close, transactions |
+| [Table](./table) | One object store: CRUD, bulk operations, hooks |
+| [Collection](./collection) | A pending query result: ordering, paging, iteration, bulk edit |
+| [WhereClause](./where-clause) | The operators you reach through `table.where(index)` |
+| [Transaction](./transaction) | Both transaction forms and their isolation guarantees |
+| [liveQuery](./live-query) | Reactive queries that re-run on change, across tabs |
+| [Errors](./errors) | Error types and which are safe to retry |
+| [Runtimes](./runtimes) | Worker vs inline (no-Worker) execution |
+| [Plugins](./plugins) | The three extension points, and the package map |
 
 ## Quick reference
 

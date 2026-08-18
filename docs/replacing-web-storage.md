@@ -50,7 +50,7 @@ querying and no size ceiling.
 
 **IndexedDB** is the closest comparison, and the honest summary is that granthdb
 is IndexedDB's model with a real query engine underneath. See
-[Migrating from Dexie](/MigratingFromDexie) — the same import path brings raw
+[Migrating from Dexie](/migrating-from-dexie) — the same import path brings raw
 IndexedDB data across, schema inference included.
 
 ## Moving a localStorage blob across
@@ -115,7 +115,7 @@ User *data*, which is a different problem:
 - anything you would otherwise `JSON.parse` out of a 5 MB localStorage string
 - anything you want to query rather than scan
 
-And for that data, [field-level encryption](/Encryption) genuinely helps —
+And for that data, [field-level encryption](/encryption) genuinely helps —
 against device theft, disk forensics and backup extraction. It does not help
 against XSS, and the page says so.
 
@@ -132,4 +132,4 @@ if (!Granth.isSupported()) {
 
 The storage list already degrades on its own — OPFS, then IndexedDB, then
 memory — so Safari private browsing gets a working database rather than an
-exception. See [Storage](/Storage).
+exception. See [Storage](/storage).

@@ -40,7 +40,7 @@ The returned object is deliberately dual-shaped:
 | **Vue** | `import { useLiveQuery } from 'granth-vue'` |
 | **Vanilla** | `.subscribe(fn)` |
 
-See [Frameworks](./Frameworks.md) for full examples.
+See [Frameworks](./frameworks) for full examples.
 
 ## Manual change events
 
