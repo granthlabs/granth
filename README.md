@@ -39,6 +39,9 @@ npm install granthdb @sqlite.org/sqlite-wasm
 ```
 
 Works in Chrome 108+, Safari 16.4+, Firefox 111+, over HTTPS or `localhost`.
+The suite runs on Chromium, Firefox and WebKit in CI. Where OPFS is unavailable — Safari
+private browsing, for instance — it falls back to IndexedDB automatically, and the same
+suite passes on that path.
 No special server headers, no bundler plugins, no build step.
 
 ## Quick start

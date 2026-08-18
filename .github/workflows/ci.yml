@@ -22,8 +22,17 @@ jobs:
       # The Node suites cannot see OPFS, the opfs-sahpool VFS, dedicated Workers
       # or Web Locks. Without this job a change can be green in Node and broken
       # in every browser — which has happened.
-      - run: npx playwright install --with-deps chromium
+      - run: npx playwright install --with-deps chromium firefox webkit
       - run: node examples/playground/browser-test.mjs
+      # The README claims Chrome 108+, Safari 16.4+ and Firefox 111+. Testing one
+      # engine left two thirds of that claim unverified — and WebKit is the one
+      # that matters most, because it has no working OPFS here and therefore
+      # exercises the IndexedDB fallback the way Safari private browsing does.
+      #
+      # NOT Safari itself: Playwright's WebKit is a different build, so this
+      # narrows the gap rather than closing it.
+      - run: BROWSER=firefox node examples/playground/browser-test.mjs
+      - run: BROWSER=webkit node examples/playground/browser-test.mjs
       # Multi-tab is where the worst bugs live: schema loss on failover, writes
       # absorbed by an abandoned transaction, transactions merging. None of it is
       # reachable from a single page. Two tabs and three tabs behave DIFFERENTLY

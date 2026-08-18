@@ -83,12 +83,39 @@ async function run() {
     if (self.crossOriginIsolated) throw new Error('page IS cross-origin isolated — the test is not proving the sahpool claim');
   });
 
-  await check('OPFS is available', async () => {
-    const root = await navigator.storage.getDirectory();
-    if (!root) throw new Error('no OPFS root');
+  // OPFS present, OR the documented fallback engages — those are BOTH passes.
+  //
+  // Treating a missing OPFS as a failure asserts the wrong thing: the storage
+  // list exists precisely so a browser without it degrades instead of throwing,
+  // and that is the case Safari private browsing produces. Playwright's WebKit
+  // has no working OPFS, which is how this surfaced — the suite reported a
+  // failure while the library was doing exactly what it promises.
+  let opfsAvailable = true;
+  await check('OPFS is available, or the fallback takes over', async () => {
+    try {
+      const root = await navigator.storage.getDirectory();
+      if (!root) throw new Error('no OPFS root');
+    } catch (err) {
+      opfsAvailable = false;
+      log('  → no OPFS here, so the IndexedDB fallback must carry the rest', true, err.message);
+    }
   });
 
   let db, meta;
+
+  // The backend the library actually chose must match what the browser offers.
+  // Without this the check above would merely be permissive; this is what makes
+  // it an assertion — a silent fall to `memory` would lose data on reload and
+  // must not pass as "the fallback worked".
+  await check('the chosen backend matches what this browser supports', async () => {
+    const probe = makeDb(2);
+    await probe.open();
+    const kind = await probe.storageKind();
+    await probe.close();
+    await sleep(100);
+    const want = opfsAvailable ? 'opfs' : 'indexeddb';
+    if (kind !== want) throw new Error(`expected ${want}, got ${kind}`);
+  });
 
   if (PHASE === 'fresh') {
     await check('wipe any database left by a previous run', async () => {
