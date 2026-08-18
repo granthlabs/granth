@@ -1,6 +1,6 @@
 {
   "name": "granth-storage-memory",
-  "version": "0.2.1",
+  "version": "0.2.4",
   "description": "In-memory storage backend for granth. Works everywhere: Node, SSR, tests, private browsing.",
   "type": "module",
   "license": "MIT",
@@ -38,7 +38,7 @@
   },
   "author": "sundarshahi <shahithakurisundar@gmail.com>",
   "dependencies": {
-    "granth-protocol": "^0.2.1",
-    "granth-storage-opfs": "^0.2.1"
+    "granth-protocol": "^0.2.4",
+    "granth-storage-opfs": "^0.2.4"
   }
 }

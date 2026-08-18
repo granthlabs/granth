@@ -1,6 +1,6 @@
 {
   "name": "granthdb",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "SQLite in the browser with a Dexie-compatible API. OPFS-backed, runs in a Web Worker, safe across tabs, with an IndexedDB fallback.",
   "type": "module",
   "license": "MIT",
@@ -33,14 +33,14 @@
     "node": ">=18"
   },
   "dependencies": {
-    "granth-protocol": "^0.2.1",
-    "granth-engine": "^0.2.1",
-    "granth-runtime-worker": "^0.2.1",
-    "granth-runtime-inline": "^0.2.1",
-    "granth-storage-opfs": "^0.2.1",
-    "granth-storage-indexeddb": "^0.2.1",
-    "granth-storage-memory": "^0.2.1",
-    "opfs-leader": "^0.2.1"
+    "granth-protocol": "^0.2.4",
+    "granth-engine": "^0.2.4",
+    "granth-runtime-worker": "^0.2.4",
+    "granth-runtime-inline": "^0.2.4",
+    "granth-storage-opfs": "^0.2.4",
+    "granth-storage-indexeddb": "^0.2.4",
+    "granth-storage-memory": "^0.2.4",
+    "opfs-leader": "^0.2.4"
   },
   "keywords": [
     "granthdb",
