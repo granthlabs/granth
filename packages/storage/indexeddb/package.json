@@ -1,6 +1,6 @@
 {
   "name": "granth-storage-indexeddb",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "IndexedDB storage backend for granth. Works where OPFS does not, including Safari private browsing.",
   "type": "module",
   "license": "MIT",
@@ -38,7 +38,7 @@
   },
   "author": "sundarshahi <shahithakurisundar@gmail.com>",
   "dependencies": {
-    "granth-protocol": "^0.2.6",
-    "granth-storage-opfs": "^0.2.6"
+    "granth-protocol": "^0.2.7",
+    "granth-storage-opfs": "^0.2.7"
   }
 }

@@ -1,7 +1,7 @@
 {
   "name": "playground",
   "private": true,
-  "version": "0.2.6",
+  "version": "0.2.7",
   "type": "module",
   "description": "Browser verification for opfs-sqlite against real sqlite-wasm + OPFS. Not published.",
   "scripts": {

@@ -1,6 +1,6 @@
 {
   "name": "granth-protocol",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "Plugin contracts for granth. Types only, zero runtime, zero dependencies.",
   "type": "module",
   "license": "MIT",
