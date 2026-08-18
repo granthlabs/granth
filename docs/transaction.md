@@ -50,5 +50,9 @@ interactive form when a later write depends on an earlier read.
 ## Durability caveat
 
 If the leader tab dies mid-transaction, SQLite rolls back automatically — the connection died
-with it. If a *follower* tab dies after its call was acknowledged, the commit state is unknown;
-you get a `LeaderLostError`. See [Errors](./errors).
+with it.
+
+What the *caller* sees depends on how far its call got. If the leader died **after
+acknowledging** it, the commit state is unknown and you get a `LeaderLostError` — verify before
+retrying. If it was never acknowledged, nothing ran and retrying is safe, including when the
+leader was merely frozen rather than dead. See [Errors](./errors).

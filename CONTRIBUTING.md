@@ -50,6 +50,7 @@ Each layer catches something the one below it cannot.
 | `npm test` | Engine and client behaviour against **real SQLite** via `node:sqlite` |
 | `node examples/playground/browser-test.mjs` | The platform layer: real OPFS, sqlite-wasm, durability across a full reload |
 | `node examples/playground/twotab-test.mjs` | Failover when the writer tab dies |
+| `npm test -w opfs-leader` | Election, failover, and that an abandoned call cannot run late |
 | `node examples/playground/concurrency-test.mjs` | Many tabs, one writer, no lost or duplicated writes |
 | `node examples/playground/hosted-play-test.mjs` | The **built** site, as a static host serves it |
 | `node examples/playground/flash-probe.mjs` | Pages paint the right background before CSS loads |
