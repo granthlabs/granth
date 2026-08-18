@@ -39,12 +39,14 @@ npm install granthdb @sqlite.org/sqlite-wasm
 ```
 
 Works in Chrome 108+, Safari 16.4+, Firefox 111+, over HTTPS or `localhost`.
-The suite runs on Chromium, Firefox and WebKit in CI — WebKit meaning Playwright's build,
-which is close to Apple's browser but is not it. Real Safari has a runner
-(`examples/playground/safari-test.mjs`) that is not part of any automated run, because
-driving it needs Remote Automation ticked by hand in Safari's settings. Where OPFS is unavailable — Safari
-private browsing, for instance — it falls back to IndexedDB automatically, and the same
-suite passes on that path.
+The suite runs on Chromium, Firefox and WebKit in CI, and separately on **real Safari 26.6**
+(42 checks, all passing) via `examples/playground/safari-test.mjs`. That second run is not
+automated — driving Safari needs Remote Automation ticked by hand — and it earns its keep:
+in Playwright's WebKit build `navigator.storage.getDirectory()` rejects with `UnknownError`,
+so OPFS is unusable there and the run silently exercises the IndexedDB fallback.
+CI's "WebKit passed" is a statement about the fallback path, not about OPFS on a WebKit
+engine; only the Safari run covers that. Where OPFS is genuinely unavailable — Safari private
+browsing, for instance — the fallback engages automatically and the same suite passes on it.
 No special server headers, no bundler plugins, no build step.
 
 ## Quick start

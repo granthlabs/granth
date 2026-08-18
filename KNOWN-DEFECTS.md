@@ -206,27 +206,42 @@ deliberately **not** in `npm test`: 100,000 rows is too slow to pay for on every
 commit. Run it before a release, or after touching the query compiler or the
 bulk paths.
 
-## Still untested: real Safari
+## Confirmed on real Safari — and what that exposed about CI
 
-Everything labelled "WebKit" in CI is Playwright's WebKit build. It is close to
-Safari and it is the best thing a headless runner can do, but it is not Apple's
-shipping browser — different OPFS quotas, different eviction, features that lag
-or lead by months. Every Safari claim rests on that substitution.
+Everything labelled "WebKit" in CI is Playwright's WebKit build, which is close to
+Safari and is the best a headless runner can do. Every Safari claim rested on that
+substitution, so `examples/playground/safari-test.mjs` drives the real thing over
+WebDriver (no new dependency — raw `fetch` against `safaridriver`).
 
-`examples/playground/safari-test.mjs` drives the real thing over WebDriver (no
-new dependency — raw `fetch` against `safaridriver`). It cannot run unattended:
-Safari refuses every session until Remote Automation is switched on, and the
-switch needs a human at the keyboard.
+**Real Safari 26.6: 42 checks, all passing** — 26 fresh, 7 after reload, 9 compat and
+Dexie migration.
 
-    Safari > Settings > Advanced > tick "Show features for web developers"
-    then the "Developer" tab that appears > tick "Allow remote automation"
+Running it was worth more than the tick. Diffing the two runs check by check showed
+Playwright's WebKit emitting, in both phases:
 
-(No admin password is needed for that route. `sudo safaridriver --enable` does
-the same thing from a terminal and does ask for one, which is why it is not run
-from the script. On Safari 16 and earlier the switch lived in the Develop MENU.)
+    → no OPFS here, so the IndexedDB fallback must carry the rest
 
-Until someone does that and the runner reports green, "works in Safari" is
-inference from a similar engine, not a measurement.
+Probed directly: Playwright's WebKit *exposes* `navigator.storage.getDirectory`, but
+calling it rejects with `UnknownError: The operation failed for an unknown transient
+reason`. Chromium and Firefox return a root normally. **OPFS is therefore unusable in
+Playwright's WebKit**, so every green "WebKit" run in CI has been exercising the
+IndexedDB fallback — the OPFS path had never been verified on any WebKit engine.
+
+(The first probe of this was wrong and worth recording: run against a `data:` URL it
+reported no OPFS in *all three* engines, because a data URL is an opaque origin and OPFS
+needs a secure one. Probe from a real origin.) Real Safari has OPFS, does not emit that note, and passes
+`open() migrates v1 -> v2 on a real OPFS file` and
+`DATA SURVIVED A FULL RELOAD (real OPFS durability)` against the real thing.
+
+That is exactly the class of gap the earlier defects came from: a check that runs, goes
+green, and structurally cannot see what it claims to cover. CI's WebKit job is still
+worth having — it is genuine coverage of the fallback — but it must not be read as
+Safari coverage.
+
+The Safari run stays manual: Safari refuses every WebDriver session until Remote
+Automation is enabled, which needs a human once (`safaridriver --enable`, or Safari >
+Settings > Advanced > "Show features for web developers", then the Developer tab that
+appears > "Allow remote automation"). Re-run it before a release.
 
 ## What the fixes could have broken, and how that is guarded
 
