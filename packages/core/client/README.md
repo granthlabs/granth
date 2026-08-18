@@ -1,277 +1,361 @@
-# Granth
+# granth
 
-A **Dexie-shaped API over SQLite/WASM on OPFS**. Runs in one worker, safe across tabs,
-with indexes, transactions and query planning done by SQLite rather than by us.
+**A database that lives inside the browser tab.**
+
+granth stores your app's data on the user's own device using [SQLite](https://sqlite.org),
+compiled to WebAssembly. Reads and writes are local, so they are fast and work offline. The API
+is a drop-in match for [Dexie](https://dexie.org), so most existing code keeps working.
+
+```js
+await db.friends.add({ name: 'Ada', age: 36 });
+
+const grownUps = await db.friends.where('age').above(30).toArray();
+```
+
+**[Try it in your browser →](https://granthlabs.github.io/play/sandbox)** — a real
+database, no install.
+
+---
+
+## Is this for you?
+
+**Good fit**
+
+- A web app that must keep working offline, or feel instant on a bad connection.
+- More data than you want to hold in memory, and you need to filter, sort or page it.
+- You already use Dexie or IndexedDB and want real indexes and a query planner.
+
+**Not a fit**
+
+- A handful of small values — `localStorage` is simpler and fine.
+- Data that must be authoritative. Browser storage is **evictable**: Safari deletes it after
+  7 days of no visits, and users clear it. Treat this as a fast local copy, never the only copy.
+- Syncing edits between users. granth is local storage, not a sync engine.
+
+## Install
 
 ```bash
 npm install granthdb @sqlite.org/sqlite-wasm
 ```
 
-```js
-import { Granth } from 'granthdb';
+Works in Chrome 108+, Safari 16.4+, Firefox 111+, over HTTPS or `localhost`.
+The suite runs on Chromium, Firefox and WebKit in CI — WebKit meaning Playwright's build,
+which is close to Apple's browser but is not it. Real Safari has a runner
+(`examples/playground/safari-test.mjs`) that is not part of any automated run, because
+driving it needs Remote Automation ticked by hand in Safari's settings. Where OPFS is unavailable — Safari
+private browsing, for instance — it falls back to IndexedDB automatically, and the same
+suite passes on that path.
+No special server headers, no bundler plugins, no build step.
 
-const db = new Granth('myapp', {
+## Quick start
+
+**1. Create the database.** Give it a name and a version, and declare which fields you want to
+search by.
+
+```js
+// db.js
+import Granth from 'granthdb';
+
+export const db = new Granth('myapp', {
   worker: () => new Worker(new URL('./db.worker.js', import.meta.url), { type: 'module' }),
 });
 
 db.version(1).stores({
-  friends: '++id, name, age, *tags, [name+age]',
-  notes:   '++id, owner, created',
+  //        ↓ primary key, auto-numbered
+  friends: '++id, name, age',
+  //               ↑ these become real indexes you can query on
 });
-db.version(2).stores({ friends: '++id, name, age, city, *tags, [name+age]' }); // adds an index
-
-await db.open();
-
-await db.friends.add({ name: 'ada', age: 36, tags: ['math'] });
-await db.friends.where('age').above(30).toArray();
-await db.friends.where('tags').equals('math').toArray();
-await db.friends.orderBy('age').reverse().limit(10).toArray();
 ```
 
-Your whole worker file:
+**2. Add the worker file.** SQLite runs on a background thread so it never freezes your UI.
+This file is the whole of it — copy it as-is.
 
 ```js
 // db.worker.js
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
-import { startGranthWorker } from 'granthdb/worker';
+import { startGranthWorker, opfsStorage, indexeddbStorage, memoryStorage } from 'granthdb/worker';
 
-startGranthWorker({ sqlite3InitModule, filename: '/myapp.sqlite3' });
+startGranthWorker({
+  sqlite3InitModule,
+  filename: '/myapp.sqlite3',
+  // Tried in order. The first one the browser supports wins, so this degrades
+  // instead of throwing — Safari private windows have no OPFS at all.
+  storage: [opfsStorage(), indexeddbStorage(), memoryStorage()],
+});
 ```
 
-No COOP/COEP headers required. Nothing to configure beyond your bundler letting
-`@sqlite.org/sqlite-wasm` through (in Vite: `optimizeDeps: { exclude: ['@sqlite.org/sqlite-wasm'] }`).
-
-## Why it's small enough to trust
-
-Indexes, transactions, query planning and durability are **SQLite's job**. There is no
-custom B-tree and no key encoding. Documents are JSON in a `_doc` column; every declared
-index becomes a **VIRTUAL generated column** (`json_extract`) plus a real SQLite index.
-`*multiEntry` gets a shadow table kept in sync by triggers. `[a+b]` is a composite index.
-`update()` is `json_patch`, so RFC 7396 merge semantics come free.
-
-The engine is environment-agnostic, so `selfcheck.mjs` runs it against **real SQLite** via
-Node's built-in `node:sqlite`: the DDL, the triggers and the compiled SQL are genuinely
-executed. The browser suite then verifies the platform layer against real sqlite-wasm + OPFS,
-including durability across a full page reload.
-
-## Coming from Dexie or raw IndexedDB
-
-**The API is matched against the real `dexie` package by a generated audit**
-(`compat-audit.mjs`), which runs in CI and fails if we regress or if Dexie grows a member
-we do not cover. Current coverage: **WhereClause 18/18, Table 27/28, Collection 26/28,
-Dexie 21/26** — every gap is an explicit, documented waiver.
-
-Two Dexie behaviours are easy to get subtly wrong, so they are asserted, not assumed:
-`sortBy()` resolves to a sorted **array** (not a Collection), and `keys()` returns the
-**index** keys (not the primary keys).
-
-Bring your existing data across:
+**3. Use it.** No `open()` call needed — the first query opens the database.
 
 ```js
-import { suggestSchema, importFromIndexedDB } from 'granth/migrate-idb';
+import { db } from './db.js';
 
-const schema = await suggestSchema('my-old-dexie-db');  // derived from the real database
-db.version(1).stores(schema);
-await db.open();
+await db.friends.add({ name: 'Ada', age: 36 });
+await db.friends.bulkAdd([{ name: 'Grace', age: 45 }, { name: 'Radia', age: 38 }]);
 
-await importFromIndexedDB(db, { from: 'my-old-dexie-db' });  // idempotent (bulkPut)
+await db.friends.get(1);
+await db.friends.where('age').above(30).toArray();
+await db.friends.where('name').startsWith('A').count();
+await db.friends.update(1, { age: 37 });
+await db.friends.delete(1);
 ```
 
-`suggestSchema` reads the existing object stores — auto-increment keys, unique, multiEntry
-and compound indexes — and returns the `stores({...})` object matching them. The import
-preserves primary keys and rebuilds every index. It does **not** delete the source: verify,
-then delete it yourself.
-
-### What cannot be identical
-
-| Dexie | Here | Why |
-|---|---|---|
-| `db.transaction('rw', …, fn)` | ✅ supported | Holds an exclusive cross-tab Web Lock + a real SQLite transaction |
-| `Table.hook(...)` | ✅ runs client-side | A JS function cannot cross into the worker, so a hook cannot veto an already-committed write |
-| `Collection.modify(fn)` | ✅ read-modify-write in one atomic batch | Same reason |
-| `Collection.distinct()` | no-op | Our multiEntry is an `IN` subquery, which never duplicates rows |
-| `Dexie.use()` / `unuse()` | ✗ | No DBCore middleware layer |
-| `db.backendDB()` / `idbdb` | ✗ | There is no IDBDatabase — the store is SQLite |
-| `Dexie.Promise` / PSD zones | ✗ | Plain promises |
-
-Schema changes without a version bump **throw a clear error** rather than being silently
-ignored (Dexie requires the bump too; the failure here is loud instead of a later
-"no such table").
-
-## Storage: OPFS, with an IndexedDB fallback
-
-OPFS is the fast path but it is **not universally available** — Safari private browsing has
-no OPFS at all, which is a hard failure rather than a slow path. `storage: 'auto'` (the
-default) tries OPFS and falls back to IndexedDB.
+**4. Keep the UI in sync.** A live query re-runs whenever the data changes — including changes
+made in another tab — and only tells you when the answer actually differs.
 
 ```js
-startGranthWorker({ sqlite3InitModule, storage: 'auto' }); // 'opfs' | 'indexeddb' | 'auto'
-await db.storageKind(); // -> 'opfs' | 'indexeddb'
+const stop = db.liveQuery(() => db.friends.where('age').above(30).toArray())
+  .subscribe((friends) => render(friends));
+
+// later
+stop();
 ```
 
-The fallback is **the same SQLite engine**, not a second implementation: an in-memory
-database whose bytes are checkpointed into IndexedDB. Every query, index, trigger and
-migration behaves identically. The trade-offs are real and worth knowing:
+→ Full walkthrough: **[Tutorial](https://granthlabs.github.io/tutorial)**
 
-- checkpoints are **debounced and whole-file**, so cost is O(database size) — right for the
-  fallback case (tens of MB), wrong as a primary store;
-- writes since the last checkpoint are lost on a crash. `close()` flushes automatically;
-  call `await db.flush()` before anything you cannot lose.
+## Schema syntax
 
-## Multi-tab
+The string after each table name declares the primary key first, then the fields you can query.
 
-`opfs-sahpool` is the fastest OPFS VFS and needs no cross-origin isolation, at the cost of
-allowing **exactly one connection**. [`opfs-leader`](https://www.npmjs.com/package/opfs-leader)
-elects one tab via Web Locks; its worker is the only thing that opens the file, and every
-other tab's queries route to it. When that tab dies the browser releases the lock and another
-takes over. Two tabs writing one OPFS file is what corrupted Notion's first rollout — this is
-the fix, not a mitigation.
+| You write | Meaning |
+|---|---|
+| `++id` | Primary key, numbered automatically |
+| `id` | Primary key you supply yourself |
+| `name` | Index — lets you query `where('name')` |
+| `&email` | Index that must be unique |
+| `*tags` | Field holding an array; matches any element |
+| `[name+age]` | One index over two fields together |
 
-## Performance
+Fields you never search by do not need to be listed — they are still stored.
 
-Measured in Chrome on an M-series Mac, 5,000 documents (~1.6 MB OPFS file), via
-`playground/bench.html`. Run it yourself — these are one machine's numbers, and query times
-vary ±3× with load.
-
-| Operation | Time | Rate |
-|---|---:|---:|
-| `bulkAdd` 5,000 docs (chunked multi-row) | 28 ms | ~180,000 rows/s |
-| `add` one at a time (durable commit each) | ~13 ms each | ~75 rows/s |
-| `count()` whole table | 0.5 ms | |
-| indexed `where(cat).equals(...)` | 2.5 ms | |
-| compound `where([cat+n]).equals(...)` | 1.1 ms | |
-| multiEntry `where(tags).equals(...)` | 9 ms | |
-| `orderBy(n).offset(2500).limit(50)` | 1.0 ms | |
-| full scan `toArray()` 5,200 docs | 26 ms | ~199,000 rows/s |
-| `bulkGet` 500 keys (one round trip) | 5 ms | ~96,000 keys/s |
-| `get()` 500 keys individually | 174 ms | ~2,900 keys/s |
-
-**The one rule that matters: batch your writes.** A single `bulkAdd` is ~200× the throughput
-of the same rows added one at a time, because each individual write is its own durable commit.
-Likewise `bulkGet` beats a loop of `get()` by ~35× — it is one round trip instead of 500.
-
-(`PRAGMA synchronous = NORMAL` was measured and made no meaningful difference, so it is not
-recommended. The `pragmas` option exists if you want to experiment.)
-
-## API
+## Using it with your framework
 
 | | |
 |---|---|
-| **Table** | `get` `bulkGet` `add` `put` `update` `upsert` `bulkUpdate` `delete` `bulkAdd` `bulkPut` `bulkDelete` `clear` `count` `toArray` `each` `where` `orderBy` `filter` `limit` `offset` `reverse` `toCollection` `hook` `mapToClass` `schema` |
-| **where(ix)** | `equals` `notEqual` `above` `aboveOrEqual` `below` `belowOrEqual` `between` `startsWith` `startsWithIgnoreCase` `startsWithAnyOf` `startsWithAnyOfIgnoreCase` `equalsIgnoreCase` `anyOf` `anyOfIgnoreCase` `noneOf` `isNull` `notNull` `inAnyRange` |
-| **Collection** | `toArray` `first` `last` `count` `primaryKeys` `keys` `uniqueKeys` `firstKey` `lastKey` `each` `eachKey` `eachPrimaryKey` `eachUniqueKey` `limit` `offset` `reverse` `desc` `distinct` `until` `sortBy` `or` `filter` `and` `delete` `modify` |
-| **db** | `version().stores()` `open` `transaction` `liveQuery` `onChange` `close` `delete` `deleteDatabase` `table` `tables` `isOpen` `hasBeenClosed` `hasFailed` `verno` `on` `once` `storageKind` `flush` |
+| **React / Next.js** | `import { useLiveQuery } from 'granth-react'` — safe under SSR |
+| **Vue / Nuxt** | `import { useLiveQuery } from 'granth-vue'` |
+| **Svelte** | `$query` works directly — `subscribe()` *is* the store contract |
+| **Angular** | `from(db.liveQuery(...))` — it implements `Symbol.observable` |
+| **Solid / Qwik / Lit / vanilla** | `.subscribe(fn)` |
 
-`where({ name: 'ada', age: 36 })` is multi-index equality. `.or('name').equals('bob')` unions.
-On a compound index, pass the tuple: `where('[name+age]').equals(['ada', 36])`.
+Creating a `Granth` touches no browser API, so it is safe at module scope during
+server-side rendering.
 
-### TypeScript
+→ **[Frameworks guide](https://granthlabs.github.io/frameworks)** ·
+**[TanStack Query, RxJS, Zustand](https://granthlabs.github.io/state-libraries)**
 
-Ships hand-written declarations. Subclass to get typed tables, as with Dexie:
+## Coming from Dexie
 
-```ts
-import { Granth, Table } from 'granthdb';
-
-interface Friend { id?: number; name: string; age: number; tags?: string[] }
-
-class MyDB extends Granth {
-  friends!: Table<Friend, number>;
-  constructor() {
-    super('myapp', { worker: () => new Worker(new URL('./db.worker.js', import.meta.url), { type: 'module' }) });
-    this.version(1).stores({ friends: '++id, name, age, *tags' });
-    this.friends = this.table<Friend, number>('friends');
-  }
-}
-```
-
-### liveQuery
-
-```js
-const sub = db.liveQuery(() => db.friends.where('age').above(30).toArray())
-  .subscribe(rows => render(rows));
-
-sub.unsubscribe();
-```
-
-Re-runs on change **from any tab**, emits only when the result actually differs, and after its
-first run only listens to the tables the querier actually read.
-
-### Transactions
-
-Two forms. The Dexie-compatible one is interactive — it can read:
-
-```js
-await db.transaction('rw', db.friends, db.notes, async () => {
-  const n = await db.friends.count();          // a READ inside the transaction
-  await db.notes.add({ owner: `friend-${n}` });
-});
-```
-
-It holds an **exclusive cross-tab Web Lock** for its duration, so another tab's writes cannot
-land inside it, plus a real SQLite transaction that rolls back on throw. Ordinary calls take a
-shared lock, which is what makes that isolation hold.
-
-The one-argument form is the fast path: the callback is **synchronous and records writes**,
-shipped as a single atomic batch in one round trip. Use it when you don't need to read.
-
-```js
-await db.transaction(tx => {
-  tx.friends.add({ name: 'eve', age: 22 });
-  tx.notes.add({ owner: 'eve' });
-});
-```
-
-## Deliberate limits
-
-- **`.filter(fn)` and `.and(fn)` run client-side** — a JS function cannot cross into the
-  worker. The worker returns all index matches, so narrow with `.where()` first on big tables.
-  `.modify()` takes an object, not a function.
-- **No `upgrade()` callbacks from the client.** Declarative schema changes (add/remove tables
-  and indexes) are automatic; data transforms go in your worker's `upgrades: { 2: fn }`.
-- **Changing a primary key throws** rather than silently rebuilding the table.
-- **`equalsIgnoreCase` / `startsWithIgnoreCase` do not use the index.**
-- **Not a sync engine.** No offline write queue, no conflict resolution, no server protocol.
-
-## Storage is not durable
-
-OPFS is evictable: Safari's 7-day ITP rule, Chrome's ~100 MB incognito cap (with surprising
-errors), no OPFS at all in Safari private browsing, and cleanup tools that delete it as
-"Internet Cache". Call `navigator.storage.persist()` and **always keep a rebuild-from-server
-path**. Treat this as a cache or a replica, never the source of truth.
-
-## Browser support
-
-Chrome 108+, Safari 16.4+, Firefox 111+ — wherever OPFS sync access handles and Web Locks
-exist. Requires a secure context (HTTPS or localhost).
-
-## Test
+Most code needs no changes. Start with the codemod:
 
 ```bash
-npm test              # node:sqlite engine suite + dexie compat audit + typecheck
-npm run dev           # then, in the browser:
-#   /?phase=fresh  -> /?phase=reload        OPFS suite incl. durability across reload
-#   /compat.html?phase=fresh -> ?phase=reload   IndexedDB fallback + Dexie migration
-#   /bench.html                              benchmark
+npx granth-codemod ./src
 ```
 
-## Try it without installing
+It rewrites imports and constructors, writes the worker file, and **reports whatever it cannot
+safely change** rather than guessing. Then bring your existing data across:
 
-- **[Sandbox](https://granthlabs.github.io/play/sandbox)** — real queries, real database
-- **[Examples](https://granthlabs.github.io/play/demos/)** — the same app in six frameworks
-- **[Verify](https://granthlabs.github.io/play/)** — run the browser suite in your own browser
+```js
+import { suggestSchema, importFromIndexedDB } from 'granth-migrate-idb';
+
+db.version(1).stores(await suggestSchema('my-old-dexie-db'));
+await importFromIndexedDB(db, { from: 'my-old-dexie-db' });
+```
+
+This reads the schema out of your existing IndexedDB, keeps primary keys, rebuilds every index,
+and is safe to run twice.
+
+The API is diffed against the **real `dexie` package** on every commit, and separately a
+differential test runs the same script against both and compares the answers:
+
+| Class | Covered |
+|---|---|
+| `WhereClause` | **18 / 18** |
+| `Table` | 27 / 28 |
+| `Collection` | 26 / 28 |
+| `Dexie` | 21 / 26 |
+
+Each gap is a documented waiver — middleware, `idbdb`, PSD zones — things with no meaning once
+the store is not IndexedDB.
+
+→ **[Migrating from Dexie](https://granthlabs.github.io/migrating-from-dexie)**
+
+## Why SQLite instead of IndexedDB
+
+Dexie is excellent, but IndexedDB underneath it has no query planner: one index per query, and
+the rest is cursor walking on the main thread.
+
+**Filter on one index and sort by another** — impossible for a cursor, ordinary for SQL:
+
+```js
+await db.issues.where('status').anyOf(['open', 'blocked'])
+  .orderBy('updated_at').limit(10).toArray();
+```
+
+A few other things fall out of having SQL underneath:
+
+| | |
+|---|---|
+| `toMap(keyPath?)` | results keyed by id, or any field |
+| `for await (const doc of collection)` | stream results without materialising them |
+| `db.clearAll()` | empty every table, keep the schema |
+| `db.size()` | bytes on disk |
+
+## Performance
+
+5,000 documents (~1.6 MB), Chrome, M-series Mac. Run
+[`bench.html`](https://github.com/granthlabs/granth/blob/main/examples/playground/bench.html) yourself — one machine's numbers, and query
+times vary ±3× with load.
+
+| Operation | Time |
+|---|---:|
+| `bulkAdd` 5,000 docs | 28 ms (~180,000 rows/s) |
+| indexed `where().equals()` | 2.5 ms |
+| compound index lookup | 1.1 ms |
+| `orderBy().offset(2500).limit(50)` | 1.0 ms |
+| full scan, 5,200 docs | 26 ms |
+| `bulkGet` 500 keys | 5 ms |
+
+**The one rule: batch your writes.** `bulkAdd` is ~200× the throughput of adding rows one at a
+time, because each individual write is its own durable commit.
+
+### At 100,000 rows
+
+5,000 is small enough that almost anything looks fine, so
+[`scale.html`](https://github.com/granthlabs/granth/blob/main/examples/playground/scale.html) runs the same shapes an order of magnitude
+further. An indexed lookup stays flat while a full scan grows with the table — which is the
+property worth checking, more than any single number.
+
+| Operation | Time |
+|---|---:|
+| `bulkAdd` 100,000 docs | 4.0 s (~25,000 rows/s) |
+| indexed `where().equals()` | 2 ms |
+| `orderBy().offset(90000).limit(20)` | 4 ms |
+| multiEntry `where('tags').equals()` | 9 ms |
+| full scan, 100,000 docs | 397 ms |
+| `bulkGet` 5,000 keys | 27 ms |
+| delete 10,000 rows | 2.2 s |
+
+## How it works
+
+Documents are stored as JSON in a `_doc` column. Every index you declare becomes a **virtual
+generated column** plus a real SQLite index, so SQLite does the actual index work. Arrays
+(`*tags`) get a shadow table — filled by a trigger, emptied by the write paths, because SQLite
+will not use an index inside a trigger body — and `update()` is a JSON merge patch.
+
+Your app builds **plain-data query plans**; the worker turns them into SQL. No SQL strings, no
+functions and no `eval` ever cross between them.
+
+There is no custom B-tree and no key encoding here. Indexes, transactions, planning and
+durability are SQLite's job — which is why this is small enough to trust.
+
+### Many tabs, one writer
+
+The fastest OPFS backend allows exactly **one** connection to a file. So one tab is elected
+writer via Web Locks; its worker is the only thing that opens the database, and every other tab
+sends its queries there. When that tab closes, the browser releases the lock and another takes
+over — that release *is* the failover.
+
+Two tabs writing one file is what corrupted
+[Notion's first WASM-SQLite rollout](https://www.notion.com/blog/how-we-sped-up-notion-in-the-browser-with-wasm-sqlite).
+This is the fix, not a mitigation.
+
+### Everything is a plugin
+
+```
+StoragePlugin   where the bytes live      opfs | indexeddb | memory
+RuntimePlugin   where the SQL runs        worker | inline (no Worker at all)
+db.use(addon)   everything else           hooks; returns a disposer
+```
+
+It runs **without a Worker** too, for strict CSP, SSR, Node and tests.
+
+→ **[Storage](https://granthlabs.github.io/storage)** ·
+**[Runtimes](https://granthlabs.github.io/runtimes)** ·
+**[Plugins](https://granthlabs.github.io/plugins)**
+
+## Try it and see it
+
+| | |
+|---|---|
+| **[Sandbox](https://granthlabs.github.io/play/sandbox)** | Write real queries against a real database |
+| **[Examples](https://granthlabs.github.io/play/demos/)** | The same app in six frameworks |
+| **[Verify](https://granthlabs.github.io/play/)** | Run the full browser test suite in *your* browser |
+
+Locally:
+
+```bash
+npm install
+npm run dev     # then open /sandbox or /demos/
+```
+
+## Documentation
+
+**https://granthlabs.github.io**
+
+- [Tutorial](https://granthlabs.github.io/tutorial) ·
+  [Migrating from Dexie](https://granthlabs.github.io/migrating-from-dexie) ·
+  [Frameworks](https://granthlabs.github.io/frameworks)
+- [Replacing localStorage](https://granthlabs.github.io/replacing-web-storage) ·
+  [Cache-first apps](https://granthlabs.github.io/cache-first-apps) ·
+  [Encryption at rest](https://granthlabs.github.io/encryption)
+- [Storage](https://granthlabs.github.io/storage) ·
+  [Runtimes](https://granthlabs.github.io/runtimes) ·
+  [Plugins](https://granthlabs.github.io/plugins) ·
+  [Security & performance](https://granthlabs.github.io/security-and-performance)
+- API: [Granth](https://granthlabs.github.io/granth) ·
+  [Table](https://granthlabs.github.io/table) ·
+  [Collection](https://granthlabs.github.io/collection) ·
+  [WhereClause](https://granthlabs.github.io/where-clause) ·
+  [Transaction](https://granthlabs.github.io/transaction) ·
+  [liveQuery](https://granthlabs.github.io/live-query) ·
+  [Errors](https://granthlabs.github.io/errors)
+
+## Packages
+
+You normally only install `granthdb`. The rest are its parts, published separately so you can
+swap or reuse them.
+
+| Package | What it is |
+|---|---|
+| [`granthdb`](https://github.com/granthlabs/granth/blob/main/packages/core/client) | The database — the one you import |
+| [`granth-protocol`](https://github.com/granthlabs/granth/blob/main/packages/core/protocol) | Plugin contracts. Types only, no runtime code |
+| [`granth-engine`](https://github.com/granthlabs/granth/blob/main/packages/core/engine) | Schema, query planner, SQL compiler, value codec |
+| [`granth-storage-opfs`](https://github.com/granthlabs/granth/blob/main/packages/storage/opfs) · [`-indexeddb`](https://github.com/granthlabs/granth/blob/main/packages/storage/indexeddb) · [`-memory`](https://github.com/granthlabs/granth/blob/main/packages/storage/memory) | Storage backends |
+| [`granth-runtime-worker`](https://github.com/granthlabs/granth/blob/main/packages/runtime/worker) · [`-inline`](https://github.com/granthlabs/granth/blob/main/packages/runtime/inline) | Where SQL executes |
+| [`granth-react`](https://github.com/granthlabs/granth/blob/main/packages/bindings/react) · [`granth-vue`](https://github.com/granthlabs/granth/blob/main/packages/bindings/vue) | Framework bindings |
+| [`granth-migrate-idb`](https://github.com/granthlabs/granth/blob/main/packages/plugins/migrate-idb) | Import an existing IndexedDB/Dexie database |
+| [`granth-codemod`](https://github.com/granthlabs/granth/blob/main/packages/tools/codemod) | Automated Dexie → granth source migration |
+| [`opfs-leader`](https://github.com/granthlabs/granth/blob/main/packages/opfs-leader) | The multi-tab election, usable on its own |
 
 ## Contributing
 
-Bug reports and pull requests are welcome — see
-[CONTRIBUTING.md](https://github.com/granthlabs/granth/blob/main/CONTRIBUTING.md) for setup,
-how the layered test suites work, and what a change needs before merge.
+Bug reports, reproductions and pull requests are all welcome — see
+**[CONTRIBUTING.md](https://github.com/granthlabs/granth/blob/main/CONTRIBUTING.md)** for how to set the project up, how it is tested, and
+what a change needs before it can be merged.
+
+The short version:
+
+```bash
+npm install
+npm test        # Node suites: engine, client, Dexie parity, docs coverage, fuzz
+```
 
 ## Security
 
-Found a vulnerability? Please do not open a public issue — see
-[SECURITY.md](https://github.com/granthlabs/granth/blob/main/SECURITY.md) for private reporting
-and the threat model (what a browser-local database can and cannot protect).
+Found a vulnerability? **Please do not open a public issue.** See
+**[SECURITY.md](https://github.com/granthlabs/granth/blob/main/SECURITY.md)** for how to report it privately and what to expect.
+
+For the security properties of the library itself — what is and is not protected, what
+encryption at rest does and does not cover — see
+[Security & performance](https://granthlabs.github.io/security-and-performance).
+
+## Name
+
+*Granth* (ग्रंथ) is Sanskrit for a book or treatise — a bound thing you keep and refer back to.
+
+The npm package is **`granthdb`**, not `granth`: npm rejects `granth` as too similar to the
+existing `grunt`.
 
 ## License
 
-MIT
+[MIT](https://github.com/granthlabs/granth/blob/main/LICENSE)
