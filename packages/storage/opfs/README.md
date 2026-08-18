@@ -1,6 +1,6 @@
 # granth-storage-opfs
 
-OPFS storage backend for [granth](https://github.com/granthlabs/granthlabs.github.io).
+OPFS storage backend for [granth](https://github.com/granthlabs/granth).
 
 Uses the `opfs-sahpool` VFS: the fastest OPFS backend and the only one that needs **no COOP/COEP**
 headers. Writes land in place, so there is nothing to checkpoint. Requires a dedicated Worker —

@@ -26,12 +26,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/granthlabs/granthlabs.github.io.git",
+    "url": "git+https://github.com/granthlabs/granth.git",
     "directory": "packages/plugins/migrate-idb"
   },
-  "homepage": "https://github.com/granthlabs/granthlabs.github.io/tree/main/packages/plugins/migrate-idb#readme",
+  "homepage": "https://github.com/granthlabs/granth/tree/main/packages/plugins/migrate-idb#readme",
   "bugs": {
-    "url": "https://github.com/granthlabs/granthlabs.github.io/issues"
+    "url": "https://github.com/granthlabs/granth/issues"
   },
   "publishConfig": {
     "access": "public"

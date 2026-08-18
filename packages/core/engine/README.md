@@ -1,6 +1,6 @@
 # granth-engine
 
-The storage engine behind [granth](https://github.com/granthlabs/granthlabs.github.io).
+The storage engine behind [granth](https://github.com/granthlabs/granth).
 
 Schema parsing, the query planner, the SQL compiler and the value codec. Environment-agnostic:
 give it an adapter with `{ all, exec, run }` and it works on sqlite-wasm in a worker or on

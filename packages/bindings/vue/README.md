@@ -1,6 +1,6 @@
 # granth-vue
 
-Vue bindings for [granth](https://github.com/granthlabs/granthlabs.github.io).
+Vue bindings for [granth](https://github.com/granthlabs/granth).
 
 ```js
 import { useLiveQuery } from 'granth-vue';

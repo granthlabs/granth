@@ -1,6 +1,6 @@
 # granth-codemod
 
-Automated Dexie → [granth](https://github.com/granthlabs/granthlabs.github.io) source migration.
+Automated Dexie → [granth](https://github.com/granthlabs/granth) source migration.
 
 ```bash
 npx granth-codemod ./src --dry      # preview

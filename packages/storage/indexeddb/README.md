@@ -1,6 +1,6 @@
 # granth-storage-indexeddb
 
-IndexedDB storage backend for [granth](https://github.com/granthlabs/granthlabs.github.io).
+IndexedDB storage backend for [granth](https://github.com/granthlabs/granth).
 
 The fallback that keeps apps working where OPFS does not exist — most importantly **Safari private
 browsing, which exposes none at all**.

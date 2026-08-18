@@ -263,13 +263,13 @@ npm run dev           # then, in the browser:
 ## Contributing
 
 Bug reports and pull requests are welcome — see
-[CONTRIBUTING.md](https://github.com/granthlabs/granthlabs.github.io/blob/main/CONTRIBUTING.md) for setup,
+[CONTRIBUTING.md](https://github.com/granthlabs/granth/blob/main/CONTRIBUTING.md) for setup,
 how the layered test suites work, and what a change needs before merge.
 
 ## Security
 
 Found a vulnerability? Please do not open a public issue — see
-[SECURITY.md](https://github.com/granthlabs/granthlabs.github.io/blob/main/SECURITY.md) for private reporting
+[SECURITY.md](https://github.com/granthlabs/granth/blob/main/SECURITY.md) for private reporting
 and the threat model (what a browser-local database can and cannot protect).
 
 ## License

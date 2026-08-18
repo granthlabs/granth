@@ -1,6 +1,6 @@
 # granth-protocol
 
-Plugin contracts for [granth](https://github.com/granthlabs/granthlabs.github.io).
+Plugin contracts for [granth](https://github.com/granthlabs/granth).
 
 Types only — zero runtime, zero dependencies. Storage backends, runtimes and bindings implement
 these so they never have to import each other or the client.

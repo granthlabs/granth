@@ -10,7 +10,7 @@
  * waiver is a decision on the record; silence is not.
  */
 
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
@@ -63,10 +63,31 @@ const surface = {
   exports: Object.keys(main).filter((k) => !(k in WAIVED)).sort(),
 };
 
-const docs = readdirSync(DOCS)
-  .filter((f) => f.endsWith('.md'))
-  .map((f) => readFileSync(join(DOCS, f), 'utf8'))
-  .join('\n');
+/**
+ * The docs live in the SITE repo now, so this gate reads them over HTTPS.
+ *
+ * It has to stay HERE, in the library repo, because its whole value is failing
+ * BEFORE a release: an undocumented public member caught by the site's CI would
+ * already be published. The cost of the repo split is this network read; a local
+ * ../docs is still preferred when present, so the check works offline in a
+ * checkout that has both.
+ */
+const DOCS_RAW = 'https://raw.githubusercontent.com/granthlabs/granthlabs.github.io/main/docs/';
+
+async function loadDocs() {
+  if (existsSync(DOCS)) {
+    return readdirSync(DOCS).filter((f) => f.endsWith('.md'))
+      .map((f) => readFileSync(join(DOCS, f), 'utf8')).join('\n');
+  }
+  const listing = await fetch('https://api.github.com/repos/granthlabs/granthlabs.github.io/contents/docs');
+  if (!listing.ok) throw new Error(`docs-coverage: cannot list the docs repo (${listing.status})`);
+  const files = (await listing.json()).filter((f) => f.name.endsWith('.md'));
+  if (!files.length) throw new Error('docs-coverage: the docs repo returned no markdown');
+  const bodies = await Promise.all(files.map((f) => fetch(DOCS_RAW + f.name).then((r) => r.text())));
+  return bodies.join('\n');
+}
+
+const docs = await loadDocs();
 
 let missing = 0;
 for (const [group, names] of Object.entries(surface)) {

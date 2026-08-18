@@ -8,7 +8,7 @@ loses a row is worth more attention than a missing feature.
 You need **Node 22 or newer** (the test suites use the built-in `node:sqlite`).
 
 ```bash
-git clone https://github.com/granthlabs/granthlabs.github.io
+git clone https://github.com/granthlabs/granth
 cd granth
 npm install
 npm test

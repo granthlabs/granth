@@ -39,12 +39,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/granthlabs/granthlabs.github.io.git",
+    "url": "git+https://github.com/granthlabs/granth.git",
     "directory": "packages/tools/codemod"
   },
-  "homepage": "https://github.com/granthlabs/granthlabs.github.io/tree/main/packages/tools/codemod#readme",
+  "homepage": "https://github.com/granthlabs/granth/tree/main/packages/tools/codemod#readme",
   "bugs": {
-    "url": "https://github.com/granthlabs/granthlabs.github.io/issues"
+    "url": "https://github.com/granthlabs/granth/issues"
   },
   "publishConfig": {
     "access": "public"

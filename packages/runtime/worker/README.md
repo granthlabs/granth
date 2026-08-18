@@ -1,6 +1,6 @@
 # granth-runtime-worker
 
-The default runtime for [granth](https://github.com/granthlabs/granthlabs.github.io).
+The default runtime for [granth](https://github.com/granthlabs/granth).
 
 Runs SQL in a dedicated Worker owned by exactly one tab, elected via Web Locks by `opfs-leader`.
 Every other tab routes its calls to that tab.

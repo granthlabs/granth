@@ -5,7 +5,7 @@
 **Please do not open a public issue.**
 
 Use GitHub's private reporting: go to the
-[Security tab](https://github.com/granthlabs/granthlabs.github.io/security/advisories/new) and choose
+[Security tab](https://github.com/granthlabs/granth/security/advisories/new) and choose
 **Report a vulnerability**. That thread is visible only to you and the maintainer.
 
 If that form is unavailable to you, email **shahithakurisundar@gmail.com** with `granth security`

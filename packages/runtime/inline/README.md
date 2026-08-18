@@ -1,6 +1,6 @@
 # granth-runtime-inline
 
-No-Worker runtime for [granth](https://github.com/granthlabs/granthlabs.github.io).
+No-Worker runtime for [granth](https://github.com/granthlabs/granth).
 
 Runs the database on the calling thread, for strict CSP without `worker-src`, embedded contexts,
 SSR, Node and tests.

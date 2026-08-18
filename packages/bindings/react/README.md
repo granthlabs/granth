@@ -1,6 +1,6 @@
 # granth-react
 
-React bindings for [granth](https://github.com/granthlabs/granthlabs.github.io).
+React bindings for [granth](https://github.com/granthlabs/granth).
 
 ```jsx
 import { useLiveQuery, useIsSupported } from 'granth-react';

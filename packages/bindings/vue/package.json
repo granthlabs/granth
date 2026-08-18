@@ -26,12 +26,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/granthlabs/granthlabs.github.io.git",
+    "url": "git+https://github.com/granthlabs/granth.git",
     "directory": "packages/bindings/vue"
   },
-  "homepage": "https://github.com/granthlabs/granthlabs.github.io/tree/main/packages/bindings/vue#readme",
+  "homepage": "https://github.com/granthlabs/granth/tree/main/packages/bindings/vue#readme",
   "bugs": {
-    "url": "https://github.com/granthlabs/granthlabs.github.io/issues"
+    "url": "https://github.com/granthlabs/granth/issues"
   },
   "publishConfig": {
     "access": "public"
