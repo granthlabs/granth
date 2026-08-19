@@ -33,6 +33,24 @@ jobs:
       # The Node suites cannot see OPFS, the opfs-sahpool VFS, dedicated Workers
       # or Web Locks. Without this job a change can be green in Node and broken
       # in every browser — which has happened.
+      # Cached, so a warm run skips the download of three browser builds.
+      #
+      # `--with-deps` stays, unlike the site's chromium-only job which dropped
+      # it: WebKit needs libraries ubuntu-latest genuinely does not ship
+      # (libwoff2, libhyphen, libmanette, gstreamer), so removing it here trades
+      # a slow run for a broken one.
+      #
+      # That leaves this step exposed to apt. It cost 28 minutes on one run —
+      # all of it azure.archive.ubuntu.com stalling on FONT packages Playwright
+      # installs for non-Latin rendering, which nothing here needs but which
+      # come as an explicit part of its dependency set rather than as
+      # recommends, so there is no flag to skip them. The 30-minute bound above
+      # turns that into a red run in half an hour instead of a six-hour hang.
+      - uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - run: npx playwright install --with-deps chromium firefox webkit
       - run: node examples/playground/browser-test.mjs
       # The README claims Chrome 108+, Safari 16.4+ and Firefox 111+. Testing one
