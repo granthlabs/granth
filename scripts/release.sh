@@ -84,13 +84,28 @@ if [ -n "$DRY" ]; then
 fi
 
 # Ask the registry, not the exit codes.
+#
+# With retries, because the first version of this reported granth-react MISSING
+# on a run where all fourteen had in fact published. A package's metadata
+# document is not readable the instant `npm publish` returns, and `npm view`
+# will also answer from its own cache — so an immediate single check reports a
+# successful release as a failed one, which is the same class of lie as the
+# pipeline that swallowed npm's exit status.
+#
+# `--prefer-online` revalidates rather than trusting the local cache.
 echo
 echo "release: verifying against the registry"
 missing=0
 for dir in "${DIRS[@]}"; do
   name=$(node -p "require('./$dir/package.json').name")
-  if [ "$(npm view "$name@$VER" version 2>/dev/null)" != "$VER" ]; then
-    echo "  MISSING   $name@$VER"
+  seen=""
+  for attempt in 1 2 3 4 5; do
+    seen=$(npm view --prefer-online "$name@$VER" version 2>/dev/null)
+    [ "$seen" = "$VER" ] && break
+    sleep 3
+  done
+  if [ "$seen" != "$VER" ]; then
+    echo "  MISSING   $name@$VER  (still not visible after 5 attempts)"
     missing=$((missing + 1))
   fi
 done
