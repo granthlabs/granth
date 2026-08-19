@@ -1,6 +1,6 @@
 {
   "name": "opfs-leader",
-  "version": "0.2.9",
+  "version": "0.2.10",
   "description": "One tab owns the worker, every tab can call it. Web Locks leader election and single-writer query routing for OPFS-backed browser databases. Zero dependencies.",
   "type": "module",
   "license": "MIT",

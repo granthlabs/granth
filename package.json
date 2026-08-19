@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "build": "tsc -b",
-    "test": "npm run build && npm run test -w opfs-leader && npm run test -w granthdb && npm run test -w granth-codemod && npm run test -w playground",
+    "test": "npm run build && npm run test -w opfs-leader && npm run test -w granthdb && npm run test -w granth-codemod && npm run test -w granth-mcp && npm run test -w playground",
     "test:browser": "npm run build && node examples/playground/browser-test.mjs",
     "dev": "npm run dev -w playground",
     "clean": "tsc -b --clean && rm -rf packages/*/*/dist packages/opfs-leader/dist",
@@ -24,5 +24,5 @@
     "typescript": "^5.9.0",
     "vue": "^3.5.41"
   },
-  "version": "0.2.9"
+  "version": "0.2.10"
 }

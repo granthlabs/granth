@@ -1,6 +1,6 @@
 {
   "name": "granth-react",
-  "version": "0.2.9",
+  "version": "0.2.10",
   "description": "React bindings for granth: useLiveQuery, SSR-safe.",
   "type": "module",
   "license": "MIT",
@@ -38,7 +38,7 @@
   },
   "author": "sundarshahi <shahithakurisundar@gmail.com>",
   "dependencies": {
-    "granth-protocol": "^0.2.9"
+    "granth-protocol": "^0.2.10"
   },
   "peerDependencies": {
     "react": ">=18"

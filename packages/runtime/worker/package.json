@@ -1,6 +1,6 @@
 {
   "name": "granth-runtime-worker",
-  "version": "0.2.9",
+  "version": "0.2.10",
   "description": "Dedicated-worker runtime for granth. One elected tab owns the database; every tab can query it.",
   "type": "module",
   "license": "MIT",
@@ -42,8 +42,8 @@
   },
   "author": "sundarshahi <shahithakurisundar@gmail.com>",
   "dependencies": {
-    "granth-protocol": "^0.2.9",
-    "opfs-leader": "^0.2.9",
-    "granth-engine": "^0.2.9"
+    "granth-protocol": "^0.2.10",
+    "opfs-leader": "^0.2.10",
+    "granth-engine": "^0.2.10"
   }
 }

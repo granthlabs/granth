@@ -39,6 +39,9 @@
     },
     {
       "path": "./packages/tools/codemod"
+    },
+    {
+      "path": "./packages/tools/mcp"
     }
   ]
 }

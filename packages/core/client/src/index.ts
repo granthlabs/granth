@@ -1212,6 +1212,46 @@ export function liveQuery(db, querier, opts) {
 
 export { Table, Collection, WhereClause };
 
+/**
+ * Dexie members granth knowingly does not implement, each with the reason.
+ * Anything NOT in here and not implemented is a bug, not a decision.
+ *
+ * Exported rather than left sitting in the test that asserts it, because two
+ * things now need the same list and a second copy would drift:
+ * `test-compat-audit.mjs` diffs it against the real `dexie` package and fails CI
+ * on an un-waived gap, and `granth-mcp` hands it to an assistant that would
+ * otherwise reach for these out of Dexie muscle memory and get a TypeError it
+ * cannot explain.
+ */
+export const DEXIE_WAIVERS = {
+  'Dexie.unuse': 'no counterpart needed — use() returns a handle, and handle.dispose() detaches that addon',
+  'Dexie.backendDB': 'exposes the raw IDBDatabase; there is no IDBDatabase here',
+  'Dexie.dynamicallyOpened': 'Dexie-internal',
+  'Dexie.vip': 'Dexie PSD/zone internal',
+  'Dexie.idbdb': 'the raw IDBDatabase; there is no IndexedDB connection here',
+  'Table.defineClass': 'deprecated in Dexie itself; use mapToClass',
+  'Collection.raw': 'Dexie-internal escape hatch around hooks/mapToClass',
+  'Collection.clone': 'Dexie-internal; our collections are already immutable per step',
+};
+
+/**
+ * Names granth DOES have that mean something different from Dexie's.
+ *
+ * A separate list because it is a separate hazard, and the more dangerous one:
+ * an absent method throws immediately, while a name that exists with a different
+ * contract accepts the call and does the wrong thing.
+ *
+ * `Dexie.use` sat in the waiver list above for a long time, described as "no
+ * equivalent" — while `use()` had been implemented all along as the addon hook.
+ * The parity audit could not catch it: it only inspects members Dexie has and
+ * granth LACKS, so a waiver for something present is never looked up and never
+ * contradicted. `granth-mcp`'s test checks both directions.
+ */
+export const DEXIE_DIVERGENCES = {
+  'Dexie.use':
+    'exists, but it is not Dexie middleware. granth has no DBCore layer; db.use(addon) registers before/after ' +
+    'hooks and returns a handle with dispose(). A Dexie middleware object passed here will not do what it does in Dexie.',
+};
 
 export { LeaderLostError, NoLeaderError } from 'opfs-leader';
 export default Granth;

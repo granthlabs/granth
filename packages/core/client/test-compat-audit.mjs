@@ -7,7 +7,7 @@
 
 import 'fake-indexeddb/auto';
 import DexiePkg from 'dexie';
-import { Granth } from 'granthdb';
+import { Granth, DEXIE_WAIVERS } from 'granthdb';
 
 const Dexie = DexiePkg.default ?? DexiePkg;
 
@@ -38,18 +38,13 @@ const bdWhere = bdTable.where('name');
 /**
  * Members we knowingly do not implement, each with the reason. Anything NOT in
  * this list and NOT implemented is a bug, not a decision.
+ *
+ * The list moved into the package itself (`DEXIE_WAIVERS`) once `granth-mcp`
+ * needed the same nine entries to answer "why can I not call clone()". Two
+ * copies of a list nothing compares would have drifted the first time one
+ * changed, and this audit would still have passed.
  */
-const WONT_IMPLEMENT = {
-  'Dexie.use': 'middleware/addon pipeline — no equivalent; granth has no DBCore layer',
-  'Dexie.unuse': 'see use',
-  'Dexie.backendDB': 'exposes the raw IDBDatabase; there is no IDBDatabase here',
-  'Dexie.dynamicallyOpened': 'Dexie-internal',
-  'Dexie.vip': 'Dexie PSD/zone internal',
-  'Dexie.idbdb': 'the raw IDBDatabase; there is no IndexedDB connection here',
-  'Table.defineClass': 'deprecated in Dexie itself; use mapToClass',
-  'Collection.raw': 'Dexie-internal escape hatch around hooks/mapToClass',
-  'Collection.clone': 'Dexie-internal; our collections are already immutable per step',
-};
+const WONT_IMPLEMENT = DEXIE_WAIVERS;
 
 const groups = [
   ['Dexie', walk(dx), walk(bd)],

@@ -1,11 +1,11 @@
 {
-  "name": "granth-codemod",
+  "name": "granth-mcp",
   "version": "0.2.10",
   "type": "module",
   "license": "MIT",
-  "description": "Automated Dexie -> granth source migration. Rewrites what is safe, reports what is not.",
+  "description": "MCP server for granthdb. Lets an assistant run real queries against a scratch database and read the actual API surface, instead of guessing from Dexie.",
   "bin": {
-    "granth-codemod": "./dist/cli.js"
+    "granth-mcp": "./dist/index.js"
   },
   "exports": {
     ".": {
@@ -21,28 +21,32 @@
   ],
   "scripts": {
     "build": "tsc -b",
-    "test": "node test-transform.mjs"
+    "test": "node test-mcp.mjs"
   },
   "dependencies": {
-    "typescript": "^5.9.0"
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "granth-engine": "^0.2.10",
+    "granth-runtime-inline": "^0.2.10",
+    "granthdb": "^0.2.10",
+    "zod": "^3.25.0"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22.5"
   },
   "keywords": [
     "granthdb",
+    "mcp",
+    "model-context-protocol",
+    "sqlite",
     "dexie",
-    "codemod",
-    "migration",
-    "indexeddb",
-    "sqlite"
+    "ai"
   ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/granthlabs/granth.git",
-    "directory": "packages/tools/codemod"
+    "directory": "packages/tools/mcp"
   },
-  "homepage": "https://github.com/granthlabs/granth/tree/main/packages/tools/codemod#readme",
+  "homepage": "https://github.com/granthlabs/granth/tree/main/packages/tools/mcp#readme",
   "bugs": {
     "url": "https://github.com/granthlabs/granth/issues"
   },
