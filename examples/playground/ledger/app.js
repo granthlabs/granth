@@ -5,8 +5,12 @@
  * cached in a variable and nudged: balances come back out of the database after
  * each write, because a balance that is maintained separately from the rows it
  * summarises is a balance that will eventually disagree with them.
+ *
+ * Derived, but derived IN THE DATABASE. Each render asks for the 25 rows it is
+ * going to draw and four scalars; it does not ask for every matching row and do
+ * the arithmetic here.
  */
-import { db, ensureSeeded, transfer, totals, money, ACCOUNTS, CATEGORIES, SEED_COUNT } from './db.js';
+import { db, ensureSeeded, transfer, money, ACCOUNTS, CATEGORIES, SEED_COUNT } from './db.js';
 
 const $ = (id) => document.getElementById(id);
 const PAGE = 25;
@@ -32,13 +36,17 @@ function collection() {
 }
 
 async function balances() {
-  // Per account, from the rows. `.toArray()` then sum, rather than a stored
-  // running total that could drift away from what the table says.
+  // Summed IN SQLITE, one number per account.
+  //
+  // This used to be `.toArray()` then reduce, which pulled all 12,000 rows
+  // across postMessage on every render to produce three numbers — about 120 ms
+  // of structured clone to do arithmetic the database can do in one statement.
+  // Still derived from the rows rather than stored beside them, which was always
+  // the point; it is just no longer derived on the wrong side of the worker.
   const out = {};
-  for (const a of ACCOUNTS) {
-    const rows = await db.entries.where('account').equals(a).toArray();
-    out[a] = rows.reduce((n, e) => n + e.amount, 0);
-  }
+  await Promise.all(ACCOUNTS.map(async (a) => {
+    out[a] = (await db.entries.where('account').equals(a).sum('amount')) ?? 0;
+  }));
   return out;
 }
 
@@ -78,28 +86,35 @@ function renderRows(rows) {
 
 async function render() {
   const t = performance.now();
-  // Two collections, not one cloned twice: `Collection.clone()` is one of the
-  // two Dexie methods granthdb deliberately does not implement, and a collection
-  // is single-use. `collection()` is a factory precisely so this is cheap.
-  const [rows, all] = await Promise.all([
+  // A fresh collection per call, not one cloned: `Collection.clone()` is one of
+  // the two Dexie methods granthdb deliberately does not implement, and a
+  // collection is single-use. `collection()` is a factory precisely for this.
+  //
+  // Only the 25 rows on screen come back as rows. The count and the three totals
+  // are computed in SQLite and arrive as four numbers. Before this the render
+  // also pulled every matching entry — up to 12,000 — purely to add them up on
+  // the main thread, which is the one thing a query engine exists to avoid.
+  const [rows, count, moneyIn, moneyOut] = await Promise.all([
     collection().offset(state.page * PAGE).limit(PAGE).toArray(),
-    collection().toArray(),
+    collection().count(),
+    collection().filter((e) => e.amount > 0).sum('amount'),
+    collection().filter((e) => e.amount < 0).sum('amount'),
   ]);
   const took = performance.now() - t;
 
-  const sums = totals(all);
+  const sums = { in: moneyIn ?? 0, out: moneyOut ?? 0, net: (moneyIn ?? 0) + (moneyOut ?? 0) };
   $('t-in').textContent = money(sums.in);
   $('t-out').textContent = money(sums.out);
   $('t-net').textContent = money(sums.net);
   $('t-net').className = 'stat__n ' + (sums.net >= 0 ? 'in' : 'out');
 
-  $('timing').textContent = `${all.length.toLocaleString('en-GB')} entries · ${took.toFixed(1)} ms`;
-  const pages = Math.max(1, Math.ceil(all.length / PAGE));
+  $('timing').textContent = `${count.toLocaleString('en-GB')} entries · ${took.toFixed(1)} ms`;
+  const pages = Math.max(1, Math.ceil(count / PAGE));
   $('page-label').textContent = `Page ${state.page + 1} of ${pages}`;
   $('prev').disabled = state.page === 0;
   $('next').disabled = state.page >= pages - 1;
 
-  const empty = all.length === 0;
+  const empty = count === 0;
   $('empty').hidden = !empty;
   $('table-wrap').hidden = empty;
   if (!empty) renderRows(rows);
