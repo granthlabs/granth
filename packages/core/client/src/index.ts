@@ -230,6 +230,51 @@ class Collection {
     return this._ctx.call('query', this._table, this._plan, 'count');
   }
 
+  /**
+   * sum / avg / min / max over one field, computed in SQLite.
+   *
+   * Without these, the only way to total a column is `toArray()` and add up in
+   * JS — which ships every matching row across postMessage to produce one
+   * number. The Ledger showcase was moving ~14,000 rows per render to display
+   * four totals: "it is all local" does not make structured-cloning 14,000
+   * objects free, and the aggregation is exactly what the database was there to
+   * do.
+   *
+   * A client-side `.filter()` forces the JS path, because the predicate cannot
+   * cross into the worker — the same rule as everywhere else, degrading to
+   * precisely what the caller would otherwise have written by hand.
+   *
+   * `sum` of no rows is null, not 0. SQL says so, and "nothing matched" is a
+   * different fact from "it totalled zero" — which a ledger genuinely needs.
+   */
+  async sum(keyPath) { return this._agg('sum', keyPath); }
+  async avg(keyPath) { return this._agg('avg', keyPath); }
+  async min(keyPath) { return this._agg('min', keyPath); }
+  async max(keyPath) { return this._agg('max', keyPath); }
+
+  async _agg(fn, keyPath) {
+    if (typeof keyPath !== 'string' || !keyPath) {
+      throw new Error(`granth: ${fn}() needs a field name, e.g. ${fn}('amount')`);
+    }
+    if (this._clientSide) {
+      const rows = await this.toArray();
+      const vals = rows
+        .map((r) => keyPath.split('.').reduce((o, k) => (o == null ? o : o[k]), r))
+        .filter((v) => v != null && !Number.isNaN(Number(v)))
+        .map(Number);
+      if (!vals.length) return null;
+      if (fn === 'sum') return vals.reduce((a, b) => a + b, 0);
+      if (fn === 'avg') return vals.reduce((a, b) => a + b, 0) / vals.length;
+      return fn === 'min' ? Math.min(...vals) : Math.max(...vals);
+    }
+    return this._ctx.call(
+      'query',
+      this._table,
+      { ...this._plan, aggregate: { fn, field: keyPath } },
+      'aggregate'
+    );
+  }
+
   async primaryKeys() {
     if (this._clientSide) return (await this.toArray()).map((d) => d[this._ctx.pk(this._table)]);
     return this._ctx.call('query', this._table, this._plan, 'keys');
@@ -432,6 +477,10 @@ class Table {
   filter(fn) { return this._all().filter(fn); }
   toArray() { return this._all().toArray(); }
   count() { return this._all().count(); }
+  sum(keyPath) { return this._all().sum(keyPath); }
+  avg(keyPath) { return this._all().avg(keyPath); }
+  min(keyPath) { return this._all().min(keyPath); }
+  max(keyPath) { return this._all().max(keyPath); }
   toCollection() { return this._all(); }
   each(fn) { return this._all().each(fn); }
   toMap(keyPath) { return this._all().toMap(keyPath); }

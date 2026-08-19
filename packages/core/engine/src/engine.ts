@@ -655,6 +655,13 @@ export function createEngine(adapter: Adapter) {
       const { sql, params } = compile(s, plan, mode);
       const rows = adapter.all(sql, params);
       if (mode === 'count') return Number((rows[0] as Record<string, unknown>)['n']);
+      if (mode === 'aggregate') {
+        // SUM over no rows is SQL NULL, not 0. Returning null keeps "there was
+        // nothing to add" distinguishable from "it added up to zero" — which a
+        // ledger genuinely needs, and which coercing to 0 would destroy.
+        const v = (rows[0] as Record<string, unknown>)['n'];
+        return v == null ? null : Number(v);
+      }
       if (mode === 'keys') return rows.map((r) => r[s.primKey.name]);
       if (mode === 'indexKeys' || mode === 'uniqueIndexKeys') {
         const ix = boundIndex(s, plan);

@@ -4,7 +4,10 @@
 // the postMessage boundary — no SQL strings, no functions, no eval.
 // Pure module: testable without SQLite or a browser.
 
-import { findIndex, indexExpr, quoteIdent as q, shadowTable } from './schema.js';
+// `col` and `jsonPath` are here for the aggregates: unlike every other clause in
+// this file, sum/avg/min/max may target a field that is NOT indexed, so they
+// cannot go through indexExpr — which takes an IndexDef and so assumes one.
+import { findIndex, indexExpr, col, jsonPath, quoteIdent as q, shadowTable } from './schema.js';
 import type { IndexDef, StoreDef } from './schema.js';
 import { encodeParam, prefixUpperBound, encodePatch, expandPaths, NON_KEY_SENTINELS, NULL_SENTINEL } from './codec.js';
 
@@ -18,6 +21,8 @@ export interface Condition {
 }
 
 export interface QueryPlan {
+  /** sum/avg/min/max over one field, evaluated in SQLite rather than in JS. */
+  aggregate?: { fn: 'sum' | 'avg' | 'min' | 'max'; field: string };
   /** OR of ANDs. Empty means every row. */
   or: Array<{ and: Condition[] }>;
   order?: { index: string; desc?: boolean } | null;
@@ -26,7 +31,7 @@ export interface QueryPlan {
   reverse?: boolean;
 }
 
-export type QueryMode = 'docs' | 'keys' | 'count' | 'indexKeys' | 'uniqueIndexKeys';
+export type QueryMode = 'docs' | 'keys' | 'count' | 'indexKeys' | 'uniqueIndexKeys' | 'aggregate';
 
 export interface CompiledSql {
   sql: string;
@@ -455,6 +460,39 @@ export function compile(store: StoreDef, plan: QueryPlan, mode: QueryMode = 'doc
     plan.or,
     plan.order ? presence(store, findIndex(store, plan.order.index)) : undefined
   );
+
+  /**
+   * sum/avg/min/max over a field, computed in SQLite.
+   *
+   * Without this the only way to total a column is to pull every matching row
+   * across postMessage and add them up on the main thread — which is what the
+   * Ledger showcase was doing: ~14,000 rows shipped per render to produce four
+   * numbers. Structured-cloning rows to add them is not "local is fast", it is
+   * the aggregation the database was supposed to do.
+   *
+   * The field is read from its generated column when it is indexed, and from
+   * json_extract otherwise, so it works on any field rather than only indexed
+   * ones. NULLs are ignored by SQL's aggregates, which matches "rows that do not
+   * have this field do not contribute".
+   */
+  if (mode === 'aggregate') {
+    const fn = (plan.aggregate?.fn ?? 'sum').toUpperCase();
+    if (!['SUM', 'AVG', 'MIN', 'MAX'].includes(fn)) {
+      throw new Error(`granth: unknown aggregate "${plan.aggregate?.fn}"`);
+    }
+    const kp = plan.aggregate?.field ?? '';
+    const indexed = store.indexes.some((i) => !i.multi && i.keyPaths.length === 1 && i.keyPaths[0] === kp);
+    const expr = kp === store.primKey.name
+      ? q(kp)
+      : indexed
+        ? q(col(kp))
+        : `json_extract("_doc", '${jsonPath(kp)}')`;
+    if (plan.limit == null && !plan.offset) {
+      return { sql: `SELECT ${fn}(${expr}) AS n FROM ${t}${where.sql}`, params: where.params };
+    }
+    const inner = `SELECT ${expr} AS v FROM ${t}${where.sql}${compileOrderLimit(store, plan)}`;
+    return { sql: `SELECT ${fn}(v) AS n FROM (${inner})`, params: where.params };
+  }
 
   if (mode === 'count') {
     // COUNT ignores limit/offset in Dexie unless explicitly limited; honour limit if set.
