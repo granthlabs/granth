@@ -33,6 +33,32 @@ DRY=""
 VER=$(node -p "require('./package.json').version")
 echo "release: target version $VER${DRY:+  (dry run)}"
 
+# Check the credentials BEFORE publishing anything.
+#
+# npm answers an unauthenticated PUT to a package you own with 404, not 401 —
+# deliberately, so the registry does not leak which private packages exist. The
+# result is that an expired token reports as:
+#
+#   npm error 404 Not Found - PUT https://registry.npmjs.org/granth-codemod
+#   npm error 404  ...could not be found or you do not have permission
+#
+# which reads as "that package is missing" and sends you looking at the package.
+# One `whoami` up front turns it into the sentence it actually is.
+if [ -z "$DRY" ]; then
+  WHO=$(npm whoami 2>/dev/null)
+  if [ -z "$WHO" ]; then
+    echo
+    echo "release: not logged in to npm — nothing was published."
+    echo "         Publishing would fail with a 404 naming the first package,"
+    echo "         which is npm's way of saying 401 without leaking what exists."
+    echo
+    echo "         Run this in a terminal (it opens a browser), then re-run:"
+    echo "             npm login"
+    exit 1
+  fi
+  echo "release: authenticated as $WHO"
+fi
+
 # Dependency order, derived from the package graph rather than hand-listed: a
 # hand-listed order is correct until someone adds a package, and the symptom
 # then is a broken tarball on npm rather than an error here.
