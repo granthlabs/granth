@@ -1,6 +1,6 @@
 {
   "name": "granth-storage-opfs",
-  "version": "0.2.10",
+  "version": "0.2.11",
   "description": "OPFS storage backend for granth (opfs-sahpool VFS, no COOP/COEP required).",
   "type": "module",
   "license": "MIT",
@@ -38,6 +38,6 @@
   },
   "author": "sundarshahi <shahithakurisundar@gmail.com>",
   "dependencies": {
-    "granth-protocol": "^0.2.10"
+    "granth-protocol": "^0.2.11"
   }
 }

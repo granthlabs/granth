@@ -202,6 +202,31 @@ A few other things fall out of having SQL underneath:
 | `db.clearAll()` | empty every table, keep the schema |
 | `db.size()` | bytes on disk |
 
+### Without losing what IndexedDB kept
+
+Storing documents as JSON is the obvious way to build this, and it quietly drops
+half of what the structured clone algorithm preserves — so a value written
+through a Dexie-shaped API comes back as something else. granthdb encodes
+against that algorithm rather than against JSON:
+
+| Value | Plain JSON storage | granthdb |
+|---|---|---|
+| `Date` | ISO string | `Date` |
+| `NaN`, `Infinity` | `null` | preserved |
+| `BigInt` | throws | preserved, and index-ordered |
+| `undefined`, `null` | key vanishes / merge deletes it | both distinguishable |
+| `Uint8Array` and every typed array | `{"0":37,"1":80,…}` | same type, same bytes |
+| `ArrayBuffer`, `DataView` | `{}` | preserved |
+| `Map`, `Set`, `RegExp` | `{}` | preserved, recursively |
+| `Blob`, `File` | `{}` — silently gone | **throws**, naming the fix |
+
+The last row is deliberate. Reading a Blob's bytes is asynchronous and the codec
+runs inside the write path, so it cannot encode one — and a loud error beats a
+file that vanished. Pass `new Uint8Array(await file.arrayBuffer())` instead, and
+for anything large keep the bytes beside the database rather than inside a row:
+base64 costs 33% and re-parses the whole document on every read. See
+[Files and binary data](https://granthlabs.github.io/files-and-binary).
+
 ## Performance
 
 5,000 documents (~1.6 MB), Chrome, M-series Mac. Run

@@ -105,7 +105,7 @@ function probe() {
   return { db, table, collection: table.toCollection(), where: table.where('name') };
 }
 
-const server = new McpServer({ name: 'granth-mcp', version: '0.2.10' });
+const server = new McpServer({ name: 'granth-mcp', version: '0.2.11' });
 
 server.registerTool(
   'granth_run',

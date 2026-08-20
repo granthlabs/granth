@@ -1,6 +1,6 @@
 {
   "name": "granth-migrate-idb",
-  "version": "0.2.10",
+  "version": "0.2.11",
   "description": "Migrate an existing IndexedDB or Dexie database into granth.",
   "type": "module",
   "license": "MIT",
@@ -38,6 +38,6 @@
   },
   "author": "sundarshahi <shahithakurisundar@gmail.com>",
   "dependencies": {
-    "granth-protocol": "^0.2.10"
+    "granth-protocol": "^0.2.11"
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "granth-mcp",
-  "version": "0.2.10",
+  "version": "0.2.11",
   "type": "module",
   "license": "MIT",
   "description": "MCP server for granthdb. Lets an assistant run real queries against a scratch database and read the actual API surface, instead of guessing from Dexie.",
@@ -25,9 +25,9 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
-    "granth-engine": "^0.2.10",
-    "granth-runtime-inline": "^0.2.10",
-    "granthdb": "^0.2.10",
+    "granth-engine": "^0.2.11",
+    "granth-runtime-inline": "^0.2.11",
+    "granthdb": "^0.2.11",
     "zod": "^3.25.0"
   },
   "engines": {
