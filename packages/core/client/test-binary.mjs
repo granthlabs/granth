@@ -106,6 +106,50 @@ assert.equal(bigBack.length, big.length, '1 MB survives');
 assert.equal(bigBack[1048575], big[1048575], 'including the last byte');
 n += 2;
 
+// ---- Map, Set and RegExp: the rest of the same hole.
+// `typeof x === 'object'` is true for all three, so isPlain() claimed them,
+// encode() walked keys they do not expose, and each stored as `{}`. All three
+// are structured-clone types, so IndexedDB round-trips them.
+const mId = await g.files.add({
+  name: 'collections',
+  map: new Map([['a', 1], ['b', 'two']]),
+  set: new Set([3, 'four']),
+  re: /ab+c/gi,
+});
+const m = await g.files.get(mId);
+assert.ok(m.map instanceof Map, 'a Map comes back a Map');
+assert.deepEqual([...m.map], [['a', 1], ['b', 'two']], 'with its entries and order');
+assert.ok(m.set instanceof Set, 'a Set comes back a Set');
+assert.deepEqual([...m.set], [3, 'four'], 'with its members');
+assert.ok(m.re instanceof RegExp, 'a RegExp comes back a RegExp');
+assert.equal(m.re.source, 'ab+c', 'with its source');
+assert.equal(m.re.flags, 'gi', 'and its flags');
+n += 7;
+
+// ---- and RECURSIVELY, or the container is fixed and the same bug survives
+// one level down.
+const rId = await g.files.add({
+  name: 'nested collections',
+  map: new Map([['when', new Date('2026-01-02T03:04:05.000Z')], ['bytes', new Uint8Array([1, 2, 3])]]),
+  set: new Set([new Date('2020-06-01T00:00:00.000Z')]),
+  deep: new Map([['inner', new Map([['n', 9007199254740993n]])]]),
+});
+const r = await g.files.get(rId);
+assert.ok(r.map.get('when') instanceof Date, 'a Date inside a Map survives as a Date');
+assert.equal(r.map.get('when').toISOString(), '2026-01-02T03:04:05.000Z', 'with its value');
+assert.ok(r.map.get('bytes') instanceof Uint8Array, 'binary inside a Map survives');
+assert.deepEqual([...r.map.get('bytes')], [1, 2, 3], 'with its bytes');
+assert.ok([...r.set][0] instanceof Date, 'a Date inside a Set survives');
+assert.equal(r.deep.get('inner').get('n'), 9007199254740993n, 'a Map inside a Map, holding a bigint');
+n += 6;
+
+// ---- empty ones are not missing ones
+const zId = await g.files.add({ name: 'empty collections', map: new Map(), set: new Set() });
+const z = await g.files.get(zId);
+assert.ok(z.map instanceof Map && z.map.size === 0, 'an empty Map round-trips');
+assert.ok(z.set instanceof Set && z.set.size === 0, 'an empty Set round-trips');
+n += 2;
+
 // ---- an empty buffer is not the same as a missing one
 const eId = await g.files.add({ name: 'empty', body: new Uint8Array(0) });
 const eBack = (await g.files.get(eId)).body;
@@ -142,4 +186,4 @@ assert.ok(stored > 1_398_000 && stored < 1_410_000, `1 MB stores as ~1.33 MB of 
 n++;
 
 await g.close();
-console.log(`binary: ${n} checks (every typed array round-trips with its type; Blob and File fail loudly)`);
+console.log(`binary: ${n} checks (every structured-clone type round-trips; Blob and File fail loudly)`);
