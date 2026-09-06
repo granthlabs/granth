@@ -197,6 +197,48 @@ await tick(80); assert.equal(netCalls, 0, 'hedge must not fire the network when 
 // the gap is recorded. Reproducing it needs a harness where one client is pinned
 // as leader while its worker is artificially stalled.
 
+// A worker factory that throws must FAIL the calls, not swallow the throw.
+//
+// This is the browser case: `new Worker(url)` throws when a Content-Security-
+// Policy blocks the URL, or when the script 404s. The election happens inside
+// the Web Locks callback and that request promise is deliberately voided —
+// leadership is held for the life of the tab, not awaited — so before the fix
+// the throw had nowhere to go at all. In a browser the caller's open() simply
+// never settled: a database that hangs forever with nothing logged. Under
+// Node's native Web Locks the same throw is an unhandled rejection, which ends
+// the process, and that is how it was finally noticed.
+{
+  const client = createLeaderClient({
+    name: `cannot-start-${Math.random()}`,
+    worker: () => {
+      throw new Error('Refused to create a worker from the URL (CSP)');
+    },
+    timeoutMs: 300,
+    locks: makeLocks(),
+  });
+
+  const outcome = await Promise.race([
+    client.call('get', 'a', 1).then(() => 'RESOLVED', (e) => e),
+    tick(1500).then(() => 'HUNG'),
+  ]);
+  assert.notEqual(outcome, 'HUNG', 'a worker that cannot start must fail the call, not hang it forever');
+  assert.notEqual(outcome, 'RESOLVED', 'a call cannot succeed when no worker ever started');
+  assert.match(
+    outcome.message,
+    /cannot run the database/,
+    `the failure must say what happened, not time out anonymously — got: ${outcome.message}`
+  );
+  assert.match(outcome.message, /Content-Security-Policy/, 'and name the usual cause');
+
+  // Every later call fails the same way and immediately, rather than each one
+  // waiting out its own timeout for a leader that will never answer.
+  const started = Date.now();
+  const second = await client.call('get', 'a', 2).then(() => null, (e) => e);
+  assert.match(second.message, /cannot run the database/);
+  assert.ok(Date.now() - started < 200, `a later call must fail fast, took ${Date.now() - started}ms`);
+  client.close();
+}
+
 console.log('opfs-leader selfcheck: all assertions passed');
 
 // An open BroadcastChannel keeps Node alive; exit explicitly so CI does not hang.

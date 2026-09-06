@@ -94,6 +94,30 @@ an invisible sentinel instead of deleting the property (patches now encode
 different things). `get(null)` / `get({})` returned `undefined` instead of
 rejecting.
 
+## Confirmed and fixed: a worker that cannot start hung the database forever
+
+Leadership is taken inside a Web Locks request whose promise is deliberately
+voided — leadership is held for the life of the tab, not awaited. `onElected()`
+constructs the caller's worker inside that callback, so when the construction
+threw, the throw had nowhere to go. The tab had already set `isLeader = true`,
+never asked anyone else to lead, and never posted `elected` — so every call
+queued behind the election stayed pending.
+
+In a browser that is a database that **hangs forever with nothing logged**, from
+causes as ordinary as a CSP that blocks the worker URL or a worker script that
+404s after a deploy.
+
+It was never Node-only; browsers have always had `navigator.locks`. What changed
+is that Node 24 ships a native one, which turned the silent throw into an
+unhandled rejection — and that ends the process. A defect swallowed for its
+whole life became visible only because the test suite started *crashing* rather
+than failing.
+
+Fixed by catching it, releasing the lock so another tab can lead, and failing
+every waiting and later call with a message that names the likely cause.
+Guarded by a case in `packages/opfs-leader/test-selfcheck.mjs`; reverting the
+fix does not make it fail, it makes it crash, which is the tell.
+
 ## Divergences that stand, and why
 
 - **A lone surrogate can be stored but not matched.** It round-trips exactly, but
