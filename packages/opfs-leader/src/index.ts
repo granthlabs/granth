@@ -114,7 +114,10 @@ function toError(e: unknown): Error {
 export function holdLeadership(
   name: string,
   onElected: () => void,
-  { locks = globalThis.navigator?.locks }: { locks?: LockManager } = {}
+  {
+    locks = globalThis.navigator?.locks,
+    onError,
+  }: { locks?: LockManager; onError?: (err: Error) => void } = {}
 ): () => void {
   if (!locks?.request) {
     throw new Error(
@@ -127,7 +130,24 @@ export function holdLeadership(
     release = () => resolve();
   });
   void locks.request(`opfs-leader:${name}`, async () => {
-    onElected();
+    // Winning the lock and then failing to set up must not be silent.
+    //
+    // This request promise is deliberately voided — leadership is held for the
+    // life of the tab, not awaited — so a throw out of `onElected` has nowhere
+    // to go. What that looked like: `worker()` throwing (a CSP that blocks the
+    // worker URL, a 404, an SSR bundle with no Worker constructor) left the
+    // caller's open() pending FOREVER with no error anywhere. Under Node's
+    // native Web Locks the same throw is an unhandled rejection, which ends the
+    // process; that is how it was finally caught.
+    //
+    // Returning here releases the lock, so another tab can lead instead of
+    // queueing behind a leader that never was one.
+    try {
+      onElected();
+    } catch (err) {
+      onError?.(toError(err));
+      return;
+    }
     await held; // never resolves until release() — leadership IS the lock
   });
   return () => release();
@@ -164,6 +184,14 @@ export function createLeaderClient({
   let dbWorker: Worker | null = null;
   let closed = false;
   let seq = 0;
+  /**
+   * Set when this tab won the election and then could not start its worker.
+   *
+   * Once that has happened there is nothing to wait for: no worker will answer,
+   * and every later call must fail with the reason rather than time out one by
+   * one on a `timeoutMs` that is now just a delay before the same news.
+   */
+  let fatal: Error | null = null;
 
   // Election resolves asynchronously, so the first call in the only open tab can
   // be broadcast before anyone is leader — and a BroadcastChannel never delivers
@@ -249,7 +277,25 @@ export function createLeaderClient({
       leaderSettled();
       onLeadership(true);
     },
-    { locks }
+    {
+      locks,
+      onError: (err: Error) => {
+        // We hold — or held — the lock, and the worker never started. Say so
+        // once, to everything waiting and to everything that arrives later.
+        isLeader = false;
+        dbWorker = null;
+        fatal = new Error(
+          `opfs-leader: this tab was elected leader but cannot run the database — ${err.message}. ` +
+            `Check that the worker URL resolves and is not blocked by the page's Content-Security-Policy.`
+        );
+        for (const [callId] of [...pending]) settle(callId, { error: fatal });
+        // Release anything blocked in awaitLeader, so those calls fail with the
+        // reason above instead of waiting out the full timeout for a leader
+        // that will never answer.
+        leaderSettled();
+        onLeadership(false);
+      },
+    }
   );
 
   function runOnWorker(callId: string, method: string, args: unknown[]): Promise<WorkerReply> {
@@ -360,9 +406,14 @@ export function createLeaderClient({
 
   async function call<T = unknown>(method: string, ...args: unknown[]): Promise<T> {
     if (closed) throw new Error('opfs-leader: client is closed');
+    if (fatal) throw fatal;
 
     if (!isLeader && !leaderKnown) await awaitLeader();
     if (closed) throw new Error('opfs-leader: client is closed');
+    // Re-checked after the await: the election can fail while a call is queued
+    // behind it, which is in fact the usual order — the first call is what
+    // starts the election that then fails.
+    if (fatal) throw fatal;
 
     if (isLeader) {
       const callId = `${tabId}:${seq++}`;

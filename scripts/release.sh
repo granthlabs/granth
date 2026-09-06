@@ -86,7 +86,11 @@ published=0; skipped=0
 for dir in "${DIRS[@]}"; do
   name=$(node -p "require('./$dir/package.json').name")
 
-  if [ -z "$DRY" ] && [ "$(npm view "$name@$VER" version 2>/dev/null)" = "$VER" ]; then
+  # Skip in dry runs too. It used to check only for a real publish, so a dry
+  # run AFTER a release stopped at the first package with "cannot publish over
+  # the previously published versions" and printed FAILED — which reads as a
+  # broken release and is the opposite of what a dry run is for.
+  if [ "$(npm view "$name@$VER" version 2>/dev/null)" = "$VER" ]; then
     echo "  skip      $name  (already at $VER)"
     skipped=$((skipped + 1))
     continue
@@ -119,19 +123,28 @@ fi
 # pipeline that swallowed npm's exit status.
 #
 # `--prefer-online` revalidates rather than trusting the local cache.
+#
+# Twelve attempts over a minute, not five over fifteen seconds. The short
+# budget reported a SUCCESSFUL release as a failed one — granth-migrate-idb and
+# granth-react were called MISSING and were on the registry moments later — and
+# that is the exact lie this whole verification block exists to prevent. How
+# long a package takes to become readable is npm's business and it is not
+# uniform across a run.
 echo
 echo "release: verifying against the registry"
 missing=0
 for dir in "${DIRS[@]}"; do
   name=$(node -p "require('./$dir/package.json').name")
   seen=""
-  for attempt in 1 2 3 4 5; do
+  for attempt in $(seq 1 12); do
     seen=$(npm view --prefer-online "$name@$VER" version 2>/dev/null)
     [ "$seen" = "$VER" ] && break
-    sleep 3
+    # Say which one is being waited on, so a slow package does not look hung.
+    [ "$attempt" = 3 ] && echo "  waiting   $name@$VER  (not readable yet)"
+    sleep 5
   done
   if [ "$seen" != "$VER" ]; then
-    echo "  MISSING   $name@$VER  (still not visible after 5 attempts)"
+    echo "  MISSING   $name@$VER  (still not visible after 12 attempts over a minute)"
     missing=$((missing + 1))
   fi
 done
